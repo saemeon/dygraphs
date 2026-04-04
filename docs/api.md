@@ -38,9 +38,40 @@
         - crosshair
         - ribbon
         - rebase
+        - update
+        - copy
+        - from_csv
         - to_dash
+        - to_shiny
+        - to_html
         - to_dict
         - to_json
+
+## Declarative Dataclasses
+
+::: pydygraphs.Options
+
+::: pydygraphs.Axis
+
+::: pydygraphs.Series
+
+::: pydygraphs.Legend
+
+::: pydygraphs.Highlight
+
+::: pydygraphs.Annotation
+
+::: pydygraphs.Shading
+
+::: pydygraphs.Event
+
+::: pydygraphs.Limit
+
+::: pydygraphs.RangeSelector
+
+::: pydygraphs.Roller
+
+::: pydygraphs.Callbacks
 
 ## Dash Integration
 
@@ -50,6 +81,12 @@
 
 ::: pydygraphs.stacked_bar
 
+## Shiny Integration
+
+::: pydygraphs.shiny.dygraph_ui
+
+::: pydygraphs.shiny.render_dygraph
+
 ## Capture
 
 ::: pydygraphs.dash.capture.dygraph_strategy
@@ -57,3 +94,7 @@
 ## Utilities
 
 ::: pydygraphs.JS
+
+::: pydygraphs.make_error_bar_data
+
+::: pydygraphs.make_custom_bar_data

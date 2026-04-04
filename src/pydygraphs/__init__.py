@@ -26,7 +26,7 @@ from pydygraphs.declarative import (
     Shading,
 )
 from pydygraphs.dygraph import Dygraph
-from pydygraphs.utils import JS
+from pydygraphs.utils import JS, make_custom_bar_data, make_error_bar_data
 
 try:
     from pydygraphs._version import __version__
@@ -86,6 +86,9 @@ __all__ = [
     "Roller",
     "Series",
     "Shading",
+    # Utilities
+    "make_custom_bar_data",
+    "make_error_bar_data",
     # Dash (lazy)
     "dygraph_strategy",
     "dygraph_to_dash",

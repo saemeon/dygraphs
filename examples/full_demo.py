@@ -1,4 +1,4 @@
-"""Extensive demo app showcasing all dash-dygraphs features.
+"""Extensive demo app showcasing all pydygraphs features.
 
 Run with::
 
@@ -14,7 +14,18 @@ import numpy as np
 import pandas as pd
 from dash import Input, Output, dcc, html
 
-from pydygraphs import Dygraph, stacked_bar, sync_dygraphs
+from pydygraphs import (
+    Axis,
+    Dygraph,
+    Event,
+    Legend,
+    Options,
+    RangeSelector,
+    Series,
+    Shading,
+    stacked_bar,
+    sync_dygraphs,
+)
 
 # =============================================================================
 # Data helpers
@@ -143,6 +154,41 @@ chart4_component = stacked_bar(
 )
 
 # ---------------------------------------------------------------------------
+# Chart 5: Declarative API style
+# ---------------------------------------------------------------------------
+
+df5 = make_timeseries(0, 99, 50, ["Voltage", "Current"])
+
+chart5 = Dygraph(
+    df5,
+    title="Declarative API Example",
+    options=Options(fill_graph=True, stroke_width=2, animated_zooms=True),
+    axes=[Axis("y", label="Value")],
+    series=[
+        Series("Voltage", color="#e74c3c", stroke_width=2.5),
+        Series("Current", color="#3498db", fill_graph=False),
+    ],
+    legend=Legend(show="always"),
+    range_selector=RangeSelector(height=25),
+    shadings=[Shading(from_="2024-02-01", to="2024-03-01", color="rgba(255,200,200,0.3)")],
+    events=[Event(x="2024-02-14", label="Maintenance", color="#888")],
+)
+chart5_component = chart5.to_dash(app=app, component_id="chart-5", height="280px")
+
+# ---------------------------------------------------------------------------
+# Chart 6: Numpy array input + copy/fork
+# ---------------------------------------------------------------------------
+
+base_chart = Dygraph(
+    np.column_stack([np.arange(50), np.random.randn(50).cumsum()]),
+    title="Numpy Input (base)",
+).options(stroke_width=2, colors=["#2ecc71"])
+
+chart6 = base_chart.copy()
+chart6._attrs["title"] = "Numpy Input + Copy"  # fork variant
+chart6_component = chart6.to_dash(app=app, component_id="chart-6", height="200px")
+
+# ---------------------------------------------------------------------------
 # Sync charts 1, 2, and 4 (line + line + stacked bar)
 # ---------------------------------------------------------------------------
 
@@ -181,12 +227,12 @@ app.layout = html.Div(
     children=[
         sync_component,
         html.H1(
-            "dash-dygraphs Full Demo", style={"textAlign": "center", "color": "#2c3e50"}
+            "pydygraphs Full Demo", style={"textAlign": "center", "color": "#2c3e50"}
         ),
         html.P(
-            "Showcasing: line charts, step plots, stacked bars, range selectors, "
-            "annotations, events, shadings, limits, crosshair, zoom sync, modebar, "
-            "secondary axes, rolling averages, and more.",
+            "Showcasing: builder + declarative APIs, line charts, step plots, stacked bars, "
+            "range selectors, annotations, events, shadings, limits, crosshair, zoom sync, "
+            "modebar, secondary axes, numpy input, copy/fork, and more.",
             style={"textAlign": "center", "color": "#666", "marginBottom": "32px"},
         ),
         html.Div(
@@ -245,6 +291,26 @@ app.layout = html.Div(
                     style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
                 ),
                 chart4_component,
+            ],
+        ),
+        html.Div(
+            style=CARD,
+            children=[
+                html.H3(
+                    "Declarative API",
+                    style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
+                ),
+                chart5_component,
+            ],
+        ),
+        html.Div(
+            style=CARD,
+            children=[
+                html.H3(
+                    "Numpy Input + Copy",
+                    style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
+                ),
+                chart6_component,
             ],
         ),
     ],

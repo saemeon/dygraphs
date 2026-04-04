@@ -127,6 +127,7 @@ class Dygraph:
         range_selector: Any = None,
         roller: Any = None,
         callbacks: Any = None,
+        plotter: str | None = None,
     ) -> None:
         self._width = width
         self._height = height
@@ -173,6 +174,7 @@ class Dygraph:
             range_selector=range_selector,
             roller=roller,
             callbacks=callbacks,
+            plotter=plotter,
         )
 
     # ---- declarative application ------------------------------------
@@ -192,12 +194,25 @@ class Dygraph:
         range_selector: Any = None,
         roller: Any = None,
         callbacks: Any = None,
+        plotter: str | None = None,
     ) -> None:
         """Apply declarative dataclass/dict params by delegating to builder methods."""
         from pydygraphs.declarative import _to_kwargs
 
         if options is not None:
             self.options(**_to_kwargs(options))
+        if plotter is not None:
+            _plotter_methods: dict[str, str] = {
+                "bar_chart": "bar_chart",
+                "stacked_bar_chart": "stacked_bar_chart",
+                "multi_column": "multi_column",
+                "candlestick": "candlestick",
+            }
+            method_name = _plotter_methods.get(plotter)
+            if method_name:
+                getattr(self, method_name)()
+            else:
+                self.options(plotter=plotter)
         if axes is not None:
             items = axes.values() if isinstance(axes, dict) else axes
             for ax in items:
@@ -288,6 +303,21 @@ class Dygraph:
             labels: list[str] = [str(k) for k in keys]
             columns: list[list[Any]] = [list(v) for v in data.values()]
             return labels, columns, fmt
+
+        # numpy array → treat as 2D array (columns)
+        try:
+            import numpy as np
+
+            if isinstance(data, np.ndarray):
+                if data.ndim == 1:
+                    data = data.reshape(-1, 1)
+                n_cols = data.shape[1]
+                labels = [f"V{i}" for i in range(n_cols)]
+                columns = [data[:, i].tolist() for i in range(n_cols)]
+                fmt = "numeric"
+                return labels, columns, fmt
+        except ImportError:
+            pass
 
         if isinstance(data, list):
             if not data or not isinstance(data[0], list):
@@ -1271,3 +1301,117 @@ class Dygraph:
         from pydygraphs.shiny.component import dygraph_ui
 
         return dygraph_ui(element_id, height=height, width=width)
+
+    # ---- to_html (standalone export) ---------------------------------
+
+    def to_html(
+        self,
+        *,
+        height: str | int = "400px",
+        width: str = "100%",
+        title: str | None = None,
+        cdn: bool = True,
+    ) -> str:
+        """Render a self-contained HTML page with the dygraph chart.
+
+        Useful for reports, emails, or embedding in iframes — no server
+        needed.
+
+        Parameters
+        ----------
+        height, width
+            CSS dimensions for the chart container.
+        title
+            HTML ``<title>`` tag. Defaults to the chart title.
+        cdn
+            If True, load dygraphs from CDN. If False, inline the JS.
+        """
+        height_css = f"{height}px" if isinstance(height, int) else height
+        page_title = title or self._attrs.get("title", "pydygraphs chart")
+        config_json = self.to_json()
+
+        if cdn:
+            js_include = (
+                '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.css">\n'
+                '<script src="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.js"></script>'
+            )
+        else:
+            dygraph_js = (ASSETS_DIR / "dygraph-combined.js").read_text()
+            dygraph_css = (ASSETS_DIR / "dygraph.css").read_text()
+            js_include = f"<style>{dygraph_css}</style>\n<script>{dygraph_js}</script>"
+
+        return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>{page_title}</title>
+{js_include}
+</head><body>
+<div id="chart" style="width:{width}; height:{height_css};"></div>
+<script>
+(function() {{
+    var config = {config_json};
+    var data = config.data;
+    var nRows = data[0].length, nCols = data.length, rows = [];
+    for (var i = 0; i < nRows; i++) {{
+        var row = [];
+        for (var j = 0; j < nCols; j++) {{
+            var val = data[j][i];
+            if (j === 0 && config.format === 'date' && typeof val === 'string') val = new Date(val);
+            row.push(val);
+        }}
+        rows.push(row);
+    }}
+    var opts = config.attrs;
+    var g = new Dygraph(document.getElementById('chart'), rows, opts);
+    if (config.annotations && config.annotations.length > 0) {{
+        g.setAnnotations(config.annotations.map(function(a) {{
+            return {{
+                series: a.series,
+                x: config.format === 'date' ? new Date(a.x).getTime() : a.x,
+                shortText: a.shortText, text: a.text || '',
+                attachAtBottom: a.attachAtBottom || false
+            }};
+        }}));
+    }}
+}})();
+</script></body></html>"""
+
+    # ---- update (modify config) --------------------------------------
+
+    def update(self, **kwargs: Any) -> Dygraph:
+        """Apply declarative params or builder-style overrides to this chart.
+
+        Accepts the same keyword arguments as the constructor's declarative
+        params (``options``, ``axes``, ``series``, ``legend``, etc.).
+
+        Returns self for chaining.
+        """
+        self._apply_declarative(**kwargs)
+        return self
+
+    # ---- copy --------------------------------------------------------
+
+    def copy(self) -> Dygraph:
+        """Return a deep copy of this Dygraph.
+
+        Useful for forking a base config into variants.
+        """
+        return copy.deepcopy(self)
+
+    # ---- from_csv (class method) -------------------------------------
+
+    @classmethod
+    def from_csv(
+        cls,
+        path: str | Path,
+        **kwargs: Any,
+    ) -> Dygraph:
+        """Create a Dygraph from a CSV file path.
+
+        Parameters
+        ----------
+        path
+            Path to a CSV file. The first column is used as x-axis.
+        **kwargs
+            Passed to ``Dygraph()``.
+        """
+        csv_text = Path(path).read_text()
+        return cls(csv_text, **kwargs)

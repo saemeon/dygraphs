@@ -100,3 +100,53 @@ class JS:
 
     def __hash__(self) -> int:
         return hash(self.code)
+
+
+def make_error_bar_data(
+    x: list[Any],
+    y: list[float],
+    error: list[float],
+    *,
+    labels: tuple[str, str, str] = ("x", "value", "error"),
+) -> dict[str, list[Any]]:
+    """Build a data dict with symmetric error bars for ``Dygraph()``.
+
+    Pass the result to ``Dygraph(data, options={"error_bars": True})``.
+    Dygraphs expects ``[x, value, error]`` format when ``errorBars=True``.
+
+    Parameters
+    ----------
+    x
+        X-axis values (dates or numbers).
+    y
+        Y-axis values.
+    error
+        Error values (± around y).
+    labels
+        Column labels ``(x_label, y_label, error_label)``.
+    """
+    return {labels[0]: x, labels[1]: y, labels[2]: error}
+
+
+def make_custom_bar_data(
+    x: list[Any],
+    low: list[float],
+    mid: list[float],
+    high: list[float],
+    *,
+    labels: tuple[str, str, str, str] = ("x", "low", "mid", "high"),
+) -> dict[str, list[Any]]:
+    """Build a data dict with custom (asymmetric) bars for ``Dygraph()``.
+
+    Pass the result to ``Dygraph(data, options={"custom_bars": True})``.
+
+    Parameters
+    ----------
+    x
+        X-axis values.
+    low, mid, high
+        Low, middle, and high values for each point.
+    labels
+        Column labels.
+    """
+    return {labels[0]: x, labels[1]: low, labels[2]: mid, labels[3]: high}
