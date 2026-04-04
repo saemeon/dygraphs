@@ -15,13 +15,13 @@ import json
 import uuid
 from typing import TYPE_CHECKING, Any
 
-from dash_dygraphs.utils import JS
+from pydygraphs.utils import JS
 
 if TYPE_CHECKING:
     from dash import Dash
     from dash.development.base_component import Component
 
-    from dash_dygraphs.dygraph import Dygraph
+    from pydygraphs.dygraph import Dygraph
 
 _DYGRAPH_JS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.js"
 _DYGRAPH_CSS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.css"

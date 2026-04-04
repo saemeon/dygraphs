@@ -15,7 +15,7 @@ def dash_app_url():
     """Start a Dash app with a real dygraph chart."""
     from dash import Dash, html
 
-    from dash_dygraphs import Dygraph
+    from pydygraphs import Dygraph
 
     app = Dash(__name__)
 

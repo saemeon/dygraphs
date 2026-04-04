@@ -28,4 +28,4 @@ jobs:
         run: uv sync --group test
 
       - name: Tests
-        run: uv run pytest tests/dash_dygraphs/
+        run: uv run pytest tests/pydygraphs/

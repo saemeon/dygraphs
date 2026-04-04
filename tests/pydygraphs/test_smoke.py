@@ -4,6 +4,6 @@ from __future__ import annotations
 
 
 def test_import() -> None:
-    import dash_dygraphs
+    import pydygraphs
 
-    assert dash_dygraphs.__version__
+    assert pydygraphs.__version__

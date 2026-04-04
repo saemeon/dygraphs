@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from dash_dygraphs.utils import (
+from pydygraphs.utils import (
     JS,
     auto_colors,
     hsv_to_hex,

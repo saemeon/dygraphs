@@ -1,8 +1,8 @@
 [project]
-name = "dash-dygraphs"
+name = "pydygraphs"
 dynamic = ["version"]
-description = "Python/Dash wrapper for the dygraphs JavaScript charting library."
-keywords = ["plotly", "dash", "dygraphs", "visualization", "time-series"]
+description = "Python wrapper for the dygraphs JavaScript charting library. Core port of R dygraphs with framework adapters for Dash and Shiny."
+keywords = ["dygraphs", "visualization", "time-series", "dash", "shiny", "charting"]
 classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -21,16 +21,20 @@ maintainers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "dash>=2.0.0",
     "pandas>=1.5.0",
 ]
 
+[project.optional-dependencies]
+dash = ["dash>=2.0.0"]
+shiny = ["shiny>=0.6.0"]
+all = ["dash>=2.0.0", "shiny>=0.6.0"]
+
 [project.urls]
-Homepage = "https://github.com/saemeon/dash-dygraphs"
-Repository = "https://github.com/saemeon/dash-dygraphs"
+Homepage = "https://github.com/saemeon/pydygraphs"
+Repository = "https://github.com/saemeon/pydygraphs"
 
 [dependency-groups]
-test = ["pytest", "pytest-cov", "selenium", "numpy"]
+test = ["pytest", "pytest-cov", "selenium", "numpy", "dash>=2.0.0"]
 doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mike"]
 dev = [
     "ruff",
@@ -47,20 +51,20 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 version_scheme = "post-release"
 local_scheme = "no-local-version"
-write_to = "src/dash_dygraphs/_version.py"
+write_to = "src/pydygraphs/_version.py"
 
 [tool.setuptools.dynamic]
-version = { attr = "dash_dygraphs._version.__version__" }
+version = { attr = "pydygraphs._version.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-dash_dygraphs = ["py.typed", "assets/**/*"]
+pydygraphs = ["py.typed", "assets/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=src/dash_dygraphs --cov-report=term-missing"
+addopts = "--cov=src/pydygraphs --cov-report=term-missing"
 
 [tool.ty.src]
 include = ["src"]

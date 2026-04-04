@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from dash_dygraphs.utils import (
+from pydygraphs.utils import (
     JS,
     auto_colors,
     merge_dicts,
@@ -1150,9 +1150,35 @@ class Dygraph:
         dash.html.Div
             Component ready to place in a Dash layout.
         """
-        from dash_dygraphs.dash_component import dygraph_to_dash
+        from pydygraphs.dash.component import dygraph_to_dash
 
         return dygraph_to_dash(
             self, app=app, component_id=component_id,
             height=height, width=width, modebar=modebar
         )
+
+    def to_shiny(
+        self,
+        element_id: str,
+        *,
+        height: str = "400px",
+        width: str = "100%",
+    ) -> Any:
+        """Create Shiny UI components for this chart.
+
+        Returns a ``TagList`` to include in your Shiny app's UI.
+        Use ``render_dygraph(session, element_id, dg)`` in a reactive
+        effect to send/update data.
+
+        Requires ``pydygraphs[shiny]``.
+
+        Parameters
+        ----------
+        element_id
+            Unique DOM id for the chart container.
+        height, width
+            CSS dimensions.
+        """
+        from pydygraphs.shiny.component import dygraph_ui
+
+        return dygraph_ui(element_id, height=height, width=width)

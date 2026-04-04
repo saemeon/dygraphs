@@ -1,4 +1,4 @@
-# dash-dygraphs
+# pydygraphs
 
 Python/Dash wrapper for the [dygraphs](https://dygraphs.com) JavaScript charting library.
 
@@ -7,7 +7,7 @@ Ported from the R [dygraphs](https://rstudio.github.io/dygraphs/) package with a
 ## Installation
 
 ```bash
-pip install dash-dygraphs
+pip install pydygraphs
 ```
 
 ## Quick Start
@@ -15,7 +15,7 @@ pip install dash-dygraphs
 ```python
 import pandas as pd
 from dash import Dash, html
-from dash_dygraphs import Dygraph
+from pydygraphs import Dygraph
 
 app = Dash(__name__)
 
@@ -72,7 +72,7 @@ chart = (
 Synchronize zoom and pan across multiple charts:
 
 ```python
-from dash_dygraphs import sync_dygraphs, stacked_bar
+from pydygraphs import sync_dygraphs, stacked_bar
 
 sync = sync_dygraphs(app, ["chart-a", "chart-b", "chart-c"])
 app.layout = html.Div([sync, chart_a, chart_b, chart_c])
@@ -83,7 +83,7 @@ app.layout = html.Div([sync, chart_a, chart_b, chart_c])
 Canvas-based stacked bar chart with interactive range selector:
 
 ```python
-from dash_dygraphs import stacked_bar
+from pydygraphs import stacked_bar
 
 bar = stacked_bar(
     app, "energy",
@@ -106,7 +106,7 @@ Disable with `modebar=False` in `.to_dash()`.
 ### dash-capture Integration
 
 ```python
-from dash_dygraphs import dygraph_strategy
+from pydygraphs import dygraph_strategy
 from dash_capture import capture_element
 
 capture_element(

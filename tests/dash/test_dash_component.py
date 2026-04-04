@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from dash_dygraphs import Dygraph
+from pydygraphs import Dygraph
 
 
 def _df() -> pd.DataFrame:
@@ -71,7 +71,7 @@ class TestSyncDygraphs:
         from dash import Dash, html
 
         app = Dash(__name__)
-        component = __import__("dash_dygraphs").sync_dygraphs(app, ["a", "b", "c"])
+        component = __import__("pydygraphs").sync_dygraphs(app, ["a", "b", "c"])
         assert isinstance(component, html.Div)
         assert component.style == {"display": "none"}
 
@@ -81,7 +81,7 @@ class TestStackedBar:
         from dash import Dash, html
 
         app = Dash(__name__)
-        component = __import__("dash_dygraphs").stacked_bar(
+        component = __import__("pydygraphs").stacked_bar(
             app, "sb", initial_data="Date,A,B\n2024-01-01,1,2\n2024-01-02,3,4"
         )
         assert isinstance(component, html.Div)
@@ -147,7 +147,7 @@ class TestCapture:
         """dygraph_strategy() raises ImportError if dash-capture not installed."""
         # We can't easily mock this since dash-capture might be installed,
         # so just test that the function exists and returns something
-        from dash_dygraphs.capture import dygraph_strategy
+        from pydygraphs.dash.capture import dygraph_strategy
 
         try:
             strategy = dygraph_strategy(hide_range_selector=True)
@@ -158,7 +158,7 @@ class TestCapture:
             pytest.skip("dash-capture not installed")
 
     def test_dygraph_strategy_no_hide(self) -> None:
-        from dash_dygraphs.capture import dygraph_strategy
+        from pydygraphs.dash.capture import dygraph_strategy
 
         try:
             strategy = dygraph_strategy(hide_range_selector=False)

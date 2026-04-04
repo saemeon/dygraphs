@@ -2,7 +2,7 @@
 
 ## Core
 
-::: dash_dygraphs.Dygraph
+::: pydygraphs.Dygraph
     options:
       members:
         - __init__
@@ -44,16 +44,16 @@
 
 ## Dash Integration
 
-::: dash_dygraphs.dygraph_to_dash
+::: pydygraphs.dygraph_to_dash
 
-::: dash_dygraphs.sync_dygraphs
+::: pydygraphs.sync_dygraphs
 
-::: dash_dygraphs.stacked_bar
+::: pydygraphs.stacked_bar
 
 ## Capture
 
-::: dash_dygraphs.capture.dygraph_strategy
+::: pydygraphs.dash.capture.dygraph_strategy
 
 ## Utilities
 
-::: dash_dygraphs.JS
+::: pydygraphs.JS

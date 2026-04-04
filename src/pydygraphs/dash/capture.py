@@ -6,7 +6,7 @@ with optional range-selector hiding.
 
 Usage::
 
-    from dash_dygraphs.capture import dygraph_strategy
+    from pydygraphs.dash.capture import dygraph_strategy
     from dash_capture import capture_element
 
     capture_element(

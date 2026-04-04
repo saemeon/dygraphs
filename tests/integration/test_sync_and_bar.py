@@ -16,7 +16,7 @@ def synced_app_url():
     """Start a Dash app with synced dygraphs + stacked bar."""
     from dash import Dash, html
 
-    from dash_dygraphs import Dygraph, stacked_bar, sync_dygraphs
+    from pydygraphs import Dygraph, stacked_bar, sync_dygraphs
 
     app = Dash(__name__)
 
