@@ -151,18 +151,27 @@ def _build_render_js(
             container._suppressZoom = true;
         }}
 
-        // Sync: broadcast on zoom/draw, but skip if caused by sync.
+        // Sync: broadcast dateWindow changes with debounce.
         // drawCallback fires during range-selector panning; zoomCallback
         // alone does NOT fire while the user drags the range-selector bar.
-        var _broadcastZoom = function(dw) {{
-            if (container._suppressZoom) {{
-                container._suppressZoom = false;
-                return;
-            }}
+        var _doBroadcast = function(dw) {{
             var prev = container._lastBroadcastDW;
             if (prev && prev[0] === dw[0] && prev[1] === dw[1]) return;
             container._lastBroadcastDW = dw;
             window['__dyZoom_{js_id}'] = {{ dateWindow: dw, source:'{graph_id}' }};
+        }};
+        var _broadcastZoom = function(dw) {{
+            if (container._suppressZoom) {{
+                container._suppressZoom = false;
+                // Record the window so a second callback (draw + zoom both
+                // fire) is deduplicated and never echoes back.
+                container._lastBroadcastDW = dw;
+                return;
+            }}
+            clearTimeout(container._zoomDebounce);
+            container._zoomDebounce = setTimeout(function() {{
+                _doBroadcast(dw);
+            }}, 30);
         }};
         opts.zoomCallback = function(a, b) {{
             _broadcastZoom([a, b]);
