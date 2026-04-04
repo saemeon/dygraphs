@@ -11,20 +11,26 @@ from pydygraphs import Dygraph
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _sample_df() -> pd.DataFrame:
     """Simple time-series DataFrame for testing."""
     idx = pd.date_range("2020-01-01", periods=5, freq="D")
-    return pd.DataFrame({"temp": [10, 12, 11, 14, 13], "rain": [5, 3, 7, 2, 6]}, index=idx)
+    return pd.DataFrame(
+        {"temp": [10, 12, 11, 14, 13], "rain": [5, 3, 7, 2, 6]}, index=idx
+    )
 
 
 def _sample_numeric_df() -> pd.DataFrame:
     """Numeric (non-date) DataFrame."""
-    return pd.DataFrame({"x": [1, 2, 3, 4], "y": [10, 20, 30, 40], "z": [5, 15, 25, 35]})
+    return pd.DataFrame(
+        {"x": [1, 2, 3, 4], "y": [10, 20, 30, 40], "z": [5, 15, 25, 35]}
+    )
 
 
 # ---------------------------------------------------------------------------
 # R port: test-dygraph.R
 # ---------------------------------------------------------------------------
+
 
 class TestDygraphCreation:
     """Port of R ``context("dygraph")``."""
@@ -53,6 +59,7 @@ class TestDygraphCreation:
 # ---------------------------------------------------------------------------
 # Data input formats
 # ---------------------------------------------------------------------------
+
 
 class TestDataFormats:
     def test_series_input(self) -> None:
@@ -104,6 +111,7 @@ class TestDataFormats:
 # ---------------------------------------------------------------------------
 # Method chaining
 # ---------------------------------------------------------------------------
+
 
 class TestChaining:
     def test_methods_return_self(self) -> None:

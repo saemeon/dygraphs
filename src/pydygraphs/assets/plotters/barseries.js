@@ -32,4 +32,3 @@ function barSeriesPlotter(e) {
       bar_width, y_bottom - p.canvasy);
   }
 }
-

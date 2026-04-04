@@ -17,7 +17,9 @@ if TYPE_CHECKING:
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 
 _DYGRAPH_JS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.js"
-_DYGRAPH_CSS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.css"
+_DYGRAPH_CSS_CDN = (
+    "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.css"
+)
 
 
 def _serialise(obj: Any) -> Any:

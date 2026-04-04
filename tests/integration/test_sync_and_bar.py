@@ -44,24 +44,34 @@ def synced_app_url():
 
     np.random.seed(42)
     dates = pd.date_range("2024-01-01", periods=30, freq="D")
-    bar_csv = pd.DataFrame({
-        "Date": dates.strftime("%Y/%m/%d"),
-        "Solar": np.random.rand(30).round(2),
-        "Wind": np.random.rand(30).round(2),
-    }).to_csv(index=False)
+    bar_csv = pd.DataFrame(
+        {
+            "Date": dates.strftime("%Y/%m/%d"),
+            "Solar": np.random.rand(30).round(2),
+            "Wind": np.random.rand(30).round(2),
+        }
+    ).to_csv(index=False)
 
     chart_c = stacked_bar(
-        app, "chart-c", initial_data=bar_csv,
-        colors=["#00d4aa", "#7eb8f7"], height=200, title="Stacked Bar",
+        app,
+        "chart-c",
+        initial_data=bar_csv,
+        colors=["#00d4aa", "#7eb8f7"],
+        height=200,
+        title="Stacked Bar",
     )
 
     sync = sync_dygraphs(app, ["chart-a", "chart-b", "chart-c"])
 
-    app.layout = html.Div([
-        sync,
-        html.H1("Sync Test", id="sync-heading"),
-        chart_a, chart_b, chart_c,
-    ])
+    app.layout = html.Div(
+        [
+            sync,
+            html.H1("Sync Test", id="sync-heading"),
+            chart_a,
+            chart_b,
+            chart_c,
+        ]
+    )
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("", 0))
@@ -172,7 +182,10 @@ def test_dygraph_titles_rendered(synced_app_url: str, chrome_driver) -> None:
     chrome_driver.get(synced_app_url)
     time.sleep(5)
 
-    for cid, title in [("chart-a-container", "Chart A"), ("chart-b-container", "Chart B")]:
+    for cid, title in [
+        ("chart-a-container", "Chart A"),
+        ("chart-b-container", "Chart B"),
+    ]:
         el = chrome_driver.find_element("id", cid)
         titles = el.find_elements("class name", "dygraph-title")
         assert len(titles) > 0, f"{cid} should have a title element"
@@ -188,7 +201,9 @@ def test_stacked_bar_title_rendered(synced_app_url: str, chrome_driver) -> None:
     canvas = el.find_element("tag name", "canvas")
     # Canvas should have reasonable dimensions
     height = canvas.get_attribute("height")
-    assert int(height) > 200, "Stacked bar canvas should be tall enough for chart + selector"
+    assert int(height) > 200, (
+        "Stacked bar canvas should be tall enough for chart + selector"
+    )
 
 
 def test_sync_zoom_propagates(synced_app_url: str, chrome_driver) -> None:

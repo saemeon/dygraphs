@@ -38,11 +38,7 @@ def _to_kwargs(obj: Any) -> dict[str, Any]:
     if isinstance(obj, dict):
         return obj
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
-        return {
-            k: v
-            for k, v in dataclasses.asdict(obj).items()
-            if v is not None
-        }
+        return {k: v for k, v in dataclasses.asdict(obj).items() if v is not None}
     msg = f"Expected a dataclass or dict, got {type(obj)}"
     raise TypeError(msg)
 

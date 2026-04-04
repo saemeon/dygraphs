@@ -9,9 +9,7 @@ from pydygraphs import JS, Dygraph
 
 def _df() -> pd.DataFrame:
     idx = pd.date_range("2020-01-01", periods=5, freq="D")
-    return pd.DataFrame(
-        {"a": [1, 2, 3, 4, 5], "b": [5, 4, 3, 2, 1]}, index=idx
-    )
+    return pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": [5, 4, 3, 2, 1]}, index=idx)
 
 
 def _single() -> pd.DataFrame:

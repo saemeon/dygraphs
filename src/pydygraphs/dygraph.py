@@ -161,10 +161,18 @@ class Dygraph:
 
         # Apply declarative params (if provided)
         self._apply_declarative(
-            options=options, axes=axes, series=series, legend=legend,
-            highlight=highlight, annotations=annotations, shadings=shadings,
-            events=events, limits=limits, range_selector=range_selector,
-            roller=roller, callbacks=callbacks,
+            options=options,
+            axes=axes,
+            series=series,
+            legend=legend,
+            highlight=highlight,
+            annotations=annotations,
+            shadings=shadings,
+            events=events,
+            limits=limits,
+            range_selector=range_selector,
+            roller=roller,
+            callbacks=callbacks,
         )
 
     # ---- declarative application ------------------------------------
@@ -265,7 +273,10 @@ class Dygraph:
                 fmt = "numeric"
                 x_label = idx.name or "x"
             labels = [str(x_label)] + [str(c) for c in data.columns]
-            columns: list[list[Any]] = [x_vals, *(data[col].tolist() for col in data.columns)]
+            columns: list[list[Any]] = [
+                x_vals,
+                *(data[col].tolist() for col in data.columns),
+            ]
             return labels, columns, fmt
 
         if isinstance(data, dict):
@@ -444,15 +455,25 @@ class Dygraph:
         if range_selector_plot_line_width is not None:
             opts["rangeSelectorPlotLineWidth"] = range_selector_plot_line_width
         if range_selector_plot_fill_gradient_color is not None:
-            opts["rangeSelectorPlotFillGradientColor"] = range_selector_plot_fill_gradient_color
+            opts["rangeSelectorPlotFillGradientColor"] = (
+                range_selector_plot_fill_gradient_color
+            )
         if range_selector_background_line_width is not None:
-            opts["rangeSelectorBackgroundLineWidth"] = range_selector_background_line_width
+            opts["rangeSelectorBackgroundLineWidth"] = (
+                range_selector_background_line_width
+            )
         if range_selector_background_stroke_color is not None:
-            opts["rangeSelectorBackgroundStrokeColor"] = range_selector_background_stroke_color
+            opts["rangeSelectorBackgroundStrokeColor"] = (
+                range_selector_background_stroke_color
+            )
         if range_selector_foreground_stroke_color is not None:
-            opts["rangeSelectorForegroundStrokeColor"] = range_selector_foreground_stroke_color
+            opts["rangeSelectorForegroundStrokeColor"] = (
+                range_selector_foreground_stroke_color
+            )
         if range_selector_foreground_line_width is not None:
-            opts["rangeSelectorForegroundLineWidth"] = range_selector_foreground_line_width
+            opts["rangeSelectorForegroundLineWidth"] = (
+                range_selector_foreground_line_width
+            )
         if range_selector_alpha is not None:
             opts["rangeSelectorAlpha"] = range_selector_alpha
         # Grid line pattern
@@ -598,10 +619,7 @@ class Dygraph:
                 raise ValueError(msg)
 
         if name not in labels:
-            msg = (
-                f"Series {name!r} not found. "
-                f"Valid series names: {labels[1:]}"
-            )
+            msg = f"Series {name!r} not found. Valid series names: {labels[1:]}"
             raise ValueError(msg)
 
         if stem_plot:
@@ -808,10 +826,7 @@ class Dygraph:
             x = pd.Timestamp(x).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
         if series is not None and series not in self._attrs["labels"]:
-            msg = (
-                f"Series {series!r} not found. "
-                f"Valid: {self._attrs['labels'][1:]}"
-            )
+            msg = f"Series {series!r} not found. Valid: {self._attrs['labels'][1:]}"
             raise ValueError(msg)
         if series is None:
             series = self._attrs["labels"][-1]
@@ -861,9 +876,7 @@ class Dygraph:
                 from_ = pd.Timestamp(from_).strftime("%Y-%m-%dT%H:%M:%S.000Z")
             if not isinstance(to, str):
                 to = pd.Timestamp(to).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-        self._shadings.append(
-            {"from": from_, "to": to, "color": color, "axis": axis}
-        )
+        self._shadings.append({"from": from_, "to": to, "color": color, "axis": axis})
         return self
 
     # ---- event (dyEvent) ---------------------------------------------
@@ -1115,9 +1128,7 @@ class Dygraph:
         direction: Literal["both", "horizontal", "vertical"] = "both",
     ) -> Dygraph:
         """Enable crosshair plugin (mirrors R ``dyCrosshair``)."""
-        self._plugins.append(
-            {"name": "Crosshair", "options": {"direction": direction}}
-        )
+        self._plugins.append({"name": "Crosshair", "options": {"direction": direction}})
         self._extra_js.append(_read_plugin("crosshair"))
         return self
 
@@ -1227,8 +1238,12 @@ class Dygraph:
         from pydygraphs.dash.component import dygraph_to_dash
 
         return dygraph_to_dash(
-            self, app=app, component_id=component_id,
-            height=height, width=width, modebar=modebar
+            self,
+            app=app,
+            component_id=component_id,
+            height=height,
+            width=width,
+            modebar=modebar,
         )
 
     def to_shiny(

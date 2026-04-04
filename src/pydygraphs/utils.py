@@ -18,11 +18,7 @@ def merge_dicts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]
         return dict(base)
     merged = dict(base)
     for key, val in overlay.items():
-        if (
-            key in merged
-            and isinstance(merged[key], dict)
-            and isinstance(val, dict)
-        ):
+        if key in merged and isinstance(merged[key], dict) and isinstance(val, dict):
             merged[key] = merge_dicts(merged[key], val)
         else:
             merged[key] = val

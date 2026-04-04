@@ -21,12 +21,16 @@ from pydygraphs import Dygraph, stacked_bar, sync_dygraphs
 # =============================================================================
 
 
-def make_timeseries(trend: float, seed: int, start: float, cols: list[str]) -> pd.DataFrame:
+def make_timeseries(
+    trend: float, seed: int, start: float, cols: list[str]
+) -> pd.DataFrame:
     np.random.seed(seed)
     dates = pd.date_range("2024-01-01", periods=120, freq="D")
     data = {}
     for i, col in enumerate(cols):
-        data[col] = (start + i * 10 + np.cumsum(trend + np.random.randn(120) * 0.5)).round(2)
+        data[col] = (
+            start + i * 10 + np.cumsum(trend + np.random.randn(120) * 0.5)
+        ).round(2)
     return pd.DataFrame(data, index=dates)
 
 
@@ -34,14 +38,16 @@ def make_contributions_csv(trend: float) -> str:
     np.random.seed(99)
     dates = pd.date_range("2024-01-01", periods=120, freq="D")
     b = trend * np.ones(120)
-    df = pd.DataFrame({
-        "Date": dates.strftime("%Y/%m/%d"),
-        "Solar": (b + np.random.randn(120) * 0.4 + 0.8).round(2),
-        "Wind": (b + np.random.randn(120) * 0.6 + 0.5).round(2),
-        "Gas": (b + np.random.randn(120) * 0.3 - 0.3).round(2),
-        "Imports": (b + np.random.randn(120) * 0.2 + 0.2).round(2),
-        "Curtailment": (-np.abs(np.random.randn(120) * 0.3)).round(2),
-    })
+    df = pd.DataFrame(
+        {
+            "Date": dates.strftime("%Y/%m/%d"),
+            "Solar": (b + np.random.randn(120) * 0.4 + 0.8).round(2),
+            "Wind": (b + np.random.randn(120) * 0.6 + 0.5).round(2),
+            "Gas": (b + np.random.randn(120) * 0.3 - 0.3).round(2),
+            "Imports": (b + np.random.randn(120) * 0.2 + 0.2).round(2),
+            "Curtailment": (-np.abs(np.random.randn(120) * 0.3)).round(2),
+        }
+    )
     return df.to_csv(index=False)
 
 
@@ -70,7 +76,9 @@ chart1 = (
     .series("Temperature", stroke_width=2.5)
     .series("Humidity", fill_graph=False, draw_points=False)
     .legend(show="always")
-    .highlight(circle_size=5, series_background_alpha=0.2, series_opts={"strokeWidth": 3})
+    .highlight(
+        circle_size=5, series_background_alpha=0.2, series_opts={"strokeWidth": 3}
+    )
     .range_selector(height=30)
     .roller(roll_period=7)
     .annotation("2024-03-15", "A", tooltip="Spring equinox", series="Temperature")
@@ -172,7 +180,9 @@ app.layout = html.Div(
     },
     children=[
         sync_component,
-        html.H1("dash-dygraphs Full Demo", style={"textAlign": "center", "color": "#2c3e50"}),
+        html.H1(
+            "dash-dygraphs Full Demo", style={"textAlign": "center", "color": "#2c3e50"}
+        ),
         html.P(
             "Showcasing: line charts, step plots, stacked bars, range selectors, "
             "annotations, events, shadings, limits, crosshair, zoom sync, modebar, "
@@ -180,7 +190,12 @@ app.layout = html.Div(
             style={"textAlign": "center", "color": "#666", "marginBottom": "32px"},
         ),
         html.Div(
-            style={"display": "flex", "alignItems": "center", "gap": "16px", "marginBottom": "24px"},
+            style={
+                "display": "flex",
+                "alignItems": "center",
+                "gap": "16px",
+                "marginBottom": "24px",
+            },
             children=[
                 html.Label("Data trend:", style={"fontWeight": "600"}),
                 dcc.Dropdown(
@@ -192,22 +207,46 @@ app.layout = html.Div(
                 ),
             ],
         ),
-        html.Div(style=CARD, children=[
-            html.H3("Synced Line Charts", style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"}),
-            chart1_component,
-        ]),
-        html.Div(style=CARD, children=[
-            html.H3("Dual Axis", style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"}),
-            chart2_component,
-        ]),
-        html.Div(style=CARD, children=[
-            html.H3("Step Plot", style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"}),
-            chart3_component,
-        ]),
-        html.Div(style=CARD, children=[
-            html.H3("Synced Stacked Bar", style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"}),
-            chart4_component,
-        ]),
+        html.Div(
+            style=CARD,
+            children=[
+                html.H3(
+                    "Synced Line Charts",
+                    style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
+                ),
+                chart1_component,
+            ],
+        ),
+        html.Div(
+            style=CARD,
+            children=[
+                html.H3(
+                    "Dual Axis",
+                    style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
+                ),
+                chart2_component,
+            ],
+        ),
+        html.Div(
+            style=CARD,
+            children=[
+                html.H3(
+                    "Step Plot",
+                    style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
+                ),
+                chart3_component,
+            ],
+        ),
+        html.Div(
+            style=CARD,
+            children=[
+                html.H3(
+                    "Synced Stacked Bar",
+                    style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
+                ),
+                chart4_component,
+            ],
+        ),
     ],
 )
 

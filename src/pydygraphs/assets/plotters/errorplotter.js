@@ -2,7 +2,7 @@
 
 function errorplotter(e) {
   var g = e.dygraph;
-  
+
   var setName = e.setName;
   var errorBars = g.getBooleanOption("errorBars") ||
       g.getBooleanOption("customBars");

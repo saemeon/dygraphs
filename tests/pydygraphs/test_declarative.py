@@ -24,7 +24,9 @@ from pydygraphs import (
 
 def _df() -> pd.DataFrame:
     idx = pd.date_range("2020-01-01", periods=5, freq="D")
-    return pd.DataFrame({"temp": [10, 12, 11, 14, 13], "rain": [5, 3, 7, 2, 6]}, index=idx)
+    return pd.DataFrame(
+        {"temp": [10, 12, 11, 14, 13], "rain": [5, 3, 7, 2, 6]}, index=idx
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -46,10 +48,13 @@ class TestDeclarativeDataclasses:
         assert cfg["axes"]["y"]["valueRange"] == [0, 20]
 
     def test_axes_dict_of_dataclasses(self) -> None:
-        d = Dygraph(_df(), axes={
-            "y": Axis("y", label="Left"),
-            "y2": Axis("y2", label="Right"),
-        })
+        d = Dygraph(
+            _df(),
+            axes={
+                "y": Axis("y", label="Left"),
+                "y2": Axis("y2", label="Right"),
+            },
+        )
         cfg = d.to_dict()["attrs"]
         assert cfg["ylabel"] == "Left"
         assert cfg["y2label"] == "Right"
@@ -71,7 +76,9 @@ class TestDeclarativeDataclasses:
         assert d.to_dict()["attrs"]["highlightCircleSize"] == 8
 
     def test_annotation_dataclass(self) -> None:
-        d = Dygraph(_df(), annotations=[Annotation(x="2020-01-03", text="A", tooltip="Hi")])
+        d = Dygraph(
+            _df(), annotations=[Annotation(x="2020-01-03", text="A", tooltip="Hi")]
+        )
         ann = d.to_dict()["annotations"]
         assert len(ann) == 1
         assert ann[0]["shortText"] == "A"

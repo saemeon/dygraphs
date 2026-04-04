@@ -7,13 +7,13 @@ function linePlotter(e) {
     var prevPoint = null;
     var nextPoint = null;
     var nextPointIdx = -1;
-  
+
     // Find the next stackable point starting from the given index.
     var updateNextPoint = function(idx) {
       // If we've previously found a non-NaN point and haven't gone past it yet,
       // just use that.
       if (nextPointIdx >= idx) return;
-  
+
       // We haven't found a non-NaN point yet or have moved past it,
       // look towards the right to find a non-NaN point.
       for (var j = idx; j < points.length; ++j) {
@@ -27,14 +27,14 @@ function linePlotter(e) {
         }
       }
     };
-  
+
     for (var i = 0; i < points.length; ++i) {
       var point = points[i];
       var xval = point.xval;
       if (cumulativeYval[xval] === undefined) {
         cumulativeYval[xval] = 0;
       }
-  
+
       var actualYval = point.yval;
       if (isNaN(actualYval) || actualYval === null) {
         if(fillMethod == 'none') {
@@ -57,7 +57,7 @@ function linePlotter(e) {
       } else {
         prevPoint = point;
       }
-  
+
       var stackedYval = cumulativeYval[xval];
       if (lastXval != xval) {
         // If an x-value is repeated, we ignore the duplicates.
@@ -65,23 +65,23 @@ function linePlotter(e) {
         cumulativeYval[xval] = stackedYval;
       }
       lastXval = xval;
-  
+
       point.yval_stacked = stackedYval;
-      
+
       if (stackedYval > seriesExtremes[1]) {
         seriesExtremes[1] = stackedYval;
       }
       if (stackedYval < seriesExtremes[0]) {
         seriesExtremes[0] = stackedYval;
       }
-  
+
     }
   };
-  
+
   // BEGIN HEADER BLOCK
-  // This first block can be copied to other plotters to capture the group 
+  // This first block can be copied to other plotters to capture the group
   var g = e.dygraph;
-  
+
   var group;
   var groupIdx = [];
   var sets = [];
@@ -96,9 +96,9 @@ function linePlotter(e) {
   // so we'll establish the size in this forward loop so it has the structure to accept
   // later on.
   var seriesExtremes = [];
-  
+
   var currGroup = g.attr_("group", setName);
-  
+
   for (var setIdx = 0; setIdx < allSets.length; setIdx++) {
     // get the name and group of the current setIdx
     setName = setNames[setIdx];
@@ -110,21 +110,21 @@ function linePlotter(e) {
       sets.push(allSets[setIdx]);
       groupSetNames.push(setName);
       fillColors.push(strokeColors[setIdx]);
-     
-      // the aforementioned stuff for later on 
+
+      // the aforementioned stuff for later on
       var tmpExtremes = [];
       tmpExtremes[0] = Infinity;
       tmpExtremes[1] = -Infinity;
-      
+
       seriesExtremes.push(tmpExtremes);
-      
+
       // capturing the min indx helps to ensure we don't render the plotter
       // multiple times
       if (setIdx < minIdx) minIdx = setIdx;
     }
   }
   // END HEADER BLOCK
-	
+
 
 	//Stack the points
   // set up cumulative records
@@ -132,38 +132,38 @@ function linePlotter(e) {
   var packed = g.gatherDatasets_(g.rolledSeries_, null);
   var extremes = packed.extremes;
   var seriesName;
-  
+
   for (var j = sets.length - 1; j >= 0; j--) {
     points = sets[j];
-    seriesName = groupSetNames[j]; 
-    
-    //  stack the data 
+    seriesName = groupSetNames[j];
+
+    //  stack the data
     stackPoints(points, cumulativeYval, seriesExtremes[j],
           g.getBooleanOption("stackedGraphNaNFill"));
-    
+
     extremes[seriesName] = seriesExtremes[j];
   }
-  
+
 	// Do the actual plotting.
 	for (var j = 0; j < sets.length; j++) {
     setName = groupSetNames[j];
 		if(setName !== e.setName) continue;
-    
+
 		var connectSeparated = g.getOption('connectSeparatedPoints', setName);
     var logscale = g.attributes_.getForSeries("logscale", setName);
-    
+
     axis = g.axisPropertiesForSeries(setName);
-    
+
     points = sets[j];
-    
+
     for (var i = 0; i < points.length; i++) {
       var point = points[i];
-      
+
       var yval = point.yval;
-      
+
       point.y_stacked = DygraphLayout.calcYNormal_(
           axis, point.yval_stacked, logscale);
-          
+
       if (yval !== null && !isNaN(yval)) {
         yval = point.yval_stacked;
       }
@@ -174,7 +174,7 @@ function linePlotter(e) {
         }
       }
       point.y = DygraphLayout.calcYNormal_(axis, yval, logscale);
-    
+
       point.canvasx = g.plotter_.area.w * point.x + g.plotter_.area.x;
       point.canvasy = g.plotter_.area.h * point.y + g.plotter_.area.y;
 		}
@@ -182,14 +182,14 @@ function linePlotter(e) {
 		e.points = points;
 
 	  var strokeWidth = e.strokeWidth;
-	
+
 	  var borderWidth = g.getNumericOption("strokeBorderWidth", setName);
 	  var drawPointCallback = g.getOption("drawPointCallback", setName) ||
 	      Dygraph.Circles.DEFAULT;
 	  var strokePattern = g.getOption("strokePattern", setName);
 	  var drawPoints = g.getBooleanOption("drawPoints", setName);
 	  var pointSize = g.getNumericOption("pointSize", setName);
-	
+
 	  if (borderWidth && strokeWidth) {
 	    DygraphCanvasRenderer._drawStyledLine(e,
 	        g.getOption("strokeBorderColor", setName),
@@ -200,7 +200,7 @@ function linePlotter(e) {
 	        pointSize
 	        );
 	  }
-	
+
 	  DygraphCanvasRenderer._drawStyledLine(e,
 	      e.color,
 	      strokeWidth,

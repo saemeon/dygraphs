@@ -48,7 +48,9 @@ class TestVisibility:
 
 class TestLegendFormatter:
     def test_legend_formatter(self) -> None:
-        d = Dygraph(_df()).options(legend_formatter="function(data) { return 'custom'; }")
+        d = Dygraph(_df()).options(
+            legend_formatter="function(data) { return 'custom'; }"
+        )
         formatter = d.to_dict()["attrs"]["legendFormatter"]
         assert isinstance(formatter, JS)
         assert "custom" in formatter.code

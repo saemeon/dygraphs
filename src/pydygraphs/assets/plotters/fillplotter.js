@@ -88,13 +88,13 @@ function filledlineplotter(e) {
       }
       continue;
     }
-    
+
       if (isNaN(point.canvasy) && stepPlot) {
         newYs = [ area.y + area.h, axisY ];
       } else {
         newYs = [ point.canvasy, axisY ];
       }
-      
+
       if (!isNaN(prevX)) {
         // Move to top fill point
         if (stepPlot) {
@@ -108,19 +108,19 @@ function filledlineplotter(e) {
         ctx.moveTo(point.canvasx, newYs[1]);
         ctx.lineTo(point.canvasx, newYs[0]);
       }
-      
+
       prevYs = newYs;
       prevX = point.canvasx;
-      
+
     }
-    
+
     prevStepPlot = stepPlot;
-    
+
     if (newYs && point) {
       traceBackPath(ctx, point.canvasx, newYs[1], pathBack);
       pathBack = [];
     }
-    
+
     ctx.fill();
-    
+
 }

@@ -28,7 +28,9 @@ app_ui = ui.page_fluid(
     ui.layout_sidebar(
         ui.sidebar(
             ui.input_slider("trend", "Trend:", min=-2, max=2, value=0, step=0.5),
-            ui.input_slider("points", "Data points:", min=30, max=180, value=90, step=10),
+            ui.input_slider(
+                "points", "Data points:", min=30, max=180, value=90, step=10
+            ),
             ui.input_checkbox("fill", "Fill graph", value=True),
             ui.input_checkbox("draw_points", "Draw points", value=False),
         ),
@@ -51,8 +53,12 @@ def server(input: Inputs, output: Outputs, session: Session):
         dates = pd.date_range("2024-01-01", periods=n, freq="D")
         df = pd.DataFrame(
             {
-                "Temperature": (15 + np.cumsum(trend + np.random.randn(n) * 0.5)).round(2),
-                "Humidity": (50 + np.cumsum(trend * 0.5 + np.random.randn(n) * 0.3)).round(2),
+                "Temperature": (15 + np.cumsum(trend + np.random.randn(n) * 0.5)).round(
+                    2
+                ),
+                "Humidity": (
+                    50 + np.cumsum(trend * 0.5 + np.random.randn(n) * 0.3)
+                ).round(2),
             },
             index=dates,
         )
@@ -92,7 +98,9 @@ def server(input: Inputs, output: Outputs, session: Session):
         dates = pd.date_range("2024-01-01", periods=n, freq="D")
         df = pd.DataFrame(
             {
-                "Pressure": (1013 + np.cumsum(trend * 0.1 + np.random.randn(n) * 0.2)).round(1),
+                "Pressure": (
+                    1013 + np.cumsum(trend * 0.1 + np.random.randn(n) * 0.2)
+                ).round(1),
             },
             index=dates,
         )

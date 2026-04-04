@@ -135,4 +135,6 @@ def test_dygraph_has_legend(dash_app_url: str, chrome_driver) -> None:
     inner_html = chrome_driver.execute_script(
         "return document.getElementById('test-chart-container').innerHTML"
     )
-    assert len(inner_html) > 100 or len(legends) > 0, "Chart should have rendered content"
+    assert len(inner_html) > 100 or len(legends) > 0, (
+        "Chart should have rendered content"
+    )

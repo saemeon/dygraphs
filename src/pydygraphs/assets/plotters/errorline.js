@@ -78,6 +78,6 @@ function errorplotter(e) {
     prevX = point.canvasx;
   }
   ctx.fill();
-  
+
   DygraphCanvasRenderer._linePlotter(e);
 }

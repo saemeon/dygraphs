@@ -2,15 +2,15 @@
  * The Candle chart plotter is adapted from code written by
  * Zhenlei Cai (jpenguin@gmail.com)
  * https://github.com/danvk/dygraphs/pull/141/files
- * 
+ *
  * Adapted for use by dyGroup in the dygraphs R package
- * 
+ *
  */
   function candlestickgroupPlotter(e) {
     // BEGIN HEADER BLOCK
-    // This first block can be copied to other plotters to capture the group 
+    // This first block can be copied to other plotters to capture the group
     var g = e.dygraph;
-    
+
     var group;
     var groupIdx = [];
     var sets = [];
@@ -18,32 +18,32 @@
     var minIdx = Infinity;
     var setName = e.setName;
     var setNames = g.getLabels().slice(1);
-    
+
     var currGroup = g.attr_("group", setName);
-    
+
     for (var setIdx = 0; setIdx < allSets.length; setIdx++) {
       // get the name and group of the current setIdx
       setName = setNames[setIdx];
       group = g.attr_("group", setName);
-  
+
       if (group === currGroup) {
         //save the indv index and the points
         groupIdx.push(setIdx);
         sets.push(allSets[setIdx]);
-        
+
         // capturing the min indx helps to ensure we don't render the plotter
         // multiple times
         if (setIdx < minIdx) minIdx = setIdx;
       }
     }
-    
+
     // We'll employ the plotter only on the first of the group
     if (e.seriesIndex !== minIdx) return;
     // END HEADER BLOCK
-   
-    // If the group doesn't have four series then revert to prior 
+
+    // If the group doesn't have four series then revert to prior
     if (groupIdx.length < 4) return;
-  
+
     function getPrices(sets) {
       var prices = [];
       var price;
@@ -102,4 +102,3 @@
       ctx.fillRect(centerX - barWidth / 2, bodyY, barWidth,  bodyHeight);
    }
 }
-

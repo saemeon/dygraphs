@@ -10,7 +10,9 @@ from pydygraphs import Dygraph
 
 def _df() -> pd.DataFrame:
     idx = pd.date_range("2020-01-01", periods=5, freq="D")
-    return pd.DataFrame({"mdeaths": [10, 12, 11, 14, 13], "fdeaths": [5, 3, 7, 2, 6]}, index=idx)
+    return pd.DataFrame(
+        {"mdeaths": [10, 12, 11, 14, 13], "fdeaths": [5, 3, 7, 2, 6]}, index=idx
+    )
 
 
 class TestSeries:

@@ -24,7 +24,9 @@ if TYPE_CHECKING:
     from pydygraphs.dygraph import Dygraph
 
 _DYGRAPH_JS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.js"
-_DYGRAPH_CSS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.css"
+_DYGRAPH_CSS_CDN = (
+    "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.css"
+)
 
 # ---------------------------------------------------------------------------
 # Modebar SVG icons
@@ -476,21 +478,25 @@ def sync_dygraphs(app: Dash, graph_ids: list[str]) -> Component:
             for g in graph_ids
             if g != gid
         )
-        lines.extend([
-            f"    Object.defineProperty(window, '__dyZoom_{jid}', {{",
-            "        configurable: true,",
-            f"        get: function() {{ return this['___dyZoom_{jid}']; }},",
-            "        set: function(v) {",
-            f"            this['___dyZoom_{jid}'] = v;",
-            "            if (!v) return;",
-            set_props_calls,
-            "        }",
-            "    });",
-        ])
-    lines.extend([
-        "    return window.dash_clientside.no_update;",
-        "}",
-    ])
+        lines.extend(
+            [
+                f"    Object.defineProperty(window, '__dyZoom_{jid}', {{",
+                "        configurable: true,",
+                f"        get: function() {{ return this['___dyZoom_{jid}']; }},",
+                "        set: function(v) {",
+                f"            this['___dyZoom_{jid}'] = v;",
+                "            if (!v) return;",
+                set_props_calls,
+                "        }",
+                "    });",
+            ]
+        )
+    lines.extend(
+        [
+            "    return window.dash_clientside.no_update;",
+            "}",
+        ]
+    )
 
     js = "\n".join(lines)
 
@@ -499,9 +505,7 @@ def sync_dygraphs(app: Dash, graph_ids: list[str]) -> Component:
         Output(dummy_id, "data"),
         Input(dummy_id, "data"),
     )
-    return html.Div(
-        [dcc.Store(id=dummy_id, data=0)], style={"display": "none"}
-    )
+    return html.Div([dcc.Store(id=dummy_id, data=0)], style={"display": "none"})
 
 
 # ---------------------------------------------------------------------------
@@ -762,9 +766,11 @@ def stacked_bar(
         Input(xrange_store_id, "data"),
     )
 
-    return html.Div([
-        dcc.Store(id=store_id, data=initial_data),
-        dcc.Store(id=xrange_store_id, data=None),
-        dcc.Graph(id=hidden_graph_id, style={"display": "none"}),
-        html.Div(id=container_id),
-    ])
+    return html.Div(
+        [
+            dcc.Store(id=store_id, data=initial_data),
+            dcc.Store(id=xrange_store_id, data=None),
+            dcc.Graph(id=hidden_graph_id, style={"display": "none"}),
+            html.Div(id=container_id),
+        ]
+    )
