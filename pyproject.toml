@@ -1,0 +1,72 @@
+[project]
+name = "dash-dygraphs"
+dynamic = ["version"]
+description = "Python/Dash wrapper for the dygraphs JavaScript charting library."
+keywords = ["plotly", "dash", "dygraphs", "visualization", "time-series"]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+]
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Simon Niederberger", email = "s.niederberger@hotmail.com" },
+]
+maintainers = [
+    { name = "Simon Niederberger", email = "s.niederberger@hotmail.com" },
+]
+requires-python = ">=3.10"
+dependencies = [
+    "dash>=2.0.0",
+    "pandas>=1.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/saemeon/dash-dygraphs"
+Repository = "https://github.com/saemeon/dash-dygraphs"
+
+[dependency-groups]
+test = ["pytest", "pytest-cov", "selenium", "numpy"]
+dev = [
+    "ruff",
+    "prek",
+    "ty",
+    { include-group = "test" },
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "no-local-version"
+write_to = "src/dash_dygraphs/_version.py"
+
+[tool.setuptools.dynamic]
+version = { attr = "dash_dygraphs._version.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+dash_dygraphs = ["py.typed", "assets/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=src/dash_dygraphs --cov-report=term-missing"
+
+[tool.ty.src]
+include = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM", "PERF"]
+ignore = ["E203", "E501"]
