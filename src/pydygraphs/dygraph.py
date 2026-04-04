@@ -107,13 +107,26 @@ class Dygraph:
 
     def __init__(
         self,
-        data: pd.DataFrame | pd.Series | dict[str, Any] | list[list[Any]],
+        data: pd.DataFrame | pd.Series | dict[str, Any] | list[list[Any]] | str,
         title: str | None = None,
         xlab: str | None = None,
         ylab: str | None = None,
         group: str | None = None,
         width: int | None = None,
         height: int | None = None,
+        # ---- declarative params (optional) ----
+        options: Any = None,
+        axes: dict[str, Any] | list[Any] | None = None,
+        series: list[Any] | None = None,
+        legend: Any = None,
+        highlight: Any = None,
+        annotations: list[Any] | None = None,
+        shadings: list[Any] | None = None,
+        events: list[Any] | None = None,
+        limits: list[Any] | None = None,
+        range_selector: Any = None,
+        roller: Any = None,
+        callbacks: Any = None,
     ) -> None:
         self._width = width
         self._height = height
@@ -145,6 +158,67 @@ class Dygraph:
         self._point_shapes: dict[str, str] = {}
         self._group = group
         self._extra_js: list[str] = []  # plotter / plugin JS to inject
+
+        # Apply declarative params (if provided)
+        self._apply_declarative(
+            options=options, axes=axes, series=series, legend=legend,
+            highlight=highlight, annotations=annotations, shadings=shadings,
+            events=events, limits=limits, range_selector=range_selector,
+            roller=roller, callbacks=callbacks,
+        )
+
+    # ---- declarative application ------------------------------------
+
+    def _apply_declarative(
+        self,
+        *,
+        options: Any = None,
+        axes: dict[str, Any] | list[Any] | None = None,
+        series: list[Any] | None = None,
+        legend: Any = None,
+        highlight: Any = None,
+        annotations: list[Any] | None = None,
+        shadings: list[Any] | None = None,
+        events: list[Any] | None = None,
+        limits: list[Any] | None = None,
+        range_selector: Any = None,
+        roller: Any = None,
+        callbacks: Any = None,
+    ) -> None:
+        """Apply declarative dataclass/dict params by delegating to builder methods."""
+        from pydygraphs.declarative import _to_kwargs
+
+        if options is not None:
+            self.options(**_to_kwargs(options))
+        if axes is not None:
+            items = axes.values() if isinstance(axes, dict) else axes
+            for ax in items:
+                self.axis(**_to_kwargs(ax))
+        if series is not None:
+            for s in series:
+                self.series(**_to_kwargs(s))
+        if legend is not None:
+            self.legend(**_to_kwargs(legend))
+        if highlight is not None:
+            self.highlight(**_to_kwargs(highlight))
+        if annotations is not None:
+            for a in annotations:
+                self.annotation(**_to_kwargs(a))
+        if shadings is not None:
+            for s in shadings:
+                self.shading(**_to_kwargs(s))
+        if events is not None:
+            for e in events:
+                self.event(**_to_kwargs(e))
+        if limits is not None:
+            for lim in limits:
+                self.limit(**_to_kwargs(lim))
+        if range_selector is not None:
+            self.range_selector(**_to_kwargs(range_selector))
+        if roller is not None:
+            self.roller(**_to_kwargs(roller))
+        if callbacks is not None:
+            self.callbacks(**_to_kwargs(callbacks))
 
     # ---- data normalisation ------------------------------------------
 

@@ -11,6 +11,20 @@ Install extras for framework support::
 
 from __future__ import annotations
 
+from pydygraphs.declarative import (
+    Annotation,
+    Axis,
+    Callbacks,
+    Event,
+    Highlight,
+    Legend,
+    Limit,
+    Options,
+    RangeSelector,
+    Roller,
+    Series,
+    Shading,
+)
 from pydygraphs.dygraph import Dygraph
 from pydygraphs.utils import JS
 
@@ -56,8 +70,23 @@ def dygraph_strategy(**kwargs):  # type: ignore[no-untyped-def]  # noqa: ANN003
 
 
 __all__ = [
+    # Core
     "Dygraph",
     "JS",
+    # Declarative dataclasses
+    "Annotation",
+    "Axis",
+    "Callbacks",
+    "Event",
+    "Highlight",
+    "Legend",
+    "Limit",
+    "Options",
+    "RangeSelector",
+    "Roller",
+    "Series",
+    "Shading",
+    # Dash (lazy)
     "dygraph_strategy",
     "dygraph_to_dash",
     "stacked_bar",
