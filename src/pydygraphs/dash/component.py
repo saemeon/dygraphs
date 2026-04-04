@@ -151,13 +151,28 @@ def _build_render_js(
             container._suppressZoom = true;
         }}
 
-        // Sync: broadcast on zoom, but skip if this zoom was caused by sync
-        opts.zoomCallback = function(a, b) {{
+        // Sync: broadcast on zoom/draw, but skip if caused by sync.
+        // drawCallback fires during range-selector panning; zoomCallback
+        // alone does NOT fire while the user drags the range-selector bar.
+        var _broadcastZoom = function(dw) {{
             if (container._suppressZoom) {{
                 container._suppressZoom = false;
                 return;
             }}
-            window['__dyZoom_{js_id}'] = {{ dateWindow:[a,b], source:'{graph_id}' }};
+            var prev = container._lastBroadcastDW;
+            if (prev && prev[0] === dw[0] && prev[1] === dw[1]) return;
+            container._lastBroadcastDW = dw;
+            window['__dyZoom_{js_id}'] = {{ dateWindow: dw, source:'{graph_id}' }};
+        }};
+        opts.zoomCallback = function(a, b) {{
+            _broadcastZoom([a, b]);
+        }};
+        var _userDrawCb = opts.drawCallback;
+        opts.drawCallback = function(g, isInitial) {{
+            if (_userDrawCb) _userDrawCb(g, isInitial);
+            if (isInitial) return;
+            var dw = g.xAxisRange();
+            _broadcastZoom([dw[0], dw[1]]);
         }};
 
         // Plugins
