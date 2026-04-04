@@ -1,0 +1,225 @@
+"""Extensive demo app showcasing all dash-dygraphs features.
+
+Run with::
+
+    uv run python examples/full_demo.py
+
+Then open http://127.0.0.1:8050 in your browser.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+
+import dash
+from dash import Input, Output, dcc, html
+
+from dash_dygraphs import Dygraph, dygraph_to_dash, stacked_bar, sync_dygraphs
+
+# =============================================================================
+# Data helpers
+# =============================================================================
+
+
+def make_timeseries(trend: float, seed: int, start: float, cols: list[str]) -> pd.DataFrame:
+    np.random.seed(seed)
+    dates = pd.date_range("2024-01-01", periods=120, freq="D")
+    data = {}
+    for i, col in enumerate(cols):
+        data[col] = (start + i * 10 + np.cumsum(trend + np.random.randn(120) * 0.5)).round(2)
+    return pd.DataFrame(data, index=dates)
+
+
+def make_contributions_csv(trend: float) -> str:
+    np.random.seed(99)
+    dates = pd.date_range("2024-01-01", periods=120, freq="D")
+    b = trend * np.ones(120)
+    df = pd.DataFrame({
+        "Date": dates.strftime("%Y/%m/%d"),
+        "Solar": (b + np.random.randn(120) * 0.4 + 0.8).round(2),
+        "Wind": (b + np.random.randn(120) * 0.6 + 0.5).round(2),
+        "Gas": (b + np.random.randn(120) * 0.3 - 0.3).round(2),
+        "Imports": (b + np.random.randn(120) * 0.2 + 0.2).round(2),
+        "Curtailment": (-np.abs(np.random.randn(120) * 0.3)).round(2),
+    })
+    return df.to_csv(index=False)
+
+
+# =============================================================================
+# App
+# =============================================================================
+
+app = dash.Dash(__name__)
+
+# ---------------------------------------------------------------------------
+# Chart 1: Line chart with all the bells and whistles
+# ---------------------------------------------------------------------------
+
+df1 = make_timeseries(0, 42, 15, ["Temperature", "Humidity"])
+
+chart1 = (
+    Dygraph(df1, title="Temperature & Humidity")
+    .options(
+        fill_graph=True,
+        draw_points=True,
+        stroke_width=2,
+        animated_zooms=True,
+        colors=["#00d4aa", "#f4a261"],
+    )
+    .axis("y", label="Value", value_range=(0, 60))
+    .series("Temperature", stroke_width=2.5)
+    .series("Humidity", fill_graph=False, draw_points=False)
+    .legend(show="always")
+    .highlight(circle_size=5, series_background_alpha=0.2, series_opts={"strokeWidth": 3})
+    .range_selector(height=30)
+    .roller(roll_period=7)
+    .annotation("2024-03-15", "A", tooltip="Spring equinox", series="Temperature")
+    .event("2024-02-14", "Valentine's", label_loc="top", color="#f76e8a")
+    .shading("2024-01-15", "2024-02-15", color="rgba(200,200,255,0.3)")
+    .limit(30.0, "Threshold", color="#e74c3c", stroke_pattern="dotted")
+    .crosshair(direction="vertical")
+    .unzoom()
+)
+chart1_component = chart1.to_dash(app=app, component_id="chart-1", height="320px")
+
+# ---------------------------------------------------------------------------
+# Chart 2: Multi-series with secondary axis
+# ---------------------------------------------------------------------------
+
+df2 = make_timeseries(0, 7, 100, ["Pressure", "Wind Speed"])
+
+chart2 = (
+    Dygraph(df2, title="Pressure & Wind Speed")
+    .options(stroke_width=2, animated_zooms=True, colors=["#7eb8f7", "#f76e8a"])
+    .axis("y", label="Pressure (hPa)")
+    .axis("y2", label="Wind (km/h)", independent_ticks=True)
+    .series("Pressure", axis="y")
+    .series("Wind Speed", axis="y2", stroke_pattern="dashed")
+    .legend(show="always")
+    .range_selector(height=30)
+)
+chart2_component = chart2.to_dash(app=app, component_id="chart-2", height="320px")
+
+# ---------------------------------------------------------------------------
+# Chart 3: Step plot with annotations
+# ---------------------------------------------------------------------------
+
+df3 = pd.DataFrame(
+    {"Status": np.random.choice([0, 1, 2], size=60)},
+    index=pd.date_range("2024-01-01", periods=60, freq="D"),
+)
+
+chart3 = (
+    Dygraph(df3, title="System Status (Step Plot)")
+    .options(step_plot=True, fill_graph=True, fill_alpha=0.3, colors=["#9b59b6"])
+    .axis("y", value_range=(-0.5, 2.5))
+    .legend(show="always")
+    .shading("2024-01-10", "2024-01-15", color="rgba(255,200,200,0.4)")
+    .annotation("2024-01-10", "!", tooltip="Outage start", series="Status")
+    .annotation("2024-01-15", "R", tooltip="Recovered", series="Status")
+)
+chart3_component = chart3.to_dash(app=app, component_id="chart-3", height="250px")
+
+# ---------------------------------------------------------------------------
+# Chart 4: Stacked bar chart with range selector
+# ---------------------------------------------------------------------------
+
+chart4_component = stacked_bar(
+    app,
+    "chart-4",
+    initial_data=make_contributions_csv(0),
+    colors=["#00d4aa", "#7eb8f7", "#f4a261", "#34d399", "#f76e8a"],
+    height=280,
+    title="Energy Contributions (Stacked Bar)",
+    selector_height=40,
+)
+
+# ---------------------------------------------------------------------------
+# Sync charts 1, 2, and 4 (line + line + stacked bar)
+# ---------------------------------------------------------------------------
+
+sync_component = sync_dygraphs(app, ["chart-1", "chart-2", "chart-4"])
+
+# ---------------------------------------------------------------------------
+# Dropdown to change trend
+# ---------------------------------------------------------------------------
+
+TREND_OPTIONS = [
+    {"label": "Strong downtrend (-2)", "value": -2},
+    {"label": "Mild downtrend (-1)", "value": -1},
+    {"label": "No trend (0)", "value": 0},
+    {"label": "Mild uptrend (+1)", "value": 1},
+    {"label": "Strong uptrend (+2)", "value": 2},
+]
+
+CARD = {
+    "backgroundColor": "#f8f9fa",
+    "borderRadius": "12px",
+    "padding": "20px",
+    "marginBottom": "16px",
+    "boxShadow": "0 2px 8px rgba(0,0,0,0.06)",
+}
+
+app.layout = html.Div(
+    style={
+        "fontFamily": "'Segoe UI', sans-serif",
+        "backgroundColor": "#ffffff",
+        "minHeight": "100vh",
+        "padding": "40px",
+        "maxWidth": "1200px",
+        "margin": "0 auto",
+        "color": "#111",
+    },
+    children=[
+        sync_component,
+        html.H1("dash-dygraphs Full Demo", style={"textAlign": "center", "color": "#2c3e50"}),
+        html.P(
+            "Showcasing: line charts, step plots, stacked bars, range selectors, "
+            "annotations, events, shadings, limits, crosshair, zoom sync, modebar, "
+            "secondary axes, rolling averages, and more.",
+            style={"textAlign": "center", "color": "#666", "marginBottom": "32px"},
+        ),
+        html.Div(
+            style={"display": "flex", "alignItems": "center", "gap": "16px", "marginBottom": "24px"},
+            children=[
+                html.Label("Data trend:", style={"fontWeight": "600"}),
+                dcc.Dropdown(
+                    id="trend",
+                    options=TREND_OPTIONS,
+                    value=0,
+                    clearable=False,
+                    style={"width": "260px"},
+                ),
+            ],
+        ),
+        html.Div(style=CARD, children=[
+            html.H3("Synced Line Charts", style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"}),
+            chart1_component,
+        ]),
+        html.Div(style=CARD, children=[
+            html.H3("Dual Axis", style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"}),
+            chart2_component,
+        ]),
+        html.Div(style=CARD, children=[
+            html.H3("Step Plot", style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"}),
+            chart3_component,
+        ]),
+        html.Div(style=CARD, children=[
+            html.H3("Synced Stacked Bar", style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"}),
+            chart4_component,
+        ]),
+    ],
+)
+
+
+@app.callback(
+    Output("chart-4", "data"),
+    Input("trend", "value"),
+)
+def update_bar_data(trend: int) -> str:
+    return make_contributions_csv(float(trend))
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

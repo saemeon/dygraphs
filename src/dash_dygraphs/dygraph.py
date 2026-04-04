@@ -155,15 +155,34 @@ class Dygraph:
         """Return (labels, columns_as_lists, format_string)."""
         import pandas as pd
 
+        # CSV string input
+        if isinstance(data, str):
+            import io
+
+            data = pd.read_csv(io.StringIO(data))
+            # If first column looks like dates, use it as index
+            first_col_name = data.columns[0]
+            first_col = data[first_col_name]
+            if pd.api.types.is_string_dtype(first_col):
+                # Only try date parsing on string columns
+                try:
+                    date_idx = pd.to_datetime(first_col)
+                    data = data.drop(columns=[first_col_name]).set_index(date_idx)
+                except (ValueError, TypeError):
+                    data = data.set_index(first_col_name)
+            else:
+                data = data.set_index(first_col_name)
+
         if isinstance(data, pd.Series):
             data = data.to_frame()
 
         if isinstance(data, pd.DataFrame):
             idx = data.index
-            if hasattr(idx, "to_pydatetime"):
+            if isinstance(idx, pd.DatetimeIndex):
                 # DatetimeIndex → ISO strings
                 x_vals = [
-                    t.strftime("%Y-%m-%dT%H:%M:%S.000Z") for t in idx.to_pydatetime()
+                    t.isoformat() + "Z" if t.tzinfo is None else t.isoformat()
+                    for t in idx
                 ]
                 fmt = "date"
                 x_label = idx.name or "Date"
@@ -250,6 +269,29 @@ class Dygraph:
         animated_zooms: bool = False,
         disable_zoom: bool = False,
         retain_date_window: bool = False,
+        # Error bars
+        error_bars: bool = False,
+        custom_bars: bool = False,
+        sigma: float | None = None,
+        fractions: bool = False,
+        wilson_interval: bool = True,
+        # Visibility
+        visibility: list[bool] | None = None,
+        # Legend
+        legend_formatter: str | None = None,
+        # Range selector fine styling
+        range_selector_plot_line_width: float | None = None,
+        range_selector_plot_fill_gradient_color: str | None = None,
+        range_selector_background_line_width: float | None = None,
+        range_selector_background_stroke_color: str | None = None,
+        range_selector_foreground_stroke_color: str | None = None,
+        range_selector_foreground_line_width: float | None = None,
+        range_selector_alpha: float | None = None,
+        # Grid
+        grid_line_pattern: list[int] | None = None,
+        # Resize
+        resizable: str | None = None,
+        pixel_ratio: float | None = None,
     ) -> Dygraph:
         """Set global chart options (mirrors R ``dyOptions``)."""
         if stem_plot:
@@ -308,6 +350,45 @@ class Dygraph:
             opts["sigFigs"] = sig_figs
         if pan_edge_fraction is not None:
             opts["panEdgeFraction"] = pan_edge_fraction
+        # Error bars
+        if error_bars:
+            opts["errorBars"] = True
+        if custom_bars:
+            opts["customBars"] = True
+        if sigma is not None:
+            opts["sigma"] = sigma
+        if fractions:
+            opts["fractions"] = True
+            opts["wilsonInterval"] = wilson_interval
+        # Visibility
+        if visibility is not None:
+            opts["visibility"] = visibility
+        # Legend formatter
+        if legend_formatter is not None:
+            opts["legendFormatter"] = JS(legend_formatter)
+        # Range selector fine styling
+        if range_selector_plot_line_width is not None:
+            opts["rangeSelectorPlotLineWidth"] = range_selector_plot_line_width
+        if range_selector_plot_fill_gradient_color is not None:
+            opts["rangeSelectorPlotFillGradientColor"] = range_selector_plot_fill_gradient_color
+        if range_selector_background_line_width is not None:
+            opts["rangeSelectorBackgroundLineWidth"] = range_selector_background_line_width
+        if range_selector_background_stroke_color is not None:
+            opts["rangeSelectorBackgroundStrokeColor"] = range_selector_background_stroke_color
+        if range_selector_foreground_stroke_color is not None:
+            opts["rangeSelectorForegroundStrokeColor"] = range_selector_foreground_stroke_color
+        if range_selector_foreground_line_width is not None:
+            opts["rangeSelectorForegroundLineWidth"] = range_selector_foreground_line_width
+        if range_selector_alpha is not None:
+            opts["rangeSelectorAlpha"] = range_selector_alpha
+        # Grid line pattern
+        if grid_line_pattern is not None:
+            opts["gridLinePattern"] = grid_line_pattern
+        # Resize
+        if resizable is not None:
+            opts["resizable"] = resizable
+        if pixel_ratio is not None:
+            opts["pixelRatio"] = pixel_ratio
 
         # axes sub-options
         opts.setdefault("axes", {})
@@ -1046,8 +1127,9 @@ class Dygraph:
         app: Any = None,
         *,
         component_id: str | None = None,
-        height: str = "400px",
+        height: str | int = "400px",
         width: str = "100%",
+        modebar: bool = True,
     ) -> Any:
         """Render into a Dash component tree.
 
@@ -1060,6 +1142,8 @@ class Dygraph:
             Unique DOM id prefix. Auto-generated if omitted.
         height, width
             CSS dimensions for the chart container.
+        modebar
+            Show overlay buttons (capture, reset zoom).
 
         Returns
         -------
@@ -1069,5 +1153,6 @@ class Dygraph:
         from dash_dygraphs.dash_component import dygraph_to_dash
 
         return dygraph_to_dash(
-            self, app=app, component_id=component_id, height=height, width=width
+            self, app=app, component_id=component_id,
+            height=height, width=width, modebar=modebar
         )

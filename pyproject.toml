@@ -31,11 +31,13 @@ Repository = "https://github.com/saemeon/dash-dygraphs"
 
 [dependency-groups]
 test = ["pytest", "pytest-cov", "selenium", "numpy"]
+doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mike"]
 dev = [
     "ruff",
     "prek",
     "ty",
     { include-group = "test" },
+    { include-group = "doc" },
 ]
 
 [build-system]
@@ -62,6 +64,9 @@ addopts = "--cov=src/dash_dygraphs --cov-report=term-missing"
 
 [tool.ty.src]
 include = ["src"]
+
+[tool.ty.rules]
+unresolved-import = "ignore"
 
 [tool.ruff]
 line-length = 88

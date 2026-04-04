@@ -83,7 +83,22 @@ class TestDataFormats:
 
     def test_bad_type_raises(self) -> None:
         with pytest.raises(TypeError):
-            Dygraph("not valid data")  # type: ignore[arg-type]
+            Dygraph(12345)  # type: ignore[arg-type]
+
+    def test_csv_string_input(self) -> None:
+        csv = "Date,A,B\n2024-01-01,1,2\n2024-01-02,3,4\n2024-01-03,5,6"
+        d = Dygraph(csv)
+        cfg = d.to_dict()
+        assert cfg["format"] == "date"
+        assert "A" in cfg["attrs"]["labels"]
+        assert "B" in cfg["attrs"]["labels"]
+        assert len(cfg["data"][0]) == 3  # 3 rows
+
+    def test_csv_string_numeric(self) -> None:
+        csv = "x,y\n1,10\n2,20\n3,30"
+        d = Dygraph(csv)
+        cfg = d.to_dict()
+        assert cfg["format"] == "numeric"
 
 
 # ---------------------------------------------------------------------------
