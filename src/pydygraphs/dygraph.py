@@ -407,6 +407,23 @@ class Dygraph:
         # Resize
         resizable: str | None = None,
         pixel_ratio: float | None = None,
+        # Stacked graph NaN handling
+        stacked_graph_nan_fill: Literal["all", "inside", "none"] | None = None,
+        # Background fade animation
+        animate_background_fade: bool = True,
+        # Label sizing
+        x_label_height: int | None = None,
+        y_label_width: int | None = None,
+        # Legend follow offsets
+        legend_follow_offset_x: int | None = None,
+        legend_follow_offset_y: int | None = None,
+        # Range selector veil colour
+        range_selector_veil_colour: str | None = None,
+        # CSV parsing
+        delimiter: str | None = None,
+        x_value_parser: str | None = None,
+        # Display annotations from data columns
+        display_annotations: bool = False,
     ) -> Dygraph:
         """Set global chart options (mirrors R ``dyOptions``)."""
         if stem_plot:
@@ -514,6 +531,33 @@ class Dygraph:
             opts["resizable"] = resizable
         if pixel_ratio is not None:
             opts["pixelRatio"] = pixel_ratio
+        # Stacked graph NaN handling
+        if stacked_graph_nan_fill is not None:
+            opts["stackedGraphNaNFill"] = stacked_graph_nan_fill
+        # Background fade
+        if not animate_background_fade:
+            opts["animateBackgroundFade"] = False
+        # Label sizing
+        if x_label_height is not None:
+            opts["xLabelHeight"] = x_label_height
+        if y_label_width is not None:
+            opts["yLabelWidth"] = y_label_width
+        # Legend follow offsets
+        if legend_follow_offset_x is not None:
+            opts["legendFollowOffsetX"] = legend_follow_offset_x
+        if legend_follow_offset_y is not None:
+            opts["legendFollowOffsetY"] = legend_follow_offset_y
+        # Range selector veil colour
+        if range_selector_veil_colour is not None:
+            opts["rangeSelectorVeilColour"] = range_selector_veil_colour
+        # CSV parsing
+        if delimiter is not None:
+            opts["delimiter"] = delimiter
+        if x_value_parser is not None:
+            opts["xValueParser"] = JS(x_value_parser)
+        # Display annotations
+        if display_annotations:
+            opts["displayAnnotations"] = True
 
         # axes sub-options
         opts.setdefault("axes", {})

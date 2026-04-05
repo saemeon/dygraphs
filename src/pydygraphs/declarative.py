@@ -113,6 +113,16 @@ class Options:
     grid_line_pattern: list[int] | None = field(default=None)
     resizable: str | None = None
     pixel_ratio: float | None = None
+    stacked_graph_nan_fill: str | None = None
+    animate_background_fade: bool = True
+    x_label_height: int | None = None
+    y_label_width: int | None = None
+    legend_follow_offset_x: int | None = None
+    legend_follow_offset_y: int | None = None
+    range_selector_veil_colour: str | None = None
+    delimiter: str | None = None
+    x_value_parser: str | None = None
+    display_annotations: bool = False
 
 
 # ---------------------------------------------------------------------------
