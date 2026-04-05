@@ -123,6 +123,7 @@ class Options:
     delimiter: str | None = None
     x_value_parser: str | None = None
     display_annotations: bool = False
+    data_handler: str | None = None
 
 
 # ---------------------------------------------------------------------------

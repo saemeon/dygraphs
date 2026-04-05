@@ -424,6 +424,8 @@ class Dygraph:
         x_value_parser: str | None = None,
         # Display annotations from data columns
         display_annotations: bool = False,
+        # Custom data handler (advanced/undocumented)
+        data_handler: str | None = None,
     ) -> Dygraph:
         """Set global chart options (mirrors R ``dyOptions``)."""
         if stem_plot:
@@ -558,6 +560,9 @@ class Dygraph:
         # Display annotations
         if display_annotations:
             opts["displayAnnotations"] = True
+        # Custom data handler
+        if data_handler is not None:
+            opts["dataHandler"] = JS(data_handler)
 
         # axes sub-options
         opts.setdefault("axes", {})
