@@ -407,6 +407,25 @@ class Dygraph:
         # Resize
         resizable: str | None = None,
         pixel_ratio: float | None = None,
+        # Stacked graph NaN handling
+        stacked_graph_nan_fill: Literal["all", "inside", "none"] | None = None,
+        # Background fade animation
+        animate_background_fade: bool = True,
+        # Label sizing
+        x_label_height: int | None = None,
+        y_label_width: int | None = None,
+        # Legend follow offsets
+        legend_follow_offset_x: int | None = None,
+        legend_follow_offset_y: int | None = None,
+        # Range selector veil colour
+        range_selector_veil_colour: str | None = None,
+        # CSV parsing
+        delimiter: str | None = None,
+        x_value_parser: str | None = None,
+        # Display annotations from data columns
+        display_annotations: bool = False,
+        # Custom data handler (advanced/undocumented)
+        data_handler: str | None = None,
     ) -> Dygraph:
         """Set global chart options (mirrors R ``dyOptions``)."""
         if stem_plot:
@@ -514,6 +533,36 @@ class Dygraph:
             opts["resizable"] = resizable
         if pixel_ratio is not None:
             opts["pixelRatio"] = pixel_ratio
+        # Stacked graph NaN handling
+        if stacked_graph_nan_fill is not None:
+            opts["stackedGraphNaNFill"] = stacked_graph_nan_fill
+        # Background fade
+        if not animate_background_fade:
+            opts["animateBackgroundFade"] = False
+        # Label sizing
+        if x_label_height is not None:
+            opts["xLabelHeight"] = x_label_height
+        if y_label_width is not None:
+            opts["yLabelWidth"] = y_label_width
+        # Legend follow offsets
+        if legend_follow_offset_x is not None:
+            opts["legendFollowOffsetX"] = legend_follow_offset_x
+        if legend_follow_offset_y is not None:
+            opts["legendFollowOffsetY"] = legend_follow_offset_y
+        # Range selector veil colour
+        if range_selector_veil_colour is not None:
+            opts["rangeSelectorVeilColour"] = range_selector_veil_colour
+        # CSV parsing
+        if delimiter is not None:
+            opts["delimiter"] = delimiter
+        if x_value_parser is not None:
+            opts["xValueParser"] = JS(x_value_parser)
+        # Display annotations
+        if display_annotations:
+            opts["displayAnnotations"] = True
+        # Custom data handler
+        if data_handler is not None:
+            opts["dataHandler"] = JS(data_handler)
 
         # axes sub-options
         opts.setdefault("axes", {})
@@ -637,6 +686,8 @@ class Dygraph:
         stroke_border_width: float | None = None,
         stroke_border_color: str | None = None,
         plotter: str | None = None,
+        highlight_circle_size: int | None = None,
+        show_in_range_selector: bool | None = None,
     ) -> Dygraph:
         """Configure a data series (mirrors R ``dySeries``)."""
         labels = self._attrs["labels"]
@@ -679,6 +730,10 @@ class Dygraph:
             series_opts["strokeBorderColor"] = stroke_border_color
         if plotter is not None:
             series_opts["plotter"] = JS(plotter)
+        if highlight_circle_size is not None:
+            series_opts["highlightCircleSize"] = highlight_circle_size
+        if show_in_range_selector is not None:
+            series_opts["showInRangeSelector"] = show_in_range_selector
 
         # Handle color
         if color is not None:
@@ -816,6 +871,7 @@ class Dygraph:
         self,
         circle_size: int = 3,
         series_background_alpha: float = 0.5,
+        series_background_color: str | None = None,
         series_opts: dict[str, Any] | None = None,
         hide_on_mouse_out: bool = True,
     ) -> Dygraph:
@@ -825,6 +881,8 @@ class Dygraph:
             "highlightSeriesBackgroundAlpha": series_background_alpha,
             "hideOverlayOnMouseOut": hide_on_mouse_out,
         }
+        if series_background_color is not None:
+            opts["highlightSeriesBackgroundColor"] = series_background_color
         if series_opts:
             opts["highlightSeriesOpts"] = series_opts
         self._attrs = merge_dicts(self._attrs, opts)
@@ -842,7 +900,10 @@ class Dygraph:
         height: int | None = None,
         css_class: str | None = None,
         tick_height: int | None = None,
+        tick_color: str | None = None,
+        tick_width: int | None = None,
         attach_at_bottom: bool = False,
+        icon: str | None = None,
         click_handler: str | None = None,
         mouse_over_handler: str | None = None,
         mouse_out_handler: str | None = None,
@@ -877,6 +938,12 @@ class Dygraph:
             ann["cssClass"] = css_class
         if tick_height is not None:
             ann["tickHeight"] = tick_height
+        if tick_color is not None:
+            ann["tickColor"] = tick_color
+        if tick_width is not None:
+            ann["tickWidth"] = tick_width
+        if icon is not None:
+            ann["icon"] = icon
         if click_handler is not None:
             ann["clickHandler"] = JS(click_handler)
         if mouse_over_handler is not None:

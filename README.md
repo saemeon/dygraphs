@@ -9,11 +9,11 @@ Framework-agnostic core with adapters for [Plotly Dash](https://dash.plotly.com/
 ## Features
 
 - **Two API styles**: builder chaining (`Dygraph(df).options(...).series(...)`) and declarative (`Dygraph(df, options=Options(...), series=[Series(...)])`) — both produce identical output
-- **Full R port**: options, axes, series, legend, highlight, annotations, shadings, events, limits, range selector, roller, callbacks
+- **Full R port + full JS coverage**: options, axes, series, legend, highlight, annotations, shadings, events, limits, range selector, roller, callbacks — every documented and undocumented dygraph option is exposed
 - **Advanced plotters**: bar chart, stacked bar, candlestick, multi-column, stem, filled line, error fill + group variants
 - **Plugins**: unzoom, crosshair, ribbon, rebase
 - **Error bars**: symmetric, custom (low/mid/high), fractions with Wilson intervals
-- **Zoom sync** across multiple charts (line + stacked bar)
+- **Zoom sync** across multiple charts (line + stacked bar) with debounced range-selector panning
 - **Stacked bar chart** with interactive canvas range selector
 - **Modebar overlay** (Plotly-style) with PNG download and reset zoom buttons
 - **Standalone HTML export** via `.to_html()` — no server needed
@@ -215,6 +215,127 @@ Also via constructor: `Dygraph(df, plotter="bar_chart")`
 ### Plugins
 
 `.unzoom()`, `.crosshair(direction)`, `.ribbon(data, palette)`, `.rebase(value, percent)`
+
+## Full Options Reference
+
+### `.options(...)` / `Options(...)`
+
+| Parameter | JS Option | Description |
+|-----------|-----------|-------------|
+| `stacked_graph` | `stackedGraph` | Stack series on top of each other |
+| `stacked_graph_nan_fill` | `stackedGraphNaNFill` | NaN handling in stacked graphs (`"all"`, `"inside"`, `"none"`) |
+| `fill_graph` | `fillGraph` | Fill area under graph |
+| `fill_alpha` | `fillAlpha` | Fill transparency (0–1) |
+| `step_plot` | `stepPlot` | Step plot instead of line |
+| `stem_plot` | — | Stem plot (custom plotter) |
+| `draw_points` | `drawPoints` | Draw dots at data points |
+| `point_size` | `pointSize` | Dot size in pixels |
+| `point_shape` | — | Dot shape (`"dot"`, `"triangle"`, `"square"`, etc.) |
+| `draw_gap_edge_points` | `drawGapEdgePoints` | Draw points at data gaps |
+| `connect_separated_points` | `connectSeparatedPoints` | Connect across missing values |
+| `stroke_width` | `strokeWidth` | Line width |
+| `stroke_pattern` | `strokePattern` | Dash pattern (`"dashed"`, `"dotted"`, or `[on, off]`) |
+| `stroke_border_width` | `strokeBorderWidth` | Border around lines |
+| `stroke_border_color` | `strokeBorderColor` | Border color |
+| `plotter` | `plotter` | Custom JS plotter function |
+| `colors` | `colors` | List of series colors |
+| `color_value` | `colorValue` | HSV value for auto-colors |
+| `color_saturation` | `colorSaturation` | HSV saturation for auto-colors |
+| `draw_x_axis` | `axes.x.drawAxis` | Show x axis |
+| `draw_y_axis` | `axes.y.drawAxis` | Show y axis |
+| `include_zero` | `includeZero` | Y-axis includes zero |
+| `draw_axes_at_zero` | `drawAxesAtZero` | Draw axes at zero position |
+| `logscale` | `logscale` | Logarithmic scale |
+| `axis_tick_size` | `axisTickSize` | Tick mark size |
+| `axis_line_color` | `axisLineColor` | Axis line color |
+| `axis_line_width` | `axisLineWidth` | Axis line width |
+| `axis_label_color` | `axisLabelColor` | Axis label color |
+| `axis_label_font_size` | `axisLabelFontSize` | Axis label font size |
+| `axis_label_width` | `axisLabelWidth` | Axis label width |
+| `draw_grid` | `drawGrid` | Show gridlines |
+| `grid_line_color` | `gridLineColor` | Grid color |
+| `grid_line_width` | `gridLineWidth` | Grid width |
+| `grid_line_pattern` | `gridLinePattern` | Grid dash pattern |
+| `title_height` | `titleHeight` | Title area height |
+| `right_gap` | `rightGap` | Right margin pixels |
+| `x_label_height` | `xLabelHeight` | X-axis label height |
+| `y_label_width` | `yLabelWidth` | Y-axis label width |
+| `digits_after_decimal` | `digitsAfterDecimal` | Decimal places |
+| `max_number_width` | `maxNumberWidth` | Scientific notation threshold |
+| `sig_figs` | `sigFigs` | Fixed significant figures |
+| `labels_kmb` | `labelsKMB` | k/M/B notation |
+| `labels_kmg2` | `labelsKMG2` | Ki/Mi/Gi notation |
+| `labels_utc` | `labelsUTC` | UTC dates |
+| `pan_edge_fraction` | `panEdgeFraction` | Max pan distance fraction |
+| `animated_zooms` | `animatedZooms` | Animate zoom transitions |
+| `animate_background_fade` | `animateBackgroundFade` | Highlight background animation |
+| `disable_zoom` | `disableZoom` | Disable zooming |
+| `retain_date_window` | `retainDateWindow` | Keep zoom on data update |
+| `error_bars` | `errorBars` | Enable error bars |
+| `custom_bars` | `customBars` | Low/mid/high format |
+| `sigma` | `sigma` | Standard deviations |
+| `fractions` | `fractions` | Fraction format |
+| `wilson_interval` | `wilsonInterval` | Wilson confidence intervals |
+| `visibility` | `visibility` | Series visibility list |
+| `legend_formatter` | `legendFormatter` | Custom JS legend formatter |
+| `legend_follow_offset_x` | `legendFollowOffsetX` | Floating legend X offset |
+| `legend_follow_offset_y` | `legendFollowOffsetY` | Floating legend Y offset |
+| `range_selector_*` | `rangeSelector*` | Range selector fine styling (7 options) |
+| `range_selector_veil_colour` | `rangeSelectorVeilColour` | Range selector veil fill color |
+| `resizable` | `resizable` | Add resize handles |
+| `pixel_ratio` | `pixelRatio` | Pixel ratio scaling |
+| `delimiter` | `delimiter` | CSV field separator |
+| `x_value_parser` | `xValueParser` | Custom JS x-value parser |
+| `display_annotations` | `displayAnnotations` | Interpret columns as annotations |
+| `data_handler` | `dataHandler` | Custom JS data handler |
+
+### `.series(...)` / `Series(...)`
+
+| Parameter | JS Option | Description |
+|-----------|-----------|-------------|
+| `color` | `color` | Series color |
+| `axis` | `axis` | Assign to `"y"` or `"y2"` |
+| `step_plot` | `stepPlot` | Step plot for this series |
+| `fill_graph` | `fillGraph` | Fill under this series |
+| `draw_points` | `drawPoints` | Draw dots for this series |
+| `point_size` | `pointSize` | Dot size |
+| `point_shape` | — | Dot shape |
+| `stroke_width` | `strokeWidth` | Line width |
+| `stroke_pattern` | `strokePattern` | Dash pattern |
+| `stroke_border_width` | `strokeBorderWidth` | Border width |
+| `stroke_border_color` | `strokeBorderColor` | Border color |
+| `plotter` | `plotter` | Custom JS plotter |
+| `highlight_circle_size` | `highlightCircleSize` | Per-series highlight dot size |
+| `show_in_range_selector` | `showInRangeSelector` | Show in range selector mini-plot |
+
+### `.highlight(...)` / `Highlight(...)`
+
+| Parameter | JS Option | Description |
+|-----------|-----------|-------------|
+| `circle_size` | `highlightCircleSize` | Highlight dot size |
+| `series_background_alpha` | `highlightSeriesBackgroundAlpha` | Background fade alpha |
+| `series_background_color` | `highlightSeriesBackgroundColor` | Background fade color |
+| `series_opts` | `highlightSeriesOpts` | Opts applied to highlighted series |
+| `hide_on_mouse_out` | `hideOverlayOnMouseOut` | Hide legend on mouse exit |
+
+### `.annotation(...)` / `Annotation(...)`
+
+| Parameter | JS Property | Description |
+|-----------|------------|-------------|
+| `x` | `x` | Position on x-axis |
+| `text` | `shortText` | Short label text |
+| `tooltip` | `text` | Tooltip on hover |
+| `width`, `height` | `width`, `height` | Annotation box size |
+| `css_class` | `cssClass` | Custom CSS class |
+| `tick_height` | `tickHeight` | Tick line height |
+| `tick_color` | `tickColor` | Tick line color |
+| `tick_width` | `tickWidth` | Tick line width |
+| `attach_at_bottom` | `attachAtBottom` | Attach to bottom |
+| `icon` | `icon` | Image URL instead of text |
+| `click_handler` | `clickHandler` | JS click handler |
+| `mouse_over_handler` | `mouseOverHandler` | JS mouseover handler |
+| `mouse_out_handler` | `mouseOutHandler` | JS mouseout handler |
+| `dbl_click_handler` | `dblClickHandler` | JS double-click handler |
 
 ## Development
 

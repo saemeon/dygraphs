@@ -113,6 +113,17 @@ class Options:
     grid_line_pattern: list[int] | None = field(default=None)
     resizable: str | None = None
     pixel_ratio: float | None = None
+    stacked_graph_nan_fill: str | None = None
+    animate_background_fade: bool = True
+    x_label_height: int | None = None
+    y_label_width: int | None = None
+    legend_follow_offset_x: int | None = None
+    legend_follow_offset_y: int | None = None
+    range_selector_veil_colour: str | None = None
+    delimiter: str | None = None
+    x_value_parser: str | None = None
+    display_annotations: bool = False
+    data_handler: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -171,6 +182,8 @@ class Series:
     stroke_border_width: float | None = None
     stroke_border_color: str | None = None
     plotter: str | None = None
+    highlight_circle_size: int | None = None
+    show_in_range_selector: bool | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +214,7 @@ class Highlight:
 
     circle_size: int = 3
     series_background_alpha: float = 0.5
+    series_background_color: str | None = None
     series_opts: dict[str, Any] | None = field(default=None)
     hide_on_mouse_out: bool = True
 
@@ -221,7 +235,10 @@ class Annotation:
     height: int | None = None
     css_class: str | None = None
     tick_height: int | None = None
+    tick_color: str | None = None
+    tick_width: int | None = None
     attach_at_bottom: bool = False
+    icon: str | None = None
     click_handler: str | None = None
     mouse_over_handler: str | None = None
     mouse_out_handler: str | None = None

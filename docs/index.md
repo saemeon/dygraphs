@@ -69,7 +69,7 @@ chart = (
 
 ### Zoom Sync
 
-Synchronize zoom and pan across multiple charts:
+Synchronize zoom and pan across multiple charts. Zooming, range-selector panning, and programmatic `dateWindow` changes all stay in sync with debounced broadcasts to avoid loops:
 
 ```python
 from pydygraphs import sync_dygraphs, stacked_bar
@@ -127,3 +127,7 @@ Accepts multiple formats:
 | list of rows | `[[1, 10], [2, 20], [3, 30]]` |
 
 DatetimeIndex is auto-detected and formatted for the x-axis.
+
+## Full JS Coverage
+
+Every documented and undocumented dygraph option is exposed. See the [README](https://github.com/saemeon/pydygraphs#full-options-reference) for the complete mapping, or the [API reference](api.md) for auto-generated docs from the source.
