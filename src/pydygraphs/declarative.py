@@ -181,6 +181,8 @@ class Series:
     stroke_border_width: float | None = None
     stroke_border_color: str | None = None
     plotter: str | None = None
+    highlight_circle_size: int | None = None
+    show_in_range_selector: bool | None = None
 
 
 # ---------------------------------------------------------------------------

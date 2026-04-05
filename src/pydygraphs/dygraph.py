@@ -681,6 +681,8 @@ class Dygraph:
         stroke_border_width: float | None = None,
         stroke_border_color: str | None = None,
         plotter: str | None = None,
+        highlight_circle_size: int | None = None,
+        show_in_range_selector: bool | None = None,
     ) -> Dygraph:
         """Configure a data series (mirrors R ``dySeries``)."""
         labels = self._attrs["labels"]
@@ -723,6 +725,10 @@ class Dygraph:
             series_opts["strokeBorderColor"] = stroke_border_color
         if plotter is not None:
             series_opts["plotter"] = JS(plotter)
+        if highlight_circle_size is not None:
+            series_opts["highlightCircleSize"] = highlight_circle_size
+        if show_in_range_selector is not None:
+            series_opts["showInRangeSelector"] = show_in_range_selector
 
         # Handle color
         if color is not None:
