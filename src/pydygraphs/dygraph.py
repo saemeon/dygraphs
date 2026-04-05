@@ -860,6 +860,7 @@ class Dygraph:
         self,
         circle_size: int = 3,
         series_background_alpha: float = 0.5,
+        series_background_color: str | None = None,
         series_opts: dict[str, Any] | None = None,
         hide_on_mouse_out: bool = True,
     ) -> Dygraph:
@@ -869,6 +870,8 @@ class Dygraph:
             "highlightSeriesBackgroundAlpha": series_background_alpha,
             "hideOverlayOnMouseOut": hide_on_mouse_out,
         }
+        if series_background_color is not None:
+            opts["highlightSeriesBackgroundColor"] = series_background_color
         if series_opts:
             opts["highlightSeriesOpts"] = series_opts
         self._attrs = merge_dicts(self._attrs, opts)

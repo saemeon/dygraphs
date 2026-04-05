@@ -211,6 +211,7 @@ class Highlight:
 
     circle_size: int = 3
     series_background_alpha: float = 0.5
+    series_background_color: str | None = None
     series_opts: dict[str, Any] | None = field(default=None)
     hide_on_mouse_out: bool = True
 
