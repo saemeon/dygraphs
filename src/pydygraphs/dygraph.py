@@ -895,7 +895,10 @@ class Dygraph:
         height: int | None = None,
         css_class: str | None = None,
         tick_height: int | None = None,
+        tick_color: str | None = None,
+        tick_width: int | None = None,
         attach_at_bottom: bool = False,
+        icon: str | None = None,
         click_handler: str | None = None,
         mouse_over_handler: str | None = None,
         mouse_out_handler: str | None = None,
@@ -930,6 +933,12 @@ class Dygraph:
             ann["cssClass"] = css_class
         if tick_height is not None:
             ann["tickHeight"] = tick_height
+        if tick_color is not None:
+            ann["tickColor"] = tick_color
+        if tick_width is not None:
+            ann["tickWidth"] = tick_width
+        if icon is not None:
+            ann["icon"] = icon
         if click_handler is not None:
             ann["clickHandler"] = JS(click_handler)
         if mouse_over_handler is not None:

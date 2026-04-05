@@ -234,7 +234,10 @@ class Annotation:
     height: int | None = None
     css_class: str | None = None
     tick_height: int | None = None
+    tick_color: str | None = None
+    tick_width: int | None = None
     attach_at_bottom: bool = False
+    icon: str | None = None
     click_handler: str | None = None
     mouse_over_handler: str | None = None
     mouse_out_handler: str | None = None
