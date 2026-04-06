@@ -20,21 +20,20 @@ maintainers = [
     { name = "Simon Niederberger", email = "s.niederberger@hotmail.com" },
 ]
 requires-python = ">=3.10"
-dependencies = [
-    "pandas>=1.5.0",
-]
+dependencies = []
 
 [project.optional-dependencies]
+pandas = ["pandas>=1.5.0"]
 dash = ["dash>=2.0.0"]
 shiny = ["shiny>=0.6.0"]
-all = ["dash>=2.0.0", "shiny>=0.6.0"]
+all = ["pandas>=1.5.0", "dash>=2.0.0", "shiny>=0.6.0"]
 
 [project.urls]
 Homepage = "https://github.com/saemeon/dygraphs"
 Repository = "https://github.com/saemeon/dygraphs"
 
 [dependency-groups]
-test = ["pytest", "pytest-cov", "selenium", "numpy", "dash>=2.0.0"]
+test = ["pytest", "pytest-cov", "selenium", "numpy", "pandas>=1.5.0", "dash>=2.0.0"]
 doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mike"]
 dev = [
     "ruff",

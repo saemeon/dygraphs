@@ -250,10 +250,16 @@ class Dygraph:
         data: Any,
     ) -> tuple[list[str], list[list[Any]], str]:
         """Return (labels, columns_as_lists, format_string)."""
-        import pandas as pd
+        try:
+            import pandas as pd
+        except ImportError:
+            pd = None  # type: ignore[assignment]
 
         # CSV string input
         if isinstance(data, str):
+            if pd is None:
+                msg = "pandas is required to parse CSV string data"
+                raise ImportError(msg)
             import io
 
             data = pd.read_csv(io.StringIO(data))
@@ -270,10 +276,10 @@ class Dygraph:
             else:
                 data = data.set_index(first_col_name)
 
-        if isinstance(data, pd.Series):
+        if pd is not None and isinstance(data, pd.Series):
             data = data.to_frame()
 
-        if isinstance(data, pd.DataFrame):
+        if pd is not None and isinstance(data, pd.DataFrame):
             idx = data.index
             if isinstance(idx, pd.DatetimeIndex):
                 # DatetimeIndex → ISO strings
