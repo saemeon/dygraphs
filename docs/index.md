@@ -1,4 +1,4 @@
-# pydygraphs
+# dygraphs
 
 Python/Dash wrapper for the [dygraphs](https://dygraphs.com) JavaScript charting library.
 
@@ -7,7 +7,7 @@ Ported from the R [dygraphs](https://rstudio.github.io/dygraphs/) package with a
 ## Installation
 
 ```bash
-pip install pydygraphs
+pip install dygraphs
 ```
 
 ## Quick Start
@@ -15,7 +15,7 @@ pip install pydygraphs
 ```python
 import pandas as pd
 from dash import Dash, html
-from pydygraphs import Dygraph
+from dygraphs import Dygraph
 
 app = Dash(__name__)
 
@@ -72,7 +72,7 @@ chart = (
 Synchronize zoom and pan across multiple charts. Zooming, range-selector panning, and programmatic `dateWindow` changes all stay in sync with debounced broadcasts to avoid loops:
 
 ```python
-from pydygraphs import sync_dygraphs, stacked_bar
+from dygraphs import sync_dygraphs, stacked_bar
 
 sync = sync_dygraphs(app, ["chart-a", "chart-b", "chart-c"])
 app.layout = html.Div([sync, chart_a, chart_b, chart_c])
@@ -83,7 +83,7 @@ app.layout = html.Div([sync, chart_a, chart_b, chart_c])
 Canvas-based stacked bar chart with interactive range selector:
 
 ```python
-from pydygraphs import stacked_bar
+from dygraphs import stacked_bar
 
 bar = stacked_bar(
     app, "energy",
@@ -106,7 +106,7 @@ Disable with `modebar=False` in `.to_dash()`.
 ### dash-capture Integration
 
 ```python
-from pydygraphs import dygraph_strategy
+from dygraphs import dygraph_strategy
 from dash_capture import capture_element
 
 capture_element(
@@ -130,4 +130,4 @@ DatetimeIndex is auto-detected and formatted for the x-axis.
 
 ## Full JS Coverage
 
-Every documented and undocumented dygraph option is exposed. See the [README](https://github.com/saemeon/pydygraphs#full-options-reference) for the complete mapping, or the [API reference](api.md) for auto-generated docs from the source.
+Every documented and undocumented dygraph option is exposed. See the [README](https://github.com/saemeon/dygraphs#full-options-reference) for the complete mapping, or the [API reference](api.md) for auto-generated docs from the source.

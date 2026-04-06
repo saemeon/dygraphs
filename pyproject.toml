@@ -1,5 +1,5 @@
 [project]
-name = "pydygraphs"
+name = "dygraphs"
 dynamic = ["version"]
 description = "Python wrapper for the dygraphs JavaScript charting library. Core port of R dygraphs with framework adapters for Dash and Shiny."
 keywords = ["dygraphs", "visualization", "time-series", "dash", "shiny", "charting"]
@@ -30,8 +30,8 @@ shiny = ["shiny>=0.6.0"]
 all = ["dash>=2.0.0", "shiny>=0.6.0"]
 
 [project.urls]
-Homepage = "https://github.com/saemeon/pydygraphs"
-Repository = "https://github.com/saemeon/pydygraphs"
+Homepage = "https://github.com/saemeon/dygraphs"
+Repository = "https://github.com/saemeon/dygraphs"
 
 [dependency-groups]
 test = ["pytest", "pytest-cov", "selenium", "numpy", "dash>=2.0.0"]
@@ -51,20 +51,20 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 version_scheme = "post-release"
 local_scheme = "no-local-version"
-write_to = "src/pydygraphs/_version.py"
+write_to = "src/dygraphs/_version.py"
 
 [tool.setuptools.dynamic]
-version = { attr = "pydygraphs._version.__version__" }
+version = { attr = "dygraphs._version.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-pydygraphs = ["py.typed", "assets/**/*"]
+dygraphs = ["py.typed", "assets/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=src/pydygraphs --cov-report=term-missing"
+addopts = "--cov=src/dygraphs --cov-report=term-missing"
 
 [tool.ty.src]
 include = ["src"]

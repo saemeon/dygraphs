@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from pydygraphs import (
+from dygraphs import (
     Dygraph,
     Legend,
     Options,
@@ -162,19 +162,19 @@ class TestUpdate:
 class TestPlotterDeclarative:
     def test_bar_chart_by_name(self) -> None:
         d = Dygraph(_df(), plotter="bar_chart")
-        from pydygraphs.utils import JS
+        from dygraphs.utils import JS
 
         assert isinstance(d.to_dict()["attrs"]["plotter"], JS)
 
     def test_candlestick_by_name(self) -> None:
         d = Dygraph(_df(), plotter="candlestick")
-        from pydygraphs.utils import JS
+        from dygraphs.utils import JS
 
         assert isinstance(d.to_dict()["attrs"]["plotter"], JS)
 
     def test_custom_js_plotter(self) -> None:
         d = Dygraph(_df(), plotter="function(e){}")
-        from pydygraphs.utils import JS
+        from dygraphs.utils import JS
 
         assert isinstance(d.to_dict()["attrs"]["plotter"], JS)
 

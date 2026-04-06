@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydygraphs.utils import (
+from dygraphs.utils import (
     JS,
     auto_colors,
     merge_dicts,
@@ -197,7 +197,7 @@ class Dygraph:
         plotter: str | None = None,
     ) -> None:
         """Apply declarative dataclass/dict params by delegating to builder methods."""
-        from pydygraphs.declarative import _to_kwargs
+        from dygraphs.declarative import _to_kwargs
 
         if options is not None:
             self.options(**_to_kwargs(options))
@@ -1332,7 +1332,7 @@ class Dygraph:
         dash.html.Div
             Component ready to place in a Dash layout.
         """
-        from pydygraphs.dash.component import dygraph_to_dash
+        from dygraphs.dash.component import dygraph_to_dash
 
         return dygraph_to_dash(
             self,
@@ -1356,7 +1356,7 @@ class Dygraph:
         Use ``render_dygraph(session, element_id, dg)`` in a reactive
         effect to send/update data.
 
-        Requires ``pydygraphs[shiny]``.
+        Requires ``dygraphs[shiny]``.
 
         Parameters
         ----------
@@ -1365,7 +1365,7 @@ class Dygraph:
         height, width
             CSS dimensions.
         """
-        from pydygraphs.shiny.component import dygraph_ui
+        from dygraphs.shiny.component import dygraph_ui
 
         return dygraph_ui(element_id, height=height, width=width)
 
@@ -1394,7 +1394,7 @@ class Dygraph:
             If True, load dygraphs from CDN. If False, inline the JS.
         """
         height_css = f"{height}px" if isinstance(height, int) else height
-        page_title = title or self._attrs.get("title", "pydygraphs chart")
+        page_title = title or self._attrs.get("title", "dygraphs chart")
         config_json = self.to_json()
 
         if cdn:

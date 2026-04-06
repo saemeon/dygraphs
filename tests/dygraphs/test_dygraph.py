@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from pydygraphs import Dygraph
+from dygraphs import Dygraph
 
 # ---------------------------------------------------------------------------
 # Helpers

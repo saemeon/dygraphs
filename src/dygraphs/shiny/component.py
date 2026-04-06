@@ -9,10 +9,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from pydygraphs.utils import JS
+from dygraphs.utils import JS
 
 if TYPE_CHECKING:
-    from pydygraphs.dygraph import Dygraph
+    from dygraphs.dygraph import Dygraph
 
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 
@@ -60,7 +60,7 @@ def dygraph_ui(
     from shiny import ui
 
     handler_js = f"""
-    Shiny.addCustomMessageHandler("pydygraphs_{element_id}", function(config) {{
+    Shiny.addCustomMessageHandler("dygraphs_{element_id}", function(config) {{
         var el = document.getElementById("{element_id}");
         if (!el) return;
 
@@ -206,4 +206,4 @@ async def render_dygraph(
         Configured ``Dygraph`` builder instance.
     """
     config = _serialise(dg.to_dict())
-    await session.send_custom_message(f"pydygraphs_{element_id}", config)
+    await session.send_custom_message(f"dygraphs_{element_id}", config)

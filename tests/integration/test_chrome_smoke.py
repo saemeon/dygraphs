@@ -14,7 +14,7 @@ def dash_app_url():
     from dash import Dash, html
 
     app = Dash(__name__)
-    app.layout = html.Div("Hello from pydygraphs integration test", id="root")
+    app.layout = html.Div("Hello from dygraphs integration test", id="root")
 
     # Find a free port
     import socket
@@ -68,4 +68,4 @@ def test_dash_app_renders_in_chrome(dash_app_url: str, chrome_driver) -> None:
     time.sleep(1)
 
     root = chrome_driver.find_element("id", "root")
-    assert "Hello from pydygraphs" in root.text
+    assert "Hello from dygraphs" in root.text

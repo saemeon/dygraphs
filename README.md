@@ -1,8 +1,8 @@
-# pydygraphs
+# dygraphs
 
 Python wrapper for the [dygraphs](https://dygraphs.com) JavaScript charting library.
 
-**Core port of the R [dygraphs](https://rstudio.github.io/dygraphs/) package** — all 44 exported R functions ported to a Pythonic builder API. The R package (by RStudio/JJ Allaire) is the most mature dygraphs wrapper in any language; pydygraphs faithfully ports its API design, data model, and test coverage to Python.
+**Core port of the R [dygraphs](https://rstudio.github.io/dygraphs/) package** — all 44 exported R functions ported to a Pythonic builder API. The R package (by RStudio/JJ Allaire) is the most mature dygraphs wrapper in any language; dygraphs faithfully ports its API design, data model, and test coverage to Python.
 
 Framework-agnostic core with adapters for [Plotly Dash](https://dash.plotly.com/) and [Shiny for Python](https://shiny.posit.co/py/).
 
@@ -25,9 +25,9 @@ Framework-agnostic core with adapters for [Plotly Dash](https://dash.plotly.com/
 ## Installation
 
 ```bash
-pip install pydygraphs            # core only
-pip install pydygraphs[dash]      # + Plotly Dash adapter
-pip install pydygraphs[shiny]     # + Shiny for Python adapter
+pip install dygraphs            # core only
+pip install dygraphs[dash]      # + Plotly Dash adapter
+pip install dygraphs[shiny]     # + Shiny for Python adapter
 ```
 
 ## Quick Start
@@ -36,7 +36,7 @@ pip install pydygraphs[shiny]     # + Shiny for Python adapter
 
 ```python
 import pandas as pd
-from pydygraphs import Dygraph
+from dygraphs import Dygraph
 
 df = pd.DataFrame(
     {"temp": [10, 12, 11, 14, 13], "rain": [5, 3, 7, 2, 6]},
@@ -56,7 +56,7 @@ chart = (
 ### Declarative API
 
 ```python
-from pydygraphs import Dygraph, Options, Series, Axis, Legend, RangeSelector
+from dygraphs import Dygraph, Options, Series, Axis, Legend, RangeSelector
 
 chart = Dygraph(
     df,
@@ -91,7 +91,7 @@ app.layout = html.Div([chart.to_dash(app=app)])
 ### Render in Shiny
 
 ```python
-from pydygraphs.shiny import dygraph_ui, render_dygraph
+from dygraphs.shiny import dygraph_ui, render_dygraph
 
 # In UI:
 dygraph_ui("my-chart")
@@ -131,7 +131,7 @@ json_str = chart.to_json()                # JSON with JS functions
 ## Error Bars
 
 ```python
-from pydygraphs import Dygraph, make_error_bar_data
+from dygraphs import Dygraph, make_error_bar_data
 
 data = make_error_bar_data(x=[1,2,3], y=[10,20,30], error=[1,2,3])
 chart = Dygraph(data, options={"error_bars": True})
@@ -140,7 +140,7 @@ chart = Dygraph(data, options={"error_bars": True})
 ## Syncing Multiple Charts
 
 ```python
-from pydygraphs import sync_dygraphs, stacked_bar
+from dygraphs import sync_dygraphs, stacked_bar
 
 chart_a = Dygraph(df1).range_selector().to_dash(app, component_id="a")
 chart_b = Dygraph(df2).range_selector().to_dash(app, component_id="b")
@@ -163,7 +163,7 @@ Input("{id}-xrange", "data")    # read current date window
 ## Capture (dash-capture)
 
 ```python
-from pydygraphs import dygraph_strategy
+from dygraphs import dygraph_strategy
 from dash_capture import capture_element
 
 capture_element(app, "btn", "chart-container", "img-store",
@@ -344,7 +344,7 @@ uv sync --group dev
 uv run ruff check src/ tests/
 uv run ty check
 uv run prek run --all-files
-uv run pytest tests/pydygraphs/    # core tests
+uv run pytest tests/dygraphs/    # core tests
 uv run pytest tests/dash/          # Dash adapter tests
 uv run pytest tests/integration/   # Chrome integration tests
 ```

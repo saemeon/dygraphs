@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from pydygraphs import Dygraph
+from dygraphs import Dygraph
 
 
 def _df() -> pd.DataFrame:

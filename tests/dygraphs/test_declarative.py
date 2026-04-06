@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from pydygraphs import (
+from dygraphs import (
     Annotation,
     Axis,
     Callbacks,
@@ -107,7 +107,7 @@ class TestDeclarativeDataclasses:
         assert d.to_dict()["attrs"]["rollPeriod"] == 7
 
     def test_callbacks_dataclass(self) -> None:
-        from pydygraphs import JS
+        from dygraphs import JS
 
         d = Dygraph(_df(), callbacks=Callbacks(click="function(){}"))
         cb = d.to_dict()["attrs"]["clickCallback"]
@@ -160,7 +160,7 @@ class TestDeclarativeDict:
 
     def test_callbacks_dict(self) -> None:
         d = Dygraph(_df(), callbacks={"click": "function(){}"})
-        from pydygraphs import JS
+        from dygraphs import JS
 
         assert isinstance(d.to_dict()["attrs"]["clickCallback"], JS)
 
@@ -238,7 +238,7 @@ class TestEquivalence:
 
 class TestEdgeCases:
     def test_invalid_type_raises(self) -> None:
-        from pydygraphs.declarative import _to_kwargs
+        from dygraphs.declarative import _to_kwargs
 
         with pytest.raises(TypeError, match="Expected"):
             _to_kwargs(42)

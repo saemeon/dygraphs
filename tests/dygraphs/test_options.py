@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from pydygraphs import JS, Dygraph
+from dygraphs import JS, Dygraph
 
 
 def _df() -> pd.DataFrame:

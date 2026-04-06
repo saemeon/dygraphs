@@ -2,7 +2,7 @@
 
 ## Core
 
-::: pydygraphs.Dygraph
+::: dygraphs.Dygraph
     options:
       members:
         - __init__
@@ -49,52 +49,52 @@
 
 ## Declarative Dataclasses
 
-::: pydygraphs.Options
+::: dygraphs.Options
 
-::: pydygraphs.Axis
+::: dygraphs.Axis
 
-::: pydygraphs.Series
+::: dygraphs.Series
 
-::: pydygraphs.Legend
+::: dygraphs.Legend
 
-::: pydygraphs.Highlight
+::: dygraphs.Highlight
 
-::: pydygraphs.Annotation
+::: dygraphs.Annotation
 
-::: pydygraphs.Shading
+::: dygraphs.Shading
 
-::: pydygraphs.Event
+::: dygraphs.Event
 
-::: pydygraphs.Limit
+::: dygraphs.Limit
 
-::: pydygraphs.RangeSelector
+::: dygraphs.RangeSelector
 
-::: pydygraphs.Roller
+::: dygraphs.Roller
 
-::: pydygraphs.Callbacks
+::: dygraphs.Callbacks
 
 ## Dash Integration
 
-::: pydygraphs.dygraph_to_dash
+::: dygraphs.dygraph_to_dash
 
-::: pydygraphs.sync_dygraphs
+::: dygraphs.sync_dygraphs
 
-::: pydygraphs.stacked_bar
+::: dygraphs.stacked_bar
 
 ## Shiny Integration
 
-::: pydygraphs.shiny.dygraph_ui
+::: dygraphs.shiny.dygraph_ui
 
-::: pydygraphs.shiny.render_dygraph
+::: dygraphs.shiny.render_dygraph
 
 ## Capture
 
-::: pydygraphs.dash.capture.dygraph_strategy
+::: dygraphs.dash.capture.dygraph_strategy
 
 ## Utilities
 
-::: pydygraphs.JS
+::: dygraphs.JS
 
-::: pydygraphs.make_error_bar_data
+::: dygraphs.make_error_bar_data
 
-::: pydygraphs.make_custom_bar_data
+::: dygraphs.make_custom_bar_data

@@ -1,4 +1,4 @@
-"""Extensive demo app showcasing all pydygraphs features.
+"""Extensive demo app showcasing all dygraphs features.
 
 Run with::
 
@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from dash import Input, Output, dcc, html
 
-from pydygraphs import (
+from dygraphs import (
     Axis,
     Dygraph,
     Event,
@@ -227,7 +227,7 @@ app.layout = html.Div(
     children=[
         sync_component,
         html.H1(
-            "pydygraphs Full Demo", style={"textAlign": "center", "color": "#2c3e50"}
+            "dygraphs Full Demo", style={"textAlign": "center", "color": "#2c3e50"}
         ),
         html.P(
             "Showcasing: builder + declarative APIs, line charts, step plots, stacked bars, "

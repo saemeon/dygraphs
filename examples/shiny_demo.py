@@ -1,4 +1,4 @@
-"""Shiny for Python demo showcasing pydygraphs.
+"""Shiny for Python demo showcasing dygraphs.
 
 Run with::
 
@@ -6,7 +6,7 @@ Run with::
 
 Then open http://127.0.0.1:8000 in your browser.
 
-Requires: ``pip install pydygraphs[shiny]``
+Requires: ``pip install dygraphs[shiny]``
 """
 
 from __future__ import annotations
@@ -15,15 +15,15 @@ import numpy as np
 import pandas as pd
 from shiny import App, Inputs, Outputs, Session, reactive, ui
 
-from pydygraphs import Dygraph
-from pydygraphs.shiny import dygraph_ui, render_dygraph
+from dygraphs import Dygraph
+from dygraphs.shiny import dygraph_ui, render_dygraph
 
 # ---------------------------------------------------------------------------
 # UI
 # ---------------------------------------------------------------------------
 
 app_ui = ui.page_fluid(
-    ui.h1("pydygraphs + Shiny for Python"),
+    ui.h1("dygraphs + Shiny for Python"),
     ui.p("Reactive dygraphs chart with Shiny slider control."),
     ui.layout_sidebar(
         ui.sidebar(

@@ -1,10 +1,10 @@
-site_name: pydygraphs
+site_name: dygraphs
 site_description: Python/Dash wrapper for the dygraphs JavaScript charting library
 site_author: Simon Niederberger
-site_url: https://saemeon.github.io/pydygraphs/
+site_url: https://saemeon.github.io/dygraphs/
 
-repo_url: https://github.com/saemeon/pydygraphs
-repo_name: saemeon/pydygraphs
+repo_url: https://github.com/saemeon/dygraphs
+repo_name: saemeon/dygraphs
 
 copyright: "Copyright &copy; 2026 Simon Niederberger"
 
@@ -102,4 +102,4 @@ extra:
     default: latest
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/saemeon/pydygraphs
+      link: https://github.com/saemeon/dygraphs

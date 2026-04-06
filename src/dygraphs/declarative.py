@@ -5,7 +5,7 @@ or as a plain ``dict`` with the same keys. Both produce identical output.
 
 Example::
 
-    from pydygraphs import Dygraph, Series, Axis, Legend, RangeSelector
+    from dygraphs import Dygraph, Series, Axis, Legend, RangeSelector
 
     chart = Dygraph(
         df,
