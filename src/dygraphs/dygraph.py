@@ -271,10 +271,7 @@ class Dygraph:
                 msg = f"Failed to parse CSV data: {exc}"
                 raise ValueError(msg) from exc
             if data.empty or len(data.columns) < 2:
-                msg = (
-                    "CSV data must have at least 2 columns "
-                    f"(got {len(data.columns)})"
-                )
+                msg = f"CSV data must have at least 2 columns (got {len(data.columns)})"
                 raise ValueError(msg)
             # If first column looks like dates, use it as index
             first_col_name = data.columns[0]
@@ -445,6 +442,9 @@ class Dygraph:
         display_annotations: bool = False,
         # Custom data handler (advanced/undocumented)
         data_handler: str | None = None,
+        # Mobile / timezone (R parity)
+        mobile_disable_y_touch: bool = True,
+        use_data_timezone: bool = False,
     ) -> Dygraph:
         """Set global chart options (mirrors R ``dyOptions``)."""
         if stem_plot:
@@ -582,6 +582,11 @@ class Dygraph:
         # Custom data handler
         if data_handler is not None:
             opts["dataHandler"] = JS(data_handler)
+        # Mobile / timezone
+        if not mobile_disable_y_touch:
+            opts["mobileDisableYTouch"] = False
+        if use_data_timezone:
+            opts["useDataTimezone"] = True
 
         # axes sub-options
         opts.setdefault("axes", {})
@@ -707,9 +712,63 @@ class Dygraph:
         plotter: str | None = None,
         highlight_circle_size: int | None = None,
         show_in_range_selector: bool | None = None,
+        columns: list[str] | None = None,
     ) -> Dygraph:
-        """Configure a data series (mirrors R ``dySeries``)."""
+        """Configure a data series (mirrors R ``dySeries``).
+
+        Parameters
+        ----------
+        columns
+            For error bar series, pass 2 or 3 column names:
+
+            - 2 names ``[value, error]`` → symmetric error bars
+              (sets ``errorBars=True``).
+            - 3 names ``[low, mid, high]`` → custom bars
+              (sets ``customBars=True``).
+
+            The columns are merged into a single series with tuple values
+            and the consumed columns are removed.
+        """
         labels = self._attrs["labels"]
+
+        # Handle error bar columns (R-style: dySeries(dg, c("low","mid","hi")))
+        if columns is not None:
+            if len(columns) not in (2, 3):
+                msg = "columns must have 2 (value, error) or 3 (low, mid, high) names"
+                raise ValueError(msg)
+            for col in columns:
+                if col not in labels:
+                    msg = f"Column {col!r} not found. Valid: {labels[1:]}"
+                    raise ValueError(msg)
+            col_indices = [labels.index(c) for c in columns]
+            n_rows = len(self._data[0]) if self._data else 0
+
+            if len(columns) == 3:
+                # Custom bars: [low, mid, high] → single column of [low, mid, high] tuples
+                display_name = label or columns[1]  # middle column as display name
+                i0, i1, i2 = col_indices
+                merged = [
+                    [self._data[i0][r], self._data[i1][r], self._data[i2][r]]
+                    for r in range(n_rows)
+                ]
+                self._attrs["customBars"] = True
+            else:
+                # Error bars: [value, error] → single column of [value, error] tuples
+                display_name = label or columns[0]
+                i0, i1 = col_indices
+                merged = [[self._data[i0][r], self._data[i1][r]] for r in range(n_rows)]
+                self._attrs["errorBars"] = True
+
+            # Remove consumed columns (in reverse order to keep indices stable)
+            for idx in sorted(col_indices, reverse=True):
+                self._data.pop(idx)
+                labels.pop(idx)
+            # Insert merged column
+            labels.append(display_name)
+            self._data.append(merged)
+
+            # Use the display name as the series name going forward
+            name = display_name
 
         if name is None:
             # Auto-bind: first unprocessed series
@@ -791,9 +850,11 @@ class Dygraph:
         self,
         names: list[str],
         *,
+        label: list[str] | None = None,
         color: list[str] | None = None,
         axis: Literal["y", "y2"] = "y",
         step_plot: bool | None = None,
+        stem_plot: bool | None = None,
         fill_graph: bool | None = None,
         draw_points: bool | None = None,
         point_size: float | None = None,
@@ -819,8 +880,17 @@ class Dygraph:
         group_id = "\x1f".join(sorted(names))
         self._attrs.setdefault("series", {})
 
+        # Resolve stem_plot plotter
+        if stem_plot and plotter is not None:
+            msg = "stem_plot provides its own plotter, cannot combine with plotter="
+            raise ValueError(msg)
+        if stem_plot:
+            plotter = _STEM_PLOTTER_JS
+
         for i, n in enumerate(names):
             series_opts: dict[str, Any] = {"axis": axis, "group": group_id}
+            if label is not None:
+                series_opts["label"] = label[i % len(label)]
             if step_plot is not None:
                 series_opts["stepPlot"] = step_plot
             if fill_graph is not None:
@@ -1199,11 +1269,22 @@ class Dygraph:
         js = _read_plotter("errorplotter")
         return self.series(name, plotter=js, **kwargs)
 
-    def candlestick(self) -> Dygraph:
-        """Candlestick chart for OHLC data (mirrors R ``dyCandlestick``)."""
+    def candlestick(self, *, compress: bool = False) -> Dygraph:
+        """Candlestick chart for OHLC data (mirrors R ``dyCandlestick``).
+
+        Parameters
+        ----------
+        compress
+            If True, auto-compress OHLC data at different zoom levels
+            (yearly/quarterly/monthly/weekly/daily).
+        """
         js = _read_plotter("candlestick")
         self._attrs["plotter"] = JS(js)
         self._extra_js.append(js)
+        if compress:
+            compress_js = _read_plugin("compress")
+            self._extra_js.append(compress_js)
+            self._attrs["dataHandler"] = JS("Dygraph.DataHandlers.CompressHandler")
         return self
 
     def multi_column_group(self, names: list[str], **kwargs: Any) -> Dygraph:
@@ -1278,6 +1359,82 @@ class Dygraph:
         base: Any = "percent" if percent else value
         self._plugins.append({"name": "Rebase", "options": base})
         self._extra_js.append(_read_plugin("rebase"))
+        return self
+
+    # ---- generic plugin/plotter/handler (R: dyPlugin, dyPlotter, dyDataHandler)
+
+    def plugin(
+        self,
+        name: str,
+        *,
+        js: str | None = None,
+        options: Any = None,
+    ) -> Dygraph:
+        """Register a custom dygraphs plugin (mirrors R ``dyPlugin``).
+
+        Parameters
+        ----------
+        name
+            Plugin constructor name (e.g. ``"MyPlugin"``), must be
+            accessible as ``Dygraph.Plugins[name]``.
+        js
+            Raw JavaScript source that defines the plugin. Injected
+            into the page before the chart is instantiated.
+        options
+            Plugin options passed to the constructor.
+        """
+        self._plugins.append({"name": name, "options": options})
+        if js is not None:
+            self._extra_js.append(js)
+        return self
+
+    def custom_plotter(self, js: str) -> Dygraph:
+        """Set a custom plotter from raw JS (mirrors R ``dyPlotter``).
+
+        Parameters
+        ----------
+        js
+            JavaScript source defining a plotter function.
+        """
+        self._attrs["plotter"] = JS(js)
+        self._extra_js.append(js)
+        return self
+
+    def data_handler(self, js: str) -> Dygraph:
+        """Set a custom data handler from raw JS (mirrors R ``dyDataHandler``).
+
+        Parameters
+        ----------
+        js
+            JavaScript source defining a data handler.
+        """
+        self._attrs["dataHandler"] = JS(js)
+        self._extra_js.append(js)
+        return self
+
+    # ---- series_data (R: dySeriesData) -----------------------------------
+
+    def series_data(self, name: str, values: list[Any]) -> Dygraph:
+        """Add auxiliary data for a series (mirrors R ``dySeriesData``).
+
+        Appends an extra column of data that can be referenced by custom
+        formatters or plotters.
+
+        Parameters
+        ----------
+        name
+            Column label for the auxiliary data.
+        values
+            Data values (must be same length as existing columns).
+        """
+        if self._data and len(values) != len(self._data[0]):
+            msg = (
+                f"values length ({len(values)}) must match existing data "
+                f"length ({len(self._data[0])})"
+            )
+            raise ValueError(msg)
+        self._attrs["labels"].append(name)
+        self._data.append(list(values))
         return self
 
     # ---- serialisation -----------------------------------------------

@@ -19,7 +19,9 @@ from dygraphs import (
 
 def _df() -> pd.DataFrame:
     idx = pd.date_range("2020-01-01", periods=5, freq="D")
-    return pd.DataFrame({"temp": [10, 12, 11, 14, 13], "rain": [5, 3, 7, 2, 6]}, index=idx)
+    return pd.DataFrame(
+        {"temp": [10, 12, 11, 14, 13], "rain": [5, 3, 7, 2, 6]}, index=idx
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -89,9 +91,7 @@ class TestToHtml:
 
 class TestErrorBarHelpers:
     def test_make_error_bar_data(self) -> None:
-        data = make_error_bar_data(
-            x=[1, 2, 3], y=[10, 20, 30], error=[1, 2, 3]
-        )
+        data = make_error_bar_data(x=[1, 2, 3], y=[10, 20, 30], error=[1, 2, 3])
         assert data == {"x": [1, 2, 3], "value": [10, 20, 30], "error": [1, 2, 3]}
 
     def test_make_error_bar_data_custom_labels(self) -> None:
@@ -103,9 +103,7 @@ class TestErrorBarHelpers:
         assert "StdDev" in data
 
     def test_make_custom_bar_data(self) -> None:
-        data = make_custom_bar_data(
-            x=[1, 2], low=[8, 18], mid=[10, 20], high=[12, 22]
-        )
+        data = make_custom_bar_data(x=[1, 2], low=[8, 18], mid=[10, 20], high=[12, 22])
         assert data == {"x": [1, 2], "low": [8, 18], "mid": [10, 20], "high": [12, 22]}
 
 
@@ -207,12 +205,16 @@ class TestCopy:
 
 class TestMixedUsage:
     def test_declarative_then_builder(self) -> None:
-        d = Dygraph(
-            _df(),
-            title="Mixed",
-            options=Options(fill_graph=True),
-            series=[Series("temp", color="red")],
-        ).annotation("2020-01-03", "A").range_selector(height=25)
+        d = (
+            Dygraph(
+                _df(),
+                title="Mixed",
+                options=Options(fill_graph=True),
+                series=[Series("temp", color="red")],
+            )
+            .annotation("2020-01-03", "A")
+            .range_selector(height=25)
+        )
 
         cfg = d.to_dict()
         assert cfg["attrs"]["fillGraph"] is True
