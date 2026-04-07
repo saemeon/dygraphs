@@ -1,4 +1,4 @@
-"""Chrome integration tests for sync_dygraphs and stacked_bar."""
+"""Chrome integration tests for group sync and stacked_bar."""
 
 from __future__ import annotations
 
@@ -13,10 +13,10 @@ import pytest
 
 @pytest.fixture(scope="module")
 def synced_app_url():
-    """Start a Dash app with synced dygraphs + stacked bar."""
+    """Start a Dash app with grouped dygraphs + stacked bar."""
     from dash import Dash, html
 
-    from dygraphs import Dygraph, stacked_bar, sync_dygraphs
+    from dygraphs import Dygraph, stacked_bar
 
     app = Dash(__name__)
 
@@ -30,13 +30,13 @@ def synced_app_url():
     )
 
     chart_a = (
-        Dygraph(df1, title="Chart A")
+        Dygraph(df1, title="Chart A", group="test-sync")
         .options(animated_zooms=False)
         .range_selector(height=20)
         .to_dash(app=app, component_id="chart-a", height=200)
     )
     chart_b = (
-        Dygraph(df2, title="Chart B")
+        Dygraph(df2, title="Chart B", group="test-sync")
         .options(animated_zooms=False)
         .range_selector(height=20)
         .to_dash(app=app, component_id="chart-b", height=200)
@@ -59,13 +59,11 @@ def synced_app_url():
         colors=["#00d4aa", "#7eb8f7"],
         height=200,
         title="Stacked Bar",
+        group="test-sync",
     )
-
-    sync = sync_dygraphs(app, ["chart-a", "chart-b", "chart-c"])
 
     app.layout = html.Div(
         [
-            sync,
             html.H1("Sync Test", id="sync-heading"),
             chart_a,
             chart_b,
@@ -221,20 +219,17 @@ def test_sync_zoom_propagates(synced_app_url: str, chrome_driver) -> None:
     """)
     assert initial_range_b is not None, "Chart B should have a dygraph instance"
 
-    # Programmatically zoom chart A to a smaller window
+    # Programmatically zoom chart A to a smaller window and trigger sync
     chrome_driver.execute_script("""
         var el = document.getElementById('chart-a-container');
         if (el && el._dygraphInstance) {
             var range = el._dygraphInstance.xAxisRange();
             var span = range[1] - range[0];
-            el._dygraphInstance.updateOptions({
-                dateWindow: [range[0] + span * 0.25, range[1] - span * 0.25]
-            });
-            // Manually trigger zoomCallback to propagate sync
-            window['__dyZoom_chart_a'] = {
-                dateWindow: [range[0] + span * 0.25, range[1] - span * 0.25],
-                source: 'chart-a'
-            };
+            var newWindow = [range[0] + span * 0.25, range[1] - span * 0.25];
+            // Trigger zoomCallback to propagate via group sync
+            var cb = el._dygraphInstance.getOption('zoomCallback');
+            if (cb) cb(newWindow[0], newWindow[1]);
+            el._dygraphInstance.updateOptions({dateWindow: newWindow});
         }
     """)
     time.sleep(2)
