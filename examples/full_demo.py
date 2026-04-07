@@ -24,7 +24,6 @@ from dygraphs import (
     Series,
     Shading,
     stacked_bar,
-    sync_dygraphs,
 )
 
 # =============================================================================
@@ -75,7 +74,7 @@ app = dash.Dash(__name__)
 df1 = make_timeseries(0, 42, 15, ["Temperature", "Humidity"])
 
 chart1 = (
-    Dygraph(df1, title="Temperature & Humidity")
+    Dygraph(df1, title="Temperature & Humidity", group="sync")
     .options(
         fill_graph=True,
         draw_points=True,
@@ -108,7 +107,7 @@ chart1_component = chart1.to_dash(app=app, component_id="chart-1", height="320px
 df2 = make_timeseries(0, 7, 100, ["Pressure", "Wind Speed"])
 
 chart2 = (
-    Dygraph(df2, title="Pressure & Wind Speed")
+    Dygraph(df2, title="Pressure & Wind Speed", group="sync")
     .options(stroke_width=2, animated_zooms=True, colors=["#7eb8f7", "#f76e8a"])
     .axis("y", label="Pressure (hPa)")
     .axis("y2", label="Wind (km/h)", independent_ticks=True)
@@ -151,6 +150,7 @@ chart4_component = stacked_bar(
     height=280,
     title="Energy Contributions (Stacked Bar)",
     selector_height=40,
+    group="sync",
 )
 
 # ---------------------------------------------------------------------------
@@ -189,10 +189,81 @@ chart6._attrs["title"] = "Numpy Input + Copy"  # fork variant
 chart6_component = chart6.to_dash(app=app, component_id="chart-6", height="200px")
 
 # ---------------------------------------------------------------------------
-# Sync charts 1, 2, and 4 (line + line + stacked bar)
+# Chart 7: Error bars with columns= (R-style dySeries(c("low","mid","high")))
 # ---------------------------------------------------------------------------
 
-sync_component = sync_dygraphs(app, ["chart-1", "chart-2", "chart-4"])
+np.random.seed(77)
+dates7 = pd.date_range("2024-01-01", periods=60, freq="D")
+y_vals = np.cumsum(np.random.randn(60) * 0.5) + 20
+df7 = pd.DataFrame(
+    {
+        "low": (y_vals - np.abs(np.random.randn(60))).round(2),
+        "mid": y_vals.round(2),
+        "high": (y_vals + np.abs(np.random.randn(60))).round(2),
+    },
+    index=dates7,
+)
+
+chart7 = (
+    Dygraph(df7, title="Error Bars (custom bars via columns=)")
+    .series(columns=["low", "mid", "high"], color="#e74c3c")
+    .legend(show="always")
+    .range_selector(height=20)
+)
+chart7_component = chart7.to_dash(app=app, component_id="chart-7", height="280px")
+
+# ---------------------------------------------------------------------------
+# Chart 8: Rebase plugin — compare series from different baselines
+# ---------------------------------------------------------------------------
+
+df8 = make_timeseries(0.1, 55, 0, ["Stock A", "Stock B"])
+df8["Stock A"] = 50 + df8["Stock A"]
+df8["Stock B"] = 200 + df8["Stock B"]
+
+chart8 = (
+    Dygraph(df8, title="Rebase (normalised to 100)", group="rebase-group")
+    .options(stroke_width=2, colors=["#2ecc71", "#e74c3c"])
+    .legend(show="always")
+    .rebase(value=100)
+)
+chart8_component = chart8.to_dash(app=app, component_id="chart-8", height="250px")
+
+# ---------------------------------------------------------------------------
+# Chart 9: Ribbon plugin — background colour bands
+# ---------------------------------------------------------------------------
+
+df9 = make_timeseries(0, 88, 10, ["Signal"])
+
+chart9 = (
+    Dygraph(df9, title="Ribbon Plugin (background state bands)", group="rebase-group")
+    .options(stroke_width=2, colors=["#3498db"])
+    .legend(show="always")
+    .ribbon(
+        data=[0, 1, 0, 1, 0] * 24,  # 120 values
+        palette=["rgba(200,255,200,0.3)", "rgba(255,200,200,0.3)"],
+    )
+)
+chart9_component = chart9.to_dash(app=app, component_id="chart-9", height="250px")
+
+# ---------------------------------------------------------------------------
+# Chart 10: Series group with shared styling
+# ---------------------------------------------------------------------------
+
+df10 = make_timeseries(0, 33, 5, ["Sensor A", "Sensor B", "Sensor C", "Baseline"])
+
+chart10 = (
+    Dygraph(df10, title="Series Group (shared style for A+B+C)")
+    .group(
+        ["Sensor A", "Sensor B", "Sensor C"],
+        color=["#e74c3c", "#3498db", "#2ecc71"],
+        fill_graph=True,
+        draw_points=True,
+        point_size=2,
+    )
+    .series("Baseline", stroke_pattern="dashed", color="#999")
+    .legend(show="always")
+)
+chart10_component = chart10.to_dash(app=app, component_id="chart-10", height="280px")
 
 # ---------------------------------------------------------------------------
 # Dropdown to change trend
@@ -225,14 +296,14 @@ app.layout = html.Div(
         "color": "#111",
     },
     children=[
-        sync_component,
         html.H1(
             "dygraphs Full Demo", style={"textAlign": "center", "color": "#2c3e50"}
         ),
         html.P(
             "Showcasing: builder + declarative APIs, line charts, step plots, stacked bars, "
-            "range selectors, annotations, events, shadings, limits, crosshair, zoom sync, "
-            "modebar, secondary axes, numpy input, copy/fork, and more.",
+            "range selectors, annotations, events, shadings, limits, crosshair, group sync "
+            "(zoom + highlight), modebar, secondary axes, error bars, rebase, ribbon, "
+            "series groups, numpy input, copy/fork, and more.",
             style={"textAlign": "center", "color": "#666", "marginBottom": "32px"},
         ),
         html.Div(
@@ -311,6 +382,46 @@ app.layout = html.Div(
                     style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
                 ),
                 chart6_component,
+            ],
+        ),
+        html.Div(
+            style=CARD,
+            children=[
+                html.H3(
+                    "Error Bars (columns=)",
+                    style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
+                ),
+                chart7_component,
+            ],
+        ),
+        html.Div(
+            style=CARD,
+            children=[
+                html.H3(
+                    "Rebase Plugin (synced with ribbon below)",
+                    style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
+                ),
+                chart8_component,
+            ],
+        ),
+        html.Div(
+            style=CARD,
+            children=[
+                html.H3(
+                    "Ribbon Plugin (synced with rebase above)",
+                    style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
+                ),
+                chart9_component,
+            ],
+        ),
+        html.Div(
+            style=CARD,
+            children=[
+                html.H3(
+                    "Series Group (shared styling)",
+                    style={"margin": "0 0 8px 0", "fontSize": "14px", "color": "#888"},
+                ),
+                chart10_component,
             ],
         ),
     ],

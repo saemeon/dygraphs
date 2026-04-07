@@ -139,15 +139,16 @@ chart = Dygraph(data, options={"error_bars": True})
 
 ## Syncing Multiple Charts
 
+Charts with the same `group` name automatically sync zoom, pan, and highlight:
+
 ```python
-from dygraphs import sync_dygraphs, stacked_bar
+from dygraphs import Dygraph, stacked_bar
 
-chart_a = Dygraph(df1).range_selector().to_dash(app, component_id="a")
-chart_b = Dygraph(df2).range_selector().to_dash(app, component_id="b")
-chart_c = stacked_bar(app, "c", csv_data, title="Stacked Bar")
+chart_a = Dygraph(df1, group="sync").range_selector().to_dash(app, component_id="a")
+chart_b = Dygraph(df2, group="sync").range_selector().to_dash(app, component_id="b")
+chart_c = stacked_bar(app, "c", csv_data, title="Stacked Bar", group="sync")
 
-sync = sync_dygraphs(app, ["a", "b", "c"])
-app.layout = html.Div([sync, chart_a, chart_b, chart_c])
+app.layout = html.Div([chart_a, chart_b, chart_c])
 ```
 
 ## Dynamic Updates (Dash)

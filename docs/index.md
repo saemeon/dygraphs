@@ -67,15 +67,16 @@ chart = (
 )
 ```
 
-### Zoom Sync
+### Zoom & Highlight Sync
 
-Synchronize zoom and pan across multiple charts. Zooming, range-selector panning, and programmatic `dateWindow` changes all stay in sync with debounced broadcasts to avoid loops:
+Charts with the same `group` name automatically sync zoom, pan, and highlight (hover one chart, see the same position highlighted across all grouped charts):
 
 ```python
-from dygraphs import sync_dygraphs, stacked_bar
+from dygraphs import Dygraph
 
-sync = sync_dygraphs(app, ["chart-a", "chart-b", "chart-c"])
-app.layout = html.Div([sync, chart_a, chart_b, chart_c])
+chart_a = Dygraph(df1, group="sync").to_dash(app, component_id="chart-a")
+chart_b = Dygraph(df2, group="sync").to_dash(app, component_id="chart-b")
+app.layout = html.Div([chart_a, chart_b])
 ```
 
 ### Stacked Bar Chart

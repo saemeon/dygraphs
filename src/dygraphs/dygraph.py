@@ -1011,7 +1011,7 @@ class Dygraph:
         series: str | None = None,
     ) -> Dygraph:
         """Add an annotation (mirrors R ``dyAnnotation``)."""
-        if self._format == "date" and not isinstance(x, str):
+        if self._format == "date":
             import pandas as pd
 
             x = pd.Timestamp(x).strftime("%Y-%m-%dT%H:%M:%S.000Z")
@@ -1069,10 +1069,8 @@ class Dygraph:
         if axis == "x" and self._format == "date":
             import pandas as pd
 
-            if not isinstance(from_, str):
-                from_ = pd.Timestamp(from_).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            if not isinstance(to, str):
-                to = pd.Timestamp(to).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            from_ = pd.Timestamp(from_).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            to = pd.Timestamp(to).strftime("%Y-%m-%dT%H:%M:%S.000Z")
         self._shadings.append({"from": from_, "to": to, "color": color, "axis": axis})
         return self
 
@@ -1088,7 +1086,7 @@ class Dygraph:
         stroke_pattern: str | list[int] = "dashed",
     ) -> Dygraph:
         """Add a vertical event line (mirrors R ``dyEvent``)."""
-        if self._format == "date" and not isinstance(x, str):
+        if self._format == "date":
             import pandas as pd
 
             x = pd.Timestamp(x).strftime("%Y-%m-%dT%H:%M:%S.000Z")
