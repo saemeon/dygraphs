@@ -41,7 +41,7 @@ class TestDygraphToDash:
         children = component.children
         store = [c for c in children if isinstance(c, dcc.Store)]
         graphs = [c for c in children if isinstance(c, dcc.Graph)]
-        assert len(store) == 3  # data store + opts store + xrange store
+        assert len(store) == 2  # data store + opts store
         assert len(graphs) == 1  # hidden graph
 
     def test_to_dash_height_int(self) -> None:
@@ -66,14 +66,16 @@ class TestDygraphToDash:
         assert component is not None
 
 
-class TestSyncDygraphs:
-    def test_sync_returns_hidden_div(self) -> None:
-        from dash import Dash, html
+class TestGroupSync:
+    def test_group_included_in_config(self) -> None:
+        dg = Dygraph(_df(), group="my-sync-group")
+        cfg = dg.to_dict()
+        assert cfg["group"] == "my-sync-group"
 
-        app = Dash(__name__)
-        component = __import__("dygraphs").sync_dygraphs(app, ["a", "b", "c"])
-        assert isinstance(component, html.Div)
-        assert component.style == {"display": "none"}
+    def test_group_none_by_default(self) -> None:
+        dg = Dygraph(_df())
+        cfg = dg.to_dict()
+        assert cfg["group"] is None
 
 
 class TestStackedBar:
@@ -114,8 +116,8 @@ class TestGroup:
         )
         d = Dygraph(df).group(["a", "b"], color=["red", "blue"])
         cfg = d.to_dict()
-        assert cfg["attrs"]["series"]["a"]["group"] == "ab"
-        assert cfg["attrs"]["series"]["b"]["group"] == "ab"
+        assert cfg["attrs"]["series"]["a"]["group"] == "a\x1fb"
+        assert cfg["attrs"]["series"]["b"]["group"] == "a\x1fb"
         assert cfg["attrs"]["colors"][0] == "red"
         assert cfg["attrs"]["colors"][1] == "blue"
 

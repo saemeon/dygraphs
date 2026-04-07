@@ -58,14 +58,13 @@ class TestShinyComponent:
         assert result is not None
 
     def test_serialise_handles_js(self) -> None:
-        from dygraphs.shiny.component import _serialise
-        from dygraphs.utils import JS
+        from dygraphs.utils import JS, serialise_js
 
-        result = _serialise({"cb": JS("function(){}")})
+        result = serialise_js({"cb": JS("function(){}")})
         assert result["cb"] == "__JS__:function(){}:__JS__"
 
     def test_serialise_nested(self) -> None:
-        from dygraphs.shiny.component import _serialise
+        from dygraphs.utils import serialise_js
 
-        result = _serialise({"a": [1, {"b": 2}]})
+        result = serialise_js({"a": [1, {"b": 2}]})
         assert result == {"a": [1, {"b": 2}]}

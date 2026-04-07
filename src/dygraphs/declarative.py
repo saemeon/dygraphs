@@ -124,6 +124,8 @@ class Options:
     x_value_parser: str | None = None
     display_annotations: bool = False
     data_handler: str | None = None
+    mobile_disable_y_touch: bool = True
+    use_data_timezone: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +186,7 @@ class Series:
     plotter: str | None = None
     highlight_circle_size: int | None = None
     show_in_range_selector: bool | None = None
+    columns: list[str] | None = field(default=None)
 
 
 # ---------------------------------------------------------------------------

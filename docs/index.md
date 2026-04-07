@@ -1,23 +1,41 @@
 # dygraphs
 
-Python/Dash wrapper for the [dygraphs](https://dygraphs.com) JavaScript charting library.
+Python wrapper for the [dygraphs](https://dygraphs.com) JavaScript charting library.
 
-Ported from the R [dygraphs](https://rstudio.github.io/dygraphs/) package with a Pythonic builder API.
+**Core port of the R [dygraphs](https://rstudio.github.io/dygraphs/) package** — all 44 exported R functions ported to a Pythonic builder API. The R package (by RStudio/JJ Allaire) is the most mature dygraphs wrapper in any language; this package faithfully ports its API design, data model, and test coverage to Python.
+
+Framework-agnostic core with adapters for [Plotly Dash](https://dash.plotly.com/) and [Shiny for Python](https://shiny.posit.co/py/).
+
+## Features
+
+- **Two API styles**: builder chaining (`Dygraph(df).options(...).series(...)`) and declarative (`Dygraph(df, options=Options(...), series=[Series(...)])`) — both produce identical output
+- **Full R port + full JS coverage**: options, axes, series, legend, highlight, annotations, shadings, events, limits, range selector, roller, callbacks — every documented and undocumented dygraph option is exposed
+- **Advanced plotters**: bar chart, stacked bar, candlestick, multi-column, stem, filled line, error fill + group variants
+- **Plugins**: unzoom, crosshair, ribbon, rebase
+- **Error bars**: symmetric, custom (low/mid/high), fractions with Wilson intervals
+- **Zoom sync** across multiple charts with debounced range-selector panning
+- **Modebar overlay** (Plotly-style) with PNG download and reset zoom buttons
+- **Standalone HTML export** via `.to_html()` — no server needed
+- **dash-capture compatible** via `dygraph_strategy()`
+- **Framework-agnostic**: core builder has zero Dash/Shiny imports
+- **Flexible data input**: DataFrame, Series, dict, list, numpy array, CSV string, CSV file
+- **Type-safe**: full type hints, `py.typed`, passes `ty` and `ruff`
 
 ## Installation
 
 ```bash
-pip install dygraphs
+pip install dygraphs            # core only
+pip install dygraphs[dash]      # + Plotly Dash adapter
+pip install dygraphs[shiny]     # + Shiny for Python adapter
 ```
 
 ## Quick Start
 
+### Builder API (chaining)
+
 ```python
 import pandas as pd
-from dash import Dash, html
 from dygraphs import Dygraph
-
-app = Dash(__name__)
 
 df = pd.DataFrame(
     {"temp": [10, 12, 11, 14, 13], "rain": [5, 3, 7, 2, 6]},
@@ -26,22 +44,85 @@ df = pd.DataFrame(
 
 chart = (
     Dygraph(df, title="Weather")
-    .options(fill_graph=True, draw_points=True)
+    .options(fill_graph=True, draw_points=True, colors=["#00d4aa", "#f4a261"])
     .axis("y", label="Value")
+    .series("temp", stroke_width=2)
     .legend(show="always")
     .range_selector(height=30)
-    .to_dash(app=app)
 )
-
-app.layout = html.Div([chart])
-
-if __name__ == "__main__":
-    app.run(debug=True)
 ```
 
-## Features
+### Declarative API
 
-### Builder Pattern
+```python
+from dygraphs import Dygraph, Options, Series, Axis, Legend, RangeSelector
+
+chart = Dygraph(
+    df,
+    title="Weather",
+    options=Options(fill_graph=True, draw_points=True, colors=["#00d4aa", "#f4a261"]),
+    axes=[Axis("y", label="Value")],
+    series=[Series("temp", stroke_width=2)],
+    legend=Legend(show="always"),
+    range_selector=RangeSelector(height=30),
+)
+```
+
+Dicts work too — mix freely:
+
+```python
+chart = Dygraph(
+    df,
+    title="Weather",
+    options={"fill_graph": True},
+    series=[Series("temp", color="red"), {"name": "rain", "axis": "y2"}],
+)
+```
+
+### Render in Dash
+
+```python
+from dash import Dash, html
+app = Dash(__name__)
+app.layout = html.Div([chart.to_dash(app=app)])
+```
+
+### Render in Shiny
+
+```python
+from dygraphs.shiny import dygraph_ui, render_dygraph
+
+# In UI:
+dygraph_ui("my-chart")
+
+# In server:
+await render_dygraph(session, "my-chart", chart)
+```
+
+### Standalone HTML
+
+```python
+from pathlib import Path
+
+html_string = chart.to_html()
+Path("chart.html").write_text(html_string)
+```
+
+## Data Input
+
+| Format | Example |
+|--------|---------|
+| pandas DataFrame | `pd.DataFrame({"y": [1,2,3]}, index=pd.date_range(...))` |
+| pandas Series | `pd.Series([1,2,3], name="y")` |
+| dict of lists | `{"x": [1,2,3], "y": [10,20,30]}` |
+| list of rows | `[[1, 10], [2, 20], [3, 30]]` |
+| numpy array | `np.array([[1, 10], [2, 20]])` |
+| CSV string | `"Date,A,B\n2024-01-01,1,2\n..."` |
+| CSV file | `Dygraph.from_csv("data.csv")` |
+
+DatetimeIndex is auto-detected and formatted for the x-axis.
+
+## Builder Methods
 
 All configuration uses method chaining, mirroring the R package's pipe operator:
 
@@ -67,34 +148,68 @@ chart = (
 )
 ```
 
-### Zoom Sync
+| Method | R Equivalent | Description |
+|--------|-------------|-------------|
+| `Dygraph(data, ...)` | `dygraph()` | Create chart |
+| `.options(...)` | `dyOptions()` | Global options |
+| `.axis(name, ...)` | `dyAxis()` | Per-axis config |
+| `.series(name, ...)` | `dySeries()` | Per-series config |
+| `.group(names, ...)` | `dyGroup()` | Group config |
+| `.legend(...)` | `dyLegend()` | Legend options |
+| `.highlight(...)` | `dyHighlight()` | Highlight behavior |
+| `.annotation(x, text)` | `dyAnnotation()` | Data annotations |
+| `.shading(from_, to)` | `dyShading()` | Background regions |
+| `.event(x, label)` | `dyEvent()` | Vertical event lines |
+| `.limit(value, label)` | `dyLimit()` | Horizontal limit lines |
+| `.range_selector(...)` | `dyRangeSelector()` | Range selector |
+| `.roller(...)` | `dyRoller()` | Rolling average |
+| `.callbacks(...)` | `dyCallbacks()` | JS callbacks |
+| `.css(path)` | `dyCSS()` | Custom CSS |
 
-Synchronize zoom and pan across multiple charts. Zooming, range-selector panning, and programmatic `dateWindow` changes all stay in sync with debounced broadcasts to avoid loops:
+### Plotters
+
+`.bar_chart()`, `.stacked_bar_chart()`, `.multi_column()`, `.candlestick()`, `.bar_series(name)`, `.stem_series(name)`, `.shadow(name)`, `.filled_line(name)`, `.error_fill(name)` + group variants
+
+Also via constructor: `Dygraph(df, plotter="bar_chart")`
+
+### Plugins
+
+`.unzoom()`, `.crosshair(direction)`, `.ribbon(data, palette)`, `.rebase(value, percent)`
+
+## Error Bars
 
 ```python
-from dygraphs import sync_dygraphs, stacked_bar
+from dygraphs import Dygraph, make_error_bar_data
 
-sync = sync_dygraphs(app, ["chart-a", "chart-b", "chart-c"])
-app.layout = html.Div([sync, chart_a, chart_b, chart_c])
+data = make_error_bar_data(x=[1, 2, 3], y=[10, 20, 30], error=[1, 2, 3])
+chart = Dygraph(data, options={"error_bars": True})
 ```
 
-### Stacked Bar Chart
+## Syncing Multiple Charts
 
-Canvas-based stacked bar chart with interactive range selector:
+Charts with the same `group` name automatically sync zoom, pan, and highlight:
 
 ```python
-from dygraphs import stacked_bar
+from dygraphs import Dygraph, stacked_bar
 
-bar = stacked_bar(
-    app, "energy",
-    initial_data=csv_string,
-    colors=["#00d4aa", "#7eb8f7", "#f4a261"],
-    height=280,
-    title="Energy Contributions",
-)
+chart_a = Dygraph(df1, group="sync").range_selector().to_dash(app, component_id="a")
+chart_b = Dygraph(df2, group="sync").range_selector().to_dash(app, component_id="b")
+chart_c = stacked_bar(app, "c", csv_data, title="Stacked Bar", group="sync")
+
+app.layout = html.Div([chart_a, chart_b, chart_c])
 ```
 
-### Modebar
+## Dynamic Updates (Dash)
+
+Charts expose `dcc.Store` components:
+
+```python
+Output("{id}-store", "data")    # update chart data
+Output("{id}-opts", "data")     # update options at runtime
+Input("{id}-xrange", "data")    # read current date window
+```
+
+## Modebar
 
 Plotly-style overlay buttons appear on hover:
 
@@ -103,7 +218,7 @@ Plotly-style overlay buttons appear on hover:
 
 Disable with `modebar=False` in `.to_dash()`.
 
-### dash-capture Integration
+## dash-capture Integration
 
 ```python
 from dygraphs import dygraph_strategy
@@ -115,19 +230,52 @@ capture_element(
 )
 ```
 
-## Data Input
+## Utility Methods
 
-Accepts multiple formats:
+```python
+chart.update(legend={"show": "follow"})  # modify config after construction
+forked = chart.copy()                     # deep copy for variants
+config = chart.to_dict()                  # plain dict (framework-agnostic)
+json_str = chart.to_json()                # JSON with JS functions
+```
 
-| Type | Example |
-|------|---------|
-| pandas DataFrame | `pd.DataFrame({"y": [1,2,3]}, index=pd.date_range(...))` |
-| pandas Series | `pd.Series([1,2,3], name="y")` |
-| dict of lists | `{"x": [1,2,3], "y": [10,20,30]}` |
-| list of rows | `[[1, 10], [2, 20], [3, 30]]` |
+## R Function Mapping
 
-DatetimeIndex is auto-detected and formatted for the x-axis.
+Every R `dy*()` function has a Python equivalent:
 
-## Full JS Coverage
+| R Function | Python Builder | Python Declarative |
+|------------|---------------|-------------------|
+| `dygraph()` | `Dygraph(data)` | `Dygraph(data)` |
+| `dyOptions()` | `.options()` | `Options(...)` |
+| `dyAxis()` | `.axis()` | `Axis(...)` |
+| `dySeries()` | `.series()` | `Series(...)` |
+| `dyGroup()` | `.group()` | — |
+| `dyLegend()` | `.legend()` | `Legend(...)` |
+| `dyHighlight()` | `.highlight()` | `Highlight(...)` |
+| `dyAnnotation()` | `.annotation()` | `Annotation(...)` |
+| `dyShading()` | `.shading()` | `Shading(...)` |
+| `dyEvent()` | `.event()` | `Event(...)` |
+| `dyLimit()` | `.limit()` | `Limit(...)` |
+| `dyRangeSelector()` | `.range_selector()` | `RangeSelector(...)` |
+| `dyRoller()` | `.roller()` | `Roller(...)` |
+| `dyCallbacks()` | `.callbacks()` | `Callbacks(...)` |
+| `dyCSS()` | `.css()` | — |
+| `dyBarChart()` | `.bar_chart()` | — |
+| `dyStackedBarChart()` | `.stacked_bar_chart()` | — |
+| `dyMultiColumn()` | `.multi_column()` | — |
+| `dyCandlestick()` | `.candlestick()` | — |
+| `dyBarSeries()` | `.bar_series()` | — |
+| `dyStemSeries()` | `.stem_series()` | — |
+| `dyShadow()` | `.shadow()` | — |
+| `dyFilledLine()` | `.filled_line()` | — |
+| `dyErrorFill()` | `.error_fill()` | — |
+| `dyUnzoom()` | `.unzoom()` | — |
+| `dyCrosshair()` | `.crosshair()` | — |
+| `dyRibbon()` | `.ribbon()` | — |
+| `dyRebase()` | `.rebase()` | — |
+| `dyPlotter()` | `.custom_plotter()` | — |
+| `dyDataHandler()` | `.data_handler()` | — |
+| `dySeriesData()` | `.series_data()` | — |
+| `dyPlugin()` | `.plugin()` | — |
 
-Every documented and undocumented dygraph option is exposed. See the [README](https://github.com/saemeon/dygraphs#full-options-reference) for the complete mapping, or the [API reference](api.md) for auto-generated docs from the source.
+See the [API Reference](api.md) for full parameter documentation generated from docstrings.

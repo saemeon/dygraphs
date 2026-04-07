@@ -9,28 +9,20 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from dygraphs.utils import JS
+from dygraphs.utils import (
+    DYGRAPH_CSS_CDN as _DYGRAPH_CSS_CDN,
+)
+from dygraphs.utils import (
+    DYGRAPH_JS_CDN as _DYGRAPH_JS_CDN,
+)
+from dygraphs.utils import (
+    serialise_js,
+)
 
 if TYPE_CHECKING:
     from dygraphs.dygraph import Dygraph
 
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
-
-_DYGRAPH_JS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.js"
-_DYGRAPH_CSS_CDN = (
-    "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.css"
-)
-
-
-def _serialise(obj: Any) -> Any:
-    """Recursively convert JS objects to __JS__ markers for JSON transport."""
-    if isinstance(obj, JS):
-        return f"__JS__:{obj.code}:__JS__"
-    if isinstance(obj, dict):
-        return {k: _serialise(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_serialise(v) for v in obj]
-    return obj
 
 
 def dygraph_ui(
@@ -88,7 +80,9 @@ def dygraph_ui(
             for (var key in obj) {{
                 if (typeof obj[key] === 'string' && obj[key].indexOf('__JS__:') === 0) {{
                     var code = obj[key].slice(7, -6);
-                    try {{ obj[key] = eval('(' + code + ')'); }} catch(e) {{}}
+                    try {{ obj[key] = eval('(' + code + ')'); }} catch(e) {{
+                        console.warn('dygraphs: eval failed for "' + key + '":', e);
+                    }}
                 }} else if (typeof obj[key] === 'object') {{
                     processJS(obj[key]);
                 }}
@@ -97,12 +91,80 @@ def dygraph_ui(
         }}
         processJS(opts);
 
+        // Inject plugin/plotter JS before instantiation
+        if (config.extraJs) {{
+            for (var ej = 0; ej < config.extraJs.length; ej++) {{
+                try {{ eval(config.extraJs[ej]); }} catch(e) {{
+                    console.warn('dygraphs: failed to eval extraJs:', e);
+                }}
+            }}
+        }}
+
+        // Plugins
+        if (config.plugins) {{
+            var plugs = [];
+            for (var p = 0; p < config.plugins.length; p++) {{
+                var pl = config.plugins[p];
+                if (Dygraph.Plugins && Dygraph.Plugins[pl.name]) {{
+                    plugs.push(new Dygraph.Plugins[pl.name](pl.options));
+                }}
+            }}
+            if (plugs.length > 0) opts.plugins = plugs;
+        }}
+
+        // Group sync: zoom + highlight across charts sharing config.group
+        if (config.group) {{
+            if (!window.__dyGroups) window.__dyGroups = {{}};
+            var grp = config.group;
+            if (!window.__dyGroups[grp]) window.__dyGroups[grp] = [];
+            window.__dyGroups[grp] = window.__dyGroups[grp].filter(
+                function(e) {{ return e.el !== el; }});
+            var _broadcastZoom = function(dw) {{
+                if (el._suppressZoom) {{ el._suppressZoom = false; return; }}
+                window.__dyGroups[grp].forEach(function(peer) {{
+                    if (peer.el === el) return;
+                    peer.el._suppressZoom = true;
+                    peer.instance.updateOptions({{dateWindow: dw}});
+                }});
+            }};
+            opts.zoomCallback = function(a, b) {{ _broadcastZoom([a, b]); }};
+            var _userDrawCb = opts.drawCallback;
+            opts.drawCallback = function(g, isInitial) {{
+                if (_userDrawCb) _userDrawCb(g, isInitial);
+                if (isInitial) return;
+                _broadcastZoom(g.xAxisRange());
+            }};
+            opts.highlightCallback = function(event, x, points, row) {{
+                if (el._suppressHighlight) return;
+                window.__dyGroups[grp].forEach(function(peer) {{
+                    if (peer.el === el) return;
+                    peer.el._suppressHighlight = true;
+                    peer.instance.setSelection(row);
+                    peer.el._suppressHighlight = false;
+                }});
+            }};
+            opts.unhighlightCallback = function() {{
+                if (el._suppressHighlight) return;
+                window.__dyGroups[grp].forEach(function(peer) {{
+                    if (peer.el === el) return;
+                    peer.el._suppressHighlight = true;
+                    peer.instance.clearSelection();
+                    peer.el._suppressHighlight = false;
+                }});
+            }};
+        }}
+
         // Destroy previous instance
         if (el._dygraphInstance) el._dygraphInstance.destroy();
 
         // Create dygraph
         el._dygraphInstance = new Dygraph(el, rows, opts);
         var g = el._dygraphInstance;
+
+        // Register in group
+        if (config.group) {{
+            window.__dyGroups[config.group].push({{ el: el, instance: g }});
+        }}
 
         // Annotations
         if (config.annotations && config.annotations.length > 0) {{
@@ -205,5 +267,5 @@ async def render_dygraph(
     dg
         Configured ``Dygraph`` builder instance.
     """
-    config = _serialise(dg.to_dict())
+    config = serialise_js(dg.to_dict())
     await session.send_custom_message(f"dygraphs_{element_id}", config)

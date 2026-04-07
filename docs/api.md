@@ -77,8 +77,6 @@
 
 ::: dygraphs.dygraph_to_dash
 
-::: dygraphs.sync_dygraphs
-
 ::: dygraphs.stacked_bar
 
 ## Shiny Integration
