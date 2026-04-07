@@ -1,5 +1,5 @@
 site_name: dygraphs
-site_description: Python/Dash wrapper for the dygraphs JavaScript charting library
+site_description: Python wrapper for the dygraphs JavaScript charting library — ported from R dygraphs with adapters for Dash and Shiny
 site_author: Simon Niederberger
 site_url: https://saemeon.github.io/dygraphs/
 

@@ -37,6 +37,11 @@ def merge_dicts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]
     -------
     dict[str, Any]
         Merged dictionary (new object, does not mutate inputs).
+
+    Examples
+    --------
+    >>> merge_dicts({"a": 1, "b": {"x": 1}}, {"b": {"y": 2}, "c": 3})
+    {'a': 1, 'b': {'x': 1, 'y': 2}, 'c': 3}
     """
     if not base:
         return dict(overlay)
@@ -75,6 +80,13 @@ def resolve_stroke_pattern(
     ValueError
         If *pattern* is a string that does not match a predefined
         name.
+
+    Examples
+    --------
+    >>> resolve_stroke_pattern("dashed")
+    [7, 3]
+    >>> resolve_stroke_pattern([5, 2, 1, 2])
+    [5, 2, 1, 2]
     """
     if pattern is None:
         return None
@@ -113,6 +125,11 @@ def hsv_to_hex(hue: float, saturation: float, value: float) -> str:
     -------
     str
         Hex colour string, e.g. ``"#ff8000"``.
+
+    Examples
+    --------
+    >>> hsv_to_hex(0.0, 1.0, 1.0)
+    '#ff0000'
     """
     r, g, b = colorsys.hsv_to_rgb(hue, saturation, value)
     return f"#{math.floor(255 * r + 0.5):02x}{math.floor(255 * g + 0.5):02x}{math.floor(255 * b + 0.5):02x}"
@@ -140,6 +157,11 @@ def auto_colors(
     -------
     list[str]
         List of ``#rrggbb`` hex colour strings.
+
+    Examples
+    --------
+    >>> auto_colors(3)
+    ['#808000', '#008080', '#800080']
     """
     half = math.ceil(n / 2)
     colors: list[str] = []
@@ -161,6 +183,12 @@ class JS:
     ----------
     code : str
         Raw JavaScript source code.
+
+    Examples
+    --------
+    >>> js = JS("function(x) { return x * 2; }")
+    >>> repr(js)
+    "JS('function(x) { return x * 2; }')"
     """
 
     __slots__ = ("code",)
@@ -217,6 +245,11 @@ def unwrap_js_markers(json_str: str) -> str:
     -------
     str
         JSON string with JS markers unwrapped.
+
+    Examples
+    --------
+    >>> unwrap_js_markers('{"plotter": "__JS__:myFunc:__JS__"}')
+    '{"plotter": myFunc}'
     """
     return re.sub(
         r'"__JS__:(.*?):__JS__"', _unescape_json_string, json_str, flags=re.DOTALL
@@ -262,6 +295,11 @@ def make_error_bar_data(
     -------
     dict[str, list[Any]]
         Data dict suitable for ``Dygraph()``.
+
+    Examples
+    --------
+    >>> data = make_error_bar_data(x=[1, 2, 3], y=[10, 20, 30], error=[1, 2, 3])
+    >>> chart = Dygraph(data, options={"error_bars": True})
     """
     return {labels[0]: x, labels[1]: y, labels[2]: error}
 
@@ -291,5 +329,12 @@ def make_custom_bar_data(
     -------
     dict[str, list[Any]]
         Data dict suitable for ``Dygraph()``.
+
+    Examples
+    --------
+    >>> data = make_custom_bar_data(
+    ...     x=[1, 2, 3], low=[8, 18, 25], mid=[10, 20, 30], high=[12, 22, 35]
+    ... )
+    >>> chart = Dygraph(data, options={"custom_bars": True})
     """
     return {labels[0]: x, labels[1]: low, labels[2]: mid, labels[3]: high}

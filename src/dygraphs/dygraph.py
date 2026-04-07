@@ -162,6 +162,31 @@ class Dygraph:
         Synchronisation group name (x-axis zoom is synced across group).
     width, height
         Chart dimensions in pixels (``None`` = auto).
+
+    Examples
+    --------
+    From a pandas DataFrame:
+
+    >>> import pandas as pd
+    >>> df = pd.DataFrame(
+    ...     {"temp": [10, 12, 11], "rain": [5, 3, 7]},
+    ...     index=pd.date_range("2024-01-01", periods=3),
+    ... )
+    >>> chart = Dygraph(df, title="Weather")
+
+    From a plain dict:
+
+    >>> chart = Dygraph({"x": [1, 2, 3], "y": [10, 20, 30]})
+
+    Using the declarative API:
+
+    >>> from dygraphs import Options, Series
+    >>> chart = Dygraph(
+    ...     df,
+    ...     title="Weather",
+    ...     options=Options(fill_graph=True),
+    ...     series=[Series("temp", color="red")],
+    ... )
     """
 
     # ---- construction ------------------------------------------------
@@ -764,6 +789,23 @@ class Dygraph:
         Dygraph
             Self, for chaining.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).options(
+        ...     fill_graph=True,
+        ...     draw_points=True,
+        ...     colors=["#00d4aa", "#f4a261"],
+        ...     stroke_width=2,
+        ... )
+
+        Enable stacked graph with grid styling:
+
+        >>> chart = Dygraph(df).options(
+        ...     stacked_graph=True,
+        ...     grid_line_color="#ddd",
+        ...     axis_label_font_size=12,
+        ... )
+
         See Also
         --------
         axis : Per-axis configuration.
@@ -1040,6 +1082,16 @@ class Dygraph:
             If *name* is not one of ``"x"``, ``"y"``, ``"y2"``, or
             if *axis_height* is specified for a non-x axis.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).axis("y", label="Temperature", value_range=(0, 40))
+
+        Dual y-axis with independent ticks:
+
+        >>> chart = Dygraph(df).axis(
+        ...     "y2", label="Humidity", independent_ticks=True
+        ... )
+
         See Also
         --------
         options : Global chart options.
@@ -1201,6 +1253,20 @@ class Dygraph:
         -------
         Dygraph
             Self, for chaining.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).series("temp", color="red", stroke_width=2)
+
+        Step plot with custom point shape:
+
+        >>> chart = Dygraph(df).series(
+        ...     "temp", step_plot=True, draw_points=True, point_shape="square"
+        ... )
+
+        Assign a series to the secondary y-axis:
+
+        >>> chart = Dygraph(df).series("rain", axis="y2", color="blue")
 
         See Also
         --------
@@ -1399,6 +1465,12 @@ class Dygraph:
         Dygraph
             Self, for chaining.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).group(
+        ...     ["temp", "rain"], color=["red", "blue"], draw_points=True
+        ... )
+
         See Also
         --------
         series : Configure a single series.
@@ -1507,6 +1579,14 @@ class Dygraph:
         Dygraph
             Self, for chaining.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).legend(show="always")
+
+        Floating legend that follows the mouse:
+
+        >>> chart = Dygraph(df).legend(show="follow", width=200)
+
         See Also
         --------
         highlight : Mouse-over highlighting behaviour.
@@ -1566,6 +1646,14 @@ class Dygraph:
         -------
         Dygraph
             Self, for chaining.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).highlight(
+        ...     circle_size=5,
+        ...     series_background_alpha=0.3,
+        ...     series_opts={"strokeWidth": 3},
+        ... )
 
         See Also
         --------
@@ -1661,6 +1749,21 @@ class Dygraph:
         Dygraph
             Self, for chaining.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).annotation(
+        ...     "2024-01-15", "A", tooltip="Anomaly detected"
+        ... )
+
+        Annotation on a specific series with custom styling:
+
+        >>> chart = Dygraph(df).annotation(
+        ...     "2024-02-01", "B",
+        ...     series="temp",
+        ...     tick_height=10,
+        ...     attach_at_bottom=True,
+        ... )
+
         See Also
         --------
         callbacks : Set annotation event handlers globally.
@@ -1740,6 +1843,16 @@ class Dygraph:
         Dygraph
             Self, for chaining.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).shading("2024-01-15", "2024-02-15")
+
+        Colored shading with custom color:
+
+        >>> chart = Dygraph(df).shading(
+        ...     "2024-01-15", "2024-02-15", color="rgba(200,200,255,0.3)"
+        ... )
+
         See Also
         --------
         event : Add a vertical event line.
@@ -1788,6 +1901,16 @@ class Dygraph:
         -------
         Dygraph
             Self, for chaining.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).event("2024-02-14", "Valentine's Day")
+
+        Styled event line:
+
+        >>> chart = Dygraph(df).event(
+        ...     "2024-03-01", "Spring", color="#f76e8a", stroke_pattern="dotted"
+        ... )
 
         See Also
         --------
@@ -1848,6 +1971,16 @@ class Dygraph:
         Dygraph
             Self, for chaining.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).limit(30.0, "Max")
+
+        Right-aligned label with dotted line:
+
+        >>> chart = Dygraph(df).limit(
+        ...     25.0, "Threshold", label_loc="right", stroke_pattern="dotted"
+        ... )
+
         See Also
         --------
         event : Add a vertical event line.
@@ -1902,6 +2035,16 @@ class Dygraph:
         retain_date_window : bool, optional
             Keep the current zoom level when updating with new data.
             By default False.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).range_selector()
+
+        With initial zoom window:
+
+        >>> chart = Dygraph(df).range_selector(
+        ...     date_window=("2024-01-10", "2024-01-20"), height=30
+        ... )
 
         Returns
         -------
@@ -1958,6 +2101,10 @@ class Dygraph:
         roll_period : int, optional
             Number of time-scale units to average values over.
             By default 1.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).roller(roll_period=7)
 
         Returns
         -------
@@ -2040,6 +2187,14 @@ class Dygraph:
         Dygraph
             Self, for chaining.
 
+        Examples
+        --------
+        >>> from dygraphs import JS
+        >>> chart = Dygraph(df).callbacks(
+        ...     click="function(e, x, pts) { console.log(x); }",
+        ...     zoom="function(minDate, maxDate) { console.log(minDate, maxDate); }",
+        ... )
+
         See Also
         --------
         annotation : Per-annotation event handlers.
@@ -2081,6 +2236,10 @@ class Dygraph:
         path : str | Path
             Path to a CSS file.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).css("custom-dygraph.css")
+
         Returns
         -------
         Dygraph
@@ -2096,6 +2255,10 @@ class Dygraph:
 
         Mirrors R ``dyBarChart``. Automatically selects a
         multi-column plotter when more than one data series exists.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).bar_chart()
 
         Returns
         -------
@@ -2117,6 +2280,10 @@ class Dygraph:
 
         Mirrors R ``dyStackedBarChart``.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).stacked_bar_chart()
+
         Returns
         -------
         Dygraph
@@ -2131,6 +2298,10 @@ class Dygraph:
         """Apply a multi-column (grouped) bar chart plotter.
 
         Mirrors R ``dyMultiColumn``.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).multi_column()
 
         Returns
         -------
@@ -2155,6 +2326,10 @@ class Dygraph:
             Additional keyword arguments forwarded to
             :meth:`series`.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).bar_series("rain")
+
         Returns
         -------
         Dygraph
@@ -2176,6 +2351,10 @@ class Dygraph:
         **kwargs
             Additional keyword arguments forwarded to
             :meth:`series`.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).stem_series("rain")
 
         Returns
         -------
@@ -2199,6 +2378,10 @@ class Dygraph:
             Additional keyword arguments forwarded to
             :meth:`series`.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).shadow("temp")
+
         Returns
         -------
         Dygraph
@@ -2220,6 +2403,10 @@ class Dygraph:
         **kwargs
             Additional keyword arguments forwarded to
             :meth:`series`.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).filled_line("temp")
 
         Returns
         -------
@@ -2243,6 +2430,10 @@ class Dygraph:
             Additional keyword arguments forwarded to
             :meth:`series`.
 
+        Examples
+        --------
+        >>> chart = Dygraph(data).error_fill("value")
+
         Returns
         -------
         Dygraph
@@ -2263,6 +2454,14 @@ class Dygraph:
             If True, auto-compress OHLC data at different zoom levels
             (yearly/quarterly/monthly/weekly/daily).
             By default False.
+
+        Examples
+        --------
+        >>> chart = Dygraph(ohlc_df).candlestick()
+
+        With auto-compression at different zoom levels:
+
+        >>> chart = Dygraph(ohlc_df).candlestick(compress=True)
 
         Returns
         -------
@@ -2291,6 +2490,10 @@ class Dygraph:
             Additional keyword arguments forwarded to
             :meth:`group`.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).multi_column_group(["temp", "rain"])
+
         Returns
         -------
         Dygraph
@@ -2312,6 +2515,10 @@ class Dygraph:
         **kwargs
             Additional keyword arguments forwarded to
             :meth:`group`.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).candlestick_group(["open", "high", "low", "close"])
 
         Returns
         -------
@@ -2335,6 +2542,10 @@ class Dygraph:
             Additional keyword arguments forwarded to
             :meth:`group`.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).stacked_bar_group(["solar", "wind", "hydro"])
+
         Returns
         -------
         Dygraph
@@ -2356,6 +2567,10 @@ class Dygraph:
         **kwargs
             Additional keyword arguments forwarded to
             :meth:`group`.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).stacked_line_group(["solar", "wind", "hydro"])
 
         Returns
         -------
@@ -2379,6 +2594,10 @@ class Dygraph:
             Additional keyword arguments forwarded to
             :meth:`group`.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).stacked_ribbon_group(["solar", "wind", "hydro"])
+
         Returns
         -------
         Dygraph
@@ -2396,6 +2615,10 @@ class Dygraph:
         Mirrors R ``dyUnzoom``. Adds an "Unzoom" button to the chart
         when it is in a zoomed state (more discoverable than the
         default double-click gesture).
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).range_selector().unzoom()
 
         Returns
         -------
@@ -2420,6 +2643,10 @@ class Dygraph:
         ----------
         direction : {"both", "horizontal", "vertical"}, optional
             Which crosshair lines to draw. By default ``"both"``.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).crosshair(direction="vertical")
 
         Returns
         -------
@@ -2463,6 +2690,13 @@ class Dygraph:
             Vertical position (0--1) of the bottom edge of the
             ribbon, relative to chart height. By default 0.0.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).ribbon(
+        ...     data=[0, 1, 0, 1, 0],
+        ...     palette=["green", "red"],
+        ... )
+
         Returns
         -------
         Dygraph
@@ -2500,6 +2734,14 @@ class Dygraph:
             If True, rebase to percentage changes instead of an
             absolute value. By default False.
 
+        Examples
+        --------
+        >>> chart = Dygraph(stocks_df).rebase(value=100)
+
+        Rebase to percentage changes:
+
+        >>> chart = Dygraph(stocks_df).rebase(percent=True)
+
         Returns
         -------
         Dygraph
@@ -2536,6 +2778,11 @@ class Dygraph:
             Plugin options passed to the constructor.
             By default None.
 
+        Examples
+        --------
+        >>> js_code = Path("my-plugin.js").read_text()
+        >>> chart = Dygraph(df).plugin("MyPlugin", js=js_code, options={"foo": 1})
+
         Returns
         -------
         Dygraph
@@ -2558,6 +2805,12 @@ class Dygraph:
             an inline function expression or a named reference loaded
             via a ``<script>`` tag.
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).custom_plotter(
+        ...     "function(e) { /* custom drawing */ }"
+        ... )
+
         Returns
         -------
         Dygraph
@@ -2575,6 +2828,12 @@ class Dygraph:
         ----------
         js : str
             JavaScript source defining a data handler.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).data_handler(
+        ...     "function(rawData, index, setName) { /* ... */ }"
+        ... )
 
         Returns
         -------
@@ -2599,6 +2858,10 @@ class Dygraph:
         values : list[Any]
             Data values (must be same length as existing columns).
 
+        Examples
+        --------
+        >>> chart = Dygraph(df).series_data("smoothed", [10, 15, 20])
+
         Returns
         -------
         Dygraph
@@ -2621,6 +2884,12 @@ class Dygraph:
 
         This is the JSON payload that gets sent to the browser, equivalent
         to the ``x`` list in R's ``htmlwidgets::createWidget``.
+
+        Examples
+        --------
+        >>> config = Dygraph(df).options(fill_graph=True).to_dict()
+        >>> config["attrs"]["fillGraph"]
+        True
         """
         x: dict[str, Any] = {
             "attrs": copy.deepcopy(self._attrs),
@@ -2654,7 +2923,12 @@ class Dygraph:
         return x
 
     def to_json(self, **kwargs: Any) -> str:
-        """Serialise to JSON, handling ``JS`` objects as raw strings."""
+        """Serialise to JSON, handling ``JS`` objects as raw strings.
+
+        Examples
+        --------
+        >>> json_str = Dygraph(df).to_json(indent=2)
+        """
 
         def _default(obj: Any) -> Any:
             if isinstance(obj, JS):
@@ -2690,6 +2964,12 @@ class Dygraph:
             CSS dimensions for the chart container.
         modebar
             Show overlay buttons (capture, reset zoom).
+
+        Examples
+        --------
+        >>> from dash import Dash
+        >>> app = Dash(__name__)
+        >>> component = Dygraph(df).to_dash(app=app)
 
         Returns
         -------
@@ -2728,6 +3008,10 @@ class Dygraph:
             Unique DOM id for the chart container.
         height, width
             CSS dimensions.
+
+        Examples
+        --------
+        >>> ui = Dygraph(df).to_shiny("my-chart")
         """
         from dygraphs.shiny.component import dygraph_ui
 
@@ -2756,6 +3040,11 @@ class Dygraph:
             HTML ``<title>`` tag. Defaults to the chart title.
         cdn
             If True, load dygraphs from CDN. If False, inline the JS.
+
+        Examples
+        --------
+        >>> html_str = Dygraph(df, title="Weather").to_html()
+        >>> Path("chart.html").write_text(html_str)
         """
         height_css = f"{height}px" if isinstance(height, int) else height
         page_title = title or self._attrs.get("title", "dygraphs chart")
@@ -3166,6 +3455,11 @@ class Dygraph:
         Accepts the same keyword arguments as the constructor's declarative
         params (``options``, ``axes``, ``series``, ``legend``, etc.).
 
+        Examples
+        --------
+        >>> chart = Dygraph(df)
+        >>> chart.update(legend={"show": "follow"}, options={"fill_graph": True})
+
         Returns self for chaining.
         """
         self._apply_declarative(**kwargs)
@@ -3177,6 +3471,11 @@ class Dygraph:
         """Return a deep copy of this Dygraph.
 
         Useful for forking a base config into variants.
+
+        Examples
+        --------
+        >>> base = Dygraph(df).options(fill_graph=True)
+        >>> variant = base.copy().series("temp", color="red")
         """
         return copy.deepcopy(self)
 
@@ -3196,6 +3495,10 @@ class Dygraph:
             Path to a CSV file. The first column is used as x-axis.
         **kwargs
             Passed to ``Dygraph()``.
+
+        Examples
+        --------
+        >>> chart = Dygraph.from_csv("data.csv", title="My Data")
         """
         csv_text = Path(path).read_text()
         return cls(csv_text, **kwargs)
