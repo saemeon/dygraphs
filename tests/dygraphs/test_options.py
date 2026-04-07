@@ -87,6 +87,12 @@ class TestOptions:
         d = Dygraph(_df()).options(point_shape="star")
         assert d.to_dict()["pointShape"]["__global__"] == "star"
 
-    def test_invalid_point_shape(self) -> None:
-        with pytest.raises(ValueError, match="Invalid point_shape"):
-            Dygraph(_df()).options(point_shape="banana")
+    def test_unknown_point_shape_warns(self) -> None:
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            d = Dygraph(_df()).options(point_shape="banana")
+            assert len(w) == 1
+            assert "Unrecognised" in str(w[0].message)
+        assert d.to_dict()["pointShape"]["__global__"] == "banana"

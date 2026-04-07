@@ -53,6 +53,12 @@ class TestSeries:
         cfg = d.to_dict()
         assert cfg["pointShape"]["mdeaths"] == "star"
 
-    def test_invalid_point_shape(self) -> None:
-        with pytest.raises(ValueError, match="Invalid point_shape"):
-            Dygraph(_df()).series("mdeaths", point_shape="invalid")
+    def test_unknown_point_shape_warns(self) -> None:
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            d = Dygraph(_df()).series("mdeaths", point_shape="custom_shape")
+            assert len(w) == 1
+            assert "Unrecognised" in str(w[0].message)
+        assert d.to_dict()["pointShape"]["mdeaths"] == "custom_shape"

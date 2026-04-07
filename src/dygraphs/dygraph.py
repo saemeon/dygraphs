@@ -596,8 +596,14 @@ class Dygraph:
         # point shape
         if point_shape != "dot":
             if point_shape not in POINT_SHAPES:
-                msg = f"Invalid point_shape {point_shape!r}, must be one of {POINT_SHAPES}"
-                raise ValueError(msg)
+                import warnings
+
+                warnings.warn(
+                    f"Unrecognised point_shape {point_shape!r}; "
+                    f"standard shapes are {POINT_SHAPES}. "
+                    f"Using it anyway (custom plotters may define extra shapes).",
+                    stacklevel=2,
+                )
             self._point_shapes["__global__"] = point_shape
 
         self._attrs = merge_dicts(self._attrs, opts)
@@ -838,8 +844,13 @@ class Dygraph:
 
         if point_shape is not None and point_shape != "dot":
             if point_shape not in POINT_SHAPES:
-                msg = f"Invalid point_shape {point_shape!r}"
-                raise ValueError(msg)
+                import warnings
+
+                warnings.warn(
+                    f"Unrecognised point_shape {point_shape!r} for series "
+                    f"{series_label!r}; standard shapes are {POINT_SHAPES}.",
+                    stacklevel=2,
+                )
             self._point_shapes[series_label] = point_shape
 
         return self
@@ -1140,10 +1151,17 @@ class Dygraph:
             if self._format == "date":
                 import pandas as pd
 
-                opts["dateWindow"] = [
-                    pd.Timestamp(d).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-                    for d in date_window
-                ]
+                try:
+                    opts["dateWindow"] = [
+                        pd.Timestamp(d).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+                        for d in date_window
+                    ]
+                except Exception as exc:
+                    msg = (
+                        f"Cannot convert date_window values to timestamps: "
+                        f"{date_window!r} — {exc}"
+                    )
+                    raise ValueError(msg) from exc
             else:
                 opts["dateWindow"] = list(date_window)
         if retain_date_window:
