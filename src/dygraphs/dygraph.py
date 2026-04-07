@@ -5,6 +5,7 @@ Ported from R ``dygraphs/R/dygraph.R`` + all dy* modifier functions.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import json
 from pathlib import Path
@@ -250,10 +251,9 @@ class Dygraph:
         data: Any,
     ) -> tuple[list[str], list[list[Any]], str]:
         """Return (labels, columns_as_lists, format_string)."""
-        try:
+        pd = None
+        with contextlib.suppress(ImportError):
             import pandas as pd
-        except ImportError:
-            pd = None  # type: ignore[assignment]
 
         # CSV string input
         if isinstance(data, str):

@@ -383,6 +383,105 @@ wheels = [
 ]
 
 [[package]]
+name = "dygraphs"
+source = { editable = "." }
+
+[package.optional-dependencies]
+all = [
+    { name = "dash" },
+    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pandas", version = "3.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "shiny" },
+]
+dash = [
+    { name = "dash" },
+]
+pandas = [
+    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pandas", version = "3.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+shiny = [
+    { name = "shiny" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "dash" },
+    { name = "mike" },
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+    { name = "mkdocstrings", extra = ["python"] },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pandas", version = "3.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "prek" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "selenium" },
+    { name = "ty" },
+]
+doc = [
+    { name = "mike" },
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+    { name = "mkdocstrings", extra = ["python"] },
+]
+test = [
+    { name = "dash" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pandas", version = "3.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "selenium" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dash", marker = "extra == 'all'", specifier = ">=2.0.0" },
+    { name = "dash", marker = "extra == 'dash'", specifier = ">=2.0.0" },
+    { name = "pandas", marker = "extra == 'all'", specifier = ">=1.5.0" },
+    { name = "pandas", marker = "extra == 'pandas'", specifier = ">=1.5.0" },
+    { name = "shiny", marker = "extra == 'all'", specifier = ">=0.6.0" },
+    { name = "shiny", marker = "extra == 'shiny'", specifier = ">=0.6.0" },
+]
+provides-extras = ["pandas", "dash", "shiny", "all"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "dash", specifier = ">=2.0.0" },
+    { name = "mike" },
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+    { name = "mkdocstrings", extras = ["python"] },
+    { name = "numpy" },
+    { name = "pandas", specifier = ">=1.5.0" },
+    { name = "prek" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "selenium" },
+    { name = "ty" },
+]
+doc = [
+    { name = "mike" },
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+    { name = "mkdocstrings", extras = ["python"] },
+]
+test = [
+    { name = "dash", specifier = ">=2.0.0" },
+    { name = "numpy" },
+    { name = "pandas", specifier = ">=1.5.0" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "selenium" },
+]
+
+[[package]]
 name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1305,96 +1404,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/1b/7d/92392ff7815c21062bea51aa7b87d45576f649f16458d78b7cf94b9ab2e6/pycparser-3.0.tar.gz", hash = "sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29", size = 103492, upload-time = "2026-01-21T14:26:51.89Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl", hash = "sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992", size = 48172, upload-time = "2026-01-21T14:26:50.693Z" },
-]
-
-[[package]]
-name = "pydygraphs"
-source = { editable = "." }
-dependencies = [
-    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "pandas", version = "3.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
-
-[package.optional-dependencies]
-all = [
-    { name = "dash" },
-    { name = "shiny" },
-]
-dash = [
-    { name = "dash" },
-]
-shiny = [
-    { name = "shiny" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "dash" },
-    { name = "mike" },
-    { name = "mkdocs" },
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings", extra = ["python"] },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "prek" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "selenium" },
-    { name = "ty" },
-]
-doc = [
-    { name = "mike" },
-    { name = "mkdocs" },
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings", extra = ["python"] },
-]
-test = [
-    { name = "dash" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "selenium" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dash", marker = "extra == 'all'", specifier = ">=2.0.0" },
-    { name = "dash", marker = "extra == 'dash'", specifier = ">=2.0.0" },
-    { name = "pandas", specifier = ">=1.5.0" },
-    { name = "shiny", marker = "extra == 'all'", specifier = ">=0.6.0" },
-    { name = "shiny", marker = "extra == 'shiny'", specifier = ">=0.6.0" },
-]
-provides-extras = ["dash", "shiny", "all"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "dash", specifier = ">=2.0.0" },
-    { name = "mike" },
-    { name = "mkdocs" },
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings", extras = ["python"] },
-    { name = "numpy" },
-    { name = "prek" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "selenium" },
-    { name = "ty" },
-]
-doc = [
-    { name = "mike" },
-    { name = "mkdocs" },
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings", extras = ["python"] },
-]
-test = [
-    { name = "dash", specifier = ">=2.0.0" },
-    { name = "numpy" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "selenium" },
 ]
 
 [[package]]
