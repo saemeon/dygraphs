@@ -5,7 +5,6 @@ Ported from R ``dygraphs/R/dygraph.R`` + all dy* modifier functions.
 
 from __future__ import annotations
 
-import contextlib
 import copy
 import json
 from pathlib import Path
