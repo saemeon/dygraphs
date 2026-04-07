@@ -115,14 +115,36 @@ class JS:
         return hash(self.code)
 
 
+def _unescape_json_string(m: re.Match[str]) -> str:
+    """Unwrap a ``__JS__`` marker and reverse JSON string escaping."""
+    code = m.group(1)
+    # json.dumps escapes these inside strings; reverse them so the JS is valid.
+    # Process \\\\ first so that \\n (literal backslash-n in JS) is not
+    # confused with \n (JSON newline escape).
+    code = code.replace("\\\\", "\x00BACKSLASH\x00")
+    code = code.replace("\\n", "\n")
+    code = code.replace("\\t", "\t")
+    code = code.replace('\\"', '"')
+    code = code.replace("\x00BACKSLASH\x00", "\\")
+    # Wrap bare `function` in parens so it's an expression, not a declaration.
+    # `"plotter": function(e){...}` is invalid JS; `(function(e){...})` is valid.
+    stripped = code.lstrip()
+    if stripped.startswith("function") and stripped[8:9] in ("(", " "):
+        code = f"({code})"
+    return code
+
+
 def unwrap_js_markers(json_str: str) -> str:
     """Remove ``__JS__:…:__JS__`` quote wrappers from serialised JSON.
 
     When ``JS`` objects are serialised via ``json.dumps`` they are encoded as
     ``"__JS__:<code>:__JS__"`` strings.  This function strips the surrounding
-    double-quotes and markers so the code appears as raw JS in the output.
+    double-quotes and markers so the code appears as raw JS in the output,
+    with JSON string escapes reversed.
     """
-    return re.sub(r'"__JS__:(.*?):__JS__"', r"\1", json_str)
+    return re.sub(
+        r'"__JS__:(.*?):__JS__"', _unescape_json_string, json_str, flags=re.DOTALL
+    )
 
 
 def serialise_js(obj: Any) -> Any:

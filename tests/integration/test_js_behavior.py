@@ -66,7 +66,7 @@ def _open(driver: Any, dg: Dygraph) -> None:
         f.write(html)
         path = f.name
     driver.get(f"file://{path}")
-    time.sleep(2)
+    time.sleep(3)  # allow time for dygraph.ready() callbacks
     Path(path).unlink(missing_ok=True)
 
 
@@ -78,7 +78,11 @@ def _js(driver: Any, script: str) -> Any:
 def _no_errors(driver: Any) -> None:
     """Assert no severe JS errors."""
     logs = driver.get_log("browser")
-    errors = [e["message"] for e in logs if e["level"] == "SEVERE" and "favicon" not in e["message"].lower()]
+    errors = [
+        e["message"]
+        for e in logs
+        if e["level"] == "SEVERE" and "favicon" not in e["message"].lower()
+    ]
     assert not errors, f"JS errors: {errors}"
 
 
@@ -95,11 +99,14 @@ class TestLegendBehavior:
         """legend='always' should make legend always visible."""
         _open(driver, Dygraph(_DF).legend(show="always"))
         _no_errors(driver)
-        visible = _js(driver, """
+        visible = _js(
+            driver,
+            """
             var legends = document.querySelectorAll('.dygraph-legend');
             if (legends.length === 0) return 'no-legend';
             return getComputedStyle(legends[0]).display;
-        """)
+        """,
+        )
         # Should not be 'none'
         assert visible != "none" and visible != "no-legend"
 
@@ -124,35 +131,47 @@ class TestAnnotationBehavior:
         )
         _open(driver, dg)
         _no_errors(driver)
-        count = _js(driver, "return document.querySelectorAll('.dygraph-annotation').length")
-        assert count == 2
+        # Poll for annotations (dygraph.ready is async)
+        for _ in range(10):
+            count = _js(
+                driver,
+                "return document.querySelectorAll('.dygraphDefaultAnnotation').length",
+            )
+            if count >= 2:
+                break
+            time.sleep(0.5)
+        assert count == 2, f"Expected 2 annotations, got {count}"
 
     def test_annotation_date_converted_to_timestamp(self, driver) -> None:
         """Annotations with date format should have x as timestamp, not string."""
         dg = Dygraph(_DF).annotation("2020-01-05", text="X", series="a")
         _open(driver, dg)
         _no_errors(driver)
-        # Check the annotation's x value is a number (timestamp)
-        ann_x = _js(driver, """
-            var chart = document.getElementById('chart');
-            var g = null;
-            // Find the dygraph instance
-            var canvases = chart.querySelectorAll('canvas');
-            // Annotations should be set — check the DOM
-            var anns = chart.querySelectorAll('.dygraph-annotation');
-            return anns.length > 0 ? 'ok' : 'no-annotations';
-        """)
-        assert ann_x == "ok"
+        for _ in range(10):
+            ann_count = _js(
+                driver,
+                "return document.querySelectorAll('.dygraphDefaultAnnotation').length",
+            )
+            if ann_count > 0:
+                break
+            time.sleep(0.5)
+        assert ann_count > 0, "Annotations not rendered"
 
     def test_annotation_with_css_class(self, driver) -> None:
-        dg = Dygraph(_DF).annotation("2020-01-05", text="C", series="a", css_class="my-custom")
+        dg = Dygraph(_DF).annotation(
+            "2020-01-05", text="C", series="a", css_class="my-custom"
+        )
         _open(driver, dg)
         _no_errors(driver)
-        has_class = _js(driver, """
-            var anns = document.querySelectorAll('.dygraph-annotation.my-custom');
-            return anns.length;
-        """)
-        assert has_class >= 1
+        # cssClass replaces the default class in dygraphs
+        for _ in range(10):
+            has_class = _js(
+                driver, "return document.querySelectorAll('.my-custom').length"
+            )
+            if has_class >= 1:
+                break
+            time.sleep(0.5)
+        assert has_class >= 1, "Annotation with custom CSS class not found"
 
 
 # ---------------------------------------------------------------------------
@@ -277,14 +296,17 @@ class TestCSSBehavior:
         _open(driver, dg)
         _no_errors(driver)
         # Verify a <style> tag was injected
-        style_count = _js(driver, """
+        style_count = _js(
+            driver,
+            """
             var styles = document.querySelectorAll('style');
             var found = 0;
             for (var i = 0; i < styles.length; i++) {
                 if (styles[i].textContent.indexOf('dygraph-title') !== -1) found++;
             }
             return found;
-        """)
+        """,
+        )
         Path(css_path).unlink(missing_ok=True)
         assert style_count >= 1
 
@@ -304,9 +326,7 @@ class TestRangeSelectorBehavior:
         assert canvas_count >= 3
 
     def test_date_window_sets_initial_zoom(self, driver) -> None:
-        dg = Dygraph(_DF).range_selector(
-            date_window=("2020-01-03", "2020-01-07")
-        )
+        dg = Dygraph(_DF).range_selector(date_window=("2020-01-03", "2020-01-07"))
         _open(driver, dg)
         _no_errors(driver)
 
@@ -325,7 +345,9 @@ class TestCallbackBehavior:
         _open(driver, dg)
         _no_errors(driver)
         # Simulate a click on the chart
-        _js(driver, """
+        _js(
+            driver,
+            """
             var canvas = document.querySelector('canvas');
             if (canvas) {
                 var evt = new MouseEvent('click', {
@@ -335,7 +357,8 @@ class TestCallbackBehavior:
                 });
                 canvas.dispatchEvent(evt);
             }
-        """)
+        """,
+        )
         time.sleep(0.5)
         _js(driver, "return window.__testClickFired || false")
         # May or may not fire depending on exact click position, but no errors
@@ -354,7 +377,9 @@ class TestDisableZoomBehavior:
         _open(driver, dg)
         _no_errors(driver)
         # The option should be set
-        dz = _js(driver, f"var config = {dg.to_json()}; return config.attrs.disableZoom;")
+        dz = _js(
+            driver, f"var config = {dg.to_json()}; return config.attrs.disableZoom;"
+        )
         assert dz is True
 
 
@@ -369,10 +394,13 @@ class TestGroupSyncBehavior:
         dg = Dygraph(_DF, group="test-group")
         _open(driver, dg)
         _no_errors(driver)
-        size = _js(driver, """
+        size = _js(
+            driver,
+            """
             return window.__dyGroups && window.__dyGroups['test-group']
                 ? window.__dyGroups['test-group'].length : 0;
-        """)
+        """,
+        )
         assert size == 1
 
     def test_group_null_no_registry(self, driver) -> None:
@@ -380,9 +408,12 @@ class TestGroupSyncBehavior:
         dg = Dygraph(_DF)
         _open(driver, dg)
         _no_errors(driver)
-        has_groups = _js(driver, """
+        has_groups = _js(
+            driver,
+            """
             return window.__dyGroups ? Object.keys(window.__dyGroups).length : 0;
-        """)
+        """,
+        )
         assert has_groups == 0
 
 
@@ -396,7 +427,9 @@ class TestRollerBehavior:
         dg = Dygraph(_DF).roller(show=True, roll_period=3)
         _open(driver, dg)
         _no_errors(driver)
-        _js(driver, """
+        _js(
+            driver,
+            """
             var inputs = document.querySelectorAll('input[type="text"]');
             for (var i = 0; i < inputs.length; i++) {
                 if (inputs[i].parentElement &&
@@ -405,6 +438,7 @@ class TestRollerBehavior:
             }
             // dygraph roller might use different structure
             return document.querySelector('.dygraph-roller') ? 'found' : 'not-found';
-        """)
+        """,
+        )
         # Roller may or may not render depending on dygraph version
         _no_errors(driver)

@@ -22,7 +22,10 @@ def _find_r_inst() -> Path | None:
     try:
         wt = subprocess.run(
             ["git", "worktree", "list", "--porcelain"],
-            capture_output=True, text=True, timeout=5, cwd=base,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            cwd=base,
         )
         candidates.extend(
             Path(line[9:]) / "dygraphs-r" / "inst"

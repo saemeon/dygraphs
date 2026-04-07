@@ -85,7 +85,8 @@ class TestOptions:
 
     def test_point_shape_global(self) -> None:
         d = Dygraph(_df()).options(point_shape="star")
-        assert d.to_dict()["pointShape"]["__global__"] == "star"
+        # R sends a plain string for global shapes (not a dict)
+        assert d.to_dict()["pointShape"] == "star"
 
     def test_unknown_point_shape_warns(self) -> None:
         import warnings
@@ -95,4 +96,4 @@ class TestOptions:
             d = Dygraph(_df()).options(point_shape="banana")
             assert len(w) == 1
             assert "Unrecognised" in str(w[0].message)
-        assert d.to_dict()["pointShape"]["__global__"] == "banana"
+        assert d.to_dict()["pointShape"] == "banana"

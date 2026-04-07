@@ -80,6 +80,64 @@ def _read_plugin(name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _detect_scale(idx: Any) -> str:
+    """Detect periodicity of a DatetimeIndex (mirrors R ``periodicity``).
+
+    Returns one of: ``"yearly"``, ``"quarterly"``, ``"monthly"``,
+    ``"weekly"``, ``"daily"``, ``"hourly"``, ``"minute"``, ``"seconds"``.
+    """
+    if len(idx) < 2:
+        return "daily"
+    import pandas as pd
+
+    try:
+        freq = idx.freq or pd.infer_freq(idx)
+    except ValueError:
+        freq = None
+    if freq is not None:
+        freq_str = str(freq).upper()
+        if freq_str.startswith(("YE", "YS", "A", "BA", "BY")):
+            return "yearly"
+        if freq_str.startswith(("QE", "QS", "Q", "BQ")):
+            return "quarterly"
+        if freq_str.startswith(("ME", "MS", "M", "BM")):
+            return "monthly"
+        if freq_str.startswith("W"):
+            return "weekly"
+        if freq_str in ("B", "C") or freq_str.startswith(("D", "BD")):
+            return "daily"
+        if freq_str.startswith("H") or freq_str.startswith("BH"):
+            return "hourly"
+        if freq_str.startswith(("T", "MIN")):
+            return "minute"
+        if freq_str.startswith("S"):
+            return "seconds"
+    # Fallback: look at median gap
+    diffs = idx[1:] - idx[:-1]
+    median_ns = int(diffs.median().value) if len(diffs) > 0 else 86400 * 10**9
+    seconds = median_ns / 10**9
+    if seconds < 60:
+        return "seconds"
+    if seconds < 3600:
+        return "minute"
+    if seconds < 86400:
+        return "hourly"
+    if seconds < 7 * 86400:
+        return "daily"
+    if seconds < 28 * 86400:
+        return "weekly"
+    if seconds < 90 * 86400:
+        return "monthly"
+    if seconds < 366 * 86400:
+        return "quarterly"
+    return "yearly"
+
+
+# ---------------------------------------------------------------------------
 # Dygraph builder
 # ---------------------------------------------------------------------------
 
@@ -135,8 +193,8 @@ class Dygraph:
         self._width = width
         self._height = height
 
-        # Normalise data into (labels, columns, format)
-        labels, columns, fmt = self._normalise_data(data)
+        # Normalise data into (labels, columns, format, tzone, scale)
+        labels, columns, fmt, tzone, scale = self._normalise_data(data)
 
         # attrs = JS dygraph options
         attrs: dict[str, Any] = {}
@@ -154,6 +212,8 @@ class Dygraph:
         self._attrs = attrs
         self._format: str = fmt  # "date" or "numeric"
         self._data: list[list[Any]] = columns  # list of columns (incl. x)
+        self._tzone: str | None = tzone  # IANA timezone or None
+        self._scale: str | None = scale  # "yearly"/"monthly"/"daily"/etc.
         self._annotations: list[dict[str, Any]] = []
         self._shadings: list[dict[str, Any]] = []
         self._events: list[dict[str, Any]] = []
@@ -251,12 +311,19 @@ class Dygraph:
     @staticmethod
     def _normalise_data(
         data: Any,
-    ) -> tuple[list[str], list[list[Any]], str]:
-        """Return (labels, columns_as_lists, format_string)."""
+    ) -> tuple[list[str], list[list[Any]], str, str | None, str | None]:
+        """Return (labels, columns_as_lists, format_string, tzone, scale).
+
+        *tzone* is the IANA timezone string (e.g. ``"US/Eastern"``) if the
+        data has timezone-aware timestamps, else ``None``.
+        *scale* is the detected periodicity (``"yearly"``, ``"quarterly"``,
+        ``"monthly"``, ``"weekly"``, ``"daily"``, ``"hourly"``, ``"minute"``,
+        ``"seconds"``) or ``None``.
+        """
         try:
             import pandas as pd
         except ImportError:
-            pd = None  # type: ignore[assignment]
+            pd = None  # ty: ignore[invalid-assignment]  # type: ignore[assignment]
 
         # CSV string input
         if isinstance(data, str):
@@ -291,6 +358,8 @@ class Dygraph:
 
         if pd is not None and isinstance(data, pd.DataFrame):
             idx = data.index
+            tzone: str | None = None
+            scale: str | None = None
             if isinstance(idx, pd.DatetimeIndex):
                 # DatetimeIndex → ISO strings
                 x_vals = [
@@ -299,6 +368,11 @@ class Dygraph:
                 ]
                 fmt = "date"
                 x_label = idx.name or "Date"
+                # Detect timezone (R: tzone from xts)
+                if idx.tz is not None:
+                    tzone = str(idx.tz)
+                # Detect scale/periodicity (R: periodicity)
+                scale = _detect_scale(idx)
             else:
                 x_vals = idx.tolist()
                 fmt = "numeric"
@@ -308,7 +382,7 @@ class Dygraph:
                 x_vals,
                 *(data[col].tolist() for col in data.columns),
             ]
-            return labels, columns, fmt
+            return labels, columns, fmt, tzone, scale
 
         if isinstance(data, dict):
             keys = list(data.keys())
@@ -318,7 +392,7 @@ class Dygraph:
             fmt = "numeric"
             labels: list[str] = [str(k) for k in keys]
             columns: list[list[Any]] = [list(v) for v in data.values()]
-            return labels, columns, fmt
+            return labels, columns, fmt, None, None
 
         # numpy array → treat as 2D array (columns)
         try:
@@ -331,7 +405,7 @@ class Dygraph:
                 labels = [f"V{i}" for i in range(n_cols)]
                 columns = [data[:, i].tolist() for i in range(n_cols)]
                 fmt = "numeric"
-                return labels, columns, fmt
+                return labels, columns, fmt, None, None
         except ImportError:
             pass
 
@@ -346,7 +420,7 @@ class Dygraph:
                 for i, v in enumerate(row):
                     columns[i].append(v)
             fmt = "numeric"
-            return labels, columns, fmt
+            return labels, columns, fmt, None, None
 
         msg = f"Unsupported data type: {type(data)}"
         raise TypeError(msg)
@@ -588,10 +662,13 @@ class Dygraph:
         if use_data_timezone:
             opts["useDataTimezone"] = True
 
-        # axes sub-options
+        # axes sub-options — merge into existing axis config to preserve
+        # defaults like pixelsPerLabel set in the constructor.
         opts.setdefault("axes", {})
-        opts["axes"]["x"] = {"drawAxis": draw_x_axis}
-        opts["axes"]["y"] = {"drawAxis": draw_y_axis}
+        opts["axes"].setdefault("x", {})
+        opts["axes"]["x"]["drawAxis"] = draw_x_axis
+        opts["axes"].setdefault("y", {})
+        opts["axes"]["y"]["drawAxis"] = draw_y_axis
 
         # point shape
         if point_shape != "dot":
@@ -1239,51 +1316,56 @@ class Dygraph:
         n_series = len(self._data) - 1
         if n_series > 1:
             js = _read_plotter("multicolumn")
-            self._attrs["plotter"] = JS(js)
+            self._attrs["plotter"] = JS("Dygraph.Plotters.MultiColumn")
         else:
             js = _read_plotter("barchart")
-            self._attrs["plotter"] = JS(js)
+            self._attrs["plotter"] = JS("Dygraph.Plotters.BarChart")
         self._extra_js.append(js)
         return self
 
     def stacked_bar_chart(self) -> Dygraph:
         """Stacked bar chart (mirrors R ``dyStackedBarChart``)."""
         js = _read_plotter("stackedbarchart")
-        self._attrs["plotter"] = JS(js)
+        self._attrs["plotter"] = JS("Dygraph.Plotters.StackedBarChart")
         self._extra_js.append(js)
         return self
 
     def multi_column(self) -> Dygraph:
         """Multi-column bar chart (mirrors R ``dyMultiColumn``)."""
         js = _read_plotter("multicolumn")
-        self._attrs["plotter"] = JS(js)
+        self._attrs["plotter"] = JS("Dygraph.Plotters.MultiColumn")
         self._extra_js.append(js)
         return self
 
     def bar_series(self, name: str, **kwargs: Any) -> Dygraph:
         """Bar plotter for a single series (mirrors R ``dyBarSeries``)."""
         js = _read_plotter("barseries")
-        return self.series(name, plotter=js, **kwargs)
+        self._extra_js.append(js)
+        return self.series(name, plotter="barSeriesPlotter", **kwargs)
 
     def stem_series(self, name: str, **kwargs: Any) -> Dygraph:
         """Stem plotter for a single series (mirrors R ``dyStemSeries``)."""
         js = _read_plotter("stemplot")
-        return self.series(name, plotter=js, **kwargs)
+        self._extra_js.append(js)
+        return self.series(name, plotter="stemPlotter", **kwargs)
 
     def shadow(self, name: str, **kwargs: Any) -> Dygraph:
         """Fill-only plotter for a single series (mirrors R ``dyShadow``)."""
         js = _read_plotter("fillplotter")
-        return self.series(name, plotter=js, **kwargs)
+        self._extra_js.append(js)
+        return self.series(name, plotter="filledlineplotter", **kwargs)
 
     def filled_line(self, name: str, **kwargs: Any) -> Dygraph:
         """Filled line plotter for a single series (mirrors R ``dyFilledLine``)."""
         js = _read_plotter("filledline")
-        return self.series(name, plotter=js, **kwargs)
+        self._extra_js.append(js)
+        return self.series(name, plotter="filledlineplotter", **kwargs)
 
     def error_fill(self, name: str, **kwargs: Any) -> Dygraph:
         """Error bar plotter for a single series (mirrors R ``dyErrorFill``)."""
         js = _read_plotter("errorplotter")
-        return self.series(name, plotter=js, **kwargs)
+        self._extra_js.append(js)
+        return self.series(name, plotter="errorplotter", **kwargs)
 
     def candlestick(self, *, compress: bool = False) -> Dygraph:
         """Candlestick chart for OHLC data (mirrors R ``dyCandlestick``).
@@ -1295,7 +1377,7 @@ class Dygraph:
             (yearly/quarterly/monthly/weekly/daily).
         """
         js = _read_plotter("candlestick")
-        self._attrs["plotter"] = JS(js)
+        self._attrs["plotter"] = JS("Dygraph.Plotters.CandlestickPlotter")
         self._extra_js.append(js)
         if compress:
             compress_js = _read_plugin("compress")
@@ -1306,27 +1388,32 @@ class Dygraph:
     def multi_column_group(self, names: list[str], **kwargs: Any) -> Dygraph:
         """Multi-column on a subset of series (mirrors R ``dyMultiColumnGroup``)."""
         js = _read_plotter("multicolumngroup")
-        return self.group(names, plotter=js, **kwargs)
+        self._extra_js.append(js)
+        return self.group(names, plotter="multiColumnGroupPlotter", **kwargs)
 
     def candlestick_group(self, names: list[str], **kwargs: Any) -> Dygraph:
         """Candlestick on a subset (mirrors R ``dyCandlestickGroup``)."""
         js = _read_plotter("candlestickgroup")
-        return self.group(names, plotter=js, **kwargs)
+        self._extra_js.append(js)
+        return self.group(names, plotter="candlestickgroupPlotter", **kwargs)
 
     def stacked_bar_group(self, names: list[str], **kwargs: Any) -> Dygraph:
         """Stacked bars on a subset (mirrors R ``dyStackedBarGroup``)."""
         js = _read_plotter("stackedbargroup")
-        return self.group(names, plotter=js, **kwargs)
+        self._extra_js.append(js)
+        return self.group(names, plotter="stackedBarPlotter", **kwargs)
 
     def stacked_line_group(self, names: list[str], **kwargs: Any) -> Dygraph:
         """Stacked lines on a subset (mirrors R ``dyStackedLineGroup``)."""
         js = _read_plotter("stackedlinegroup")
-        return self.group(names, plotter=js, **kwargs)
+        self._extra_js.append(js)
+        return self.group(names, plotter="linePlotter", **kwargs)
 
     def stacked_ribbon_group(self, names: list[str], **kwargs: Any) -> Dygraph:
         """Stacked ribbons on a subset (mirrors R ``dyStackedRibbonGroup``)."""
         js = _read_plotter("stackedribbongroup")
-        return self.group(names, plotter=js, **kwargs)
+        self._extra_js.append(js)
+        return self.group(names, plotter="linePlotter", **kwargs)
 
     # ---- plugins (dyUnzoom, dyCrosshair, dyRibbon, dyRebase) ---------
 
@@ -1410,10 +1497,11 @@ class Dygraph:
         Parameters
         ----------
         js
-            JavaScript source defining a plotter function.
+            JavaScript source defining a plotter function.  Can be an inline
+            function expression or a named reference loaded via a ``<script>``
+            tag.
         """
         self._attrs["plotter"] = JS(js)
-        self._extra_js.append(js)
         return self
 
     def data_handler(self, js: str) -> Dygraph:
@@ -1425,7 +1513,6 @@ class Dygraph:
             JavaScript source defining a data handler.
         """
         self._attrs["dataHandler"] = JS(js)
-        self._extra_js.append(js)
         return self
 
     # ---- series_data (R: dySeriesData) -----------------------------------
@@ -1471,8 +1558,21 @@ class Dygraph:
             "events": self._events,
             "plugins": self._plugins,
         }
+        # Timezone / scale (R: x$fixedtz, x$tzone, x$scale)
+        if self._tzone:
+            x["fixedtz"] = True
+            x["tzone"] = self._tzone
+        if self._scale:
+            x["scale"] = self._scale
         if self._point_shapes:
-            x["pointShape"] = self._point_shapes
+            # R sends a plain string for global shapes, object for per-series.
+            if list(self._point_shapes.keys()) == ["__global__"]:
+                x["pointShape"] = self._point_shapes["__global__"]
+            else:
+                # Drop __global__ if present alongside per-series shapes
+                x["pointShape"] = {
+                    k: v for k, v in self._point_shapes.items() if k != "__global__"
+                }
         if self._css:
             x["css"] = self._css
         if self._extra_js:
@@ -1587,7 +1687,11 @@ class Dygraph:
         page_title = title or self._attrs.get("title", "dygraphs chart")
         config_json = self.to_json()
 
-        if cdn:
+        # Force inline mode when plotters/plugins are used — they depend on
+        # internal APIs (DygraphCanvasRenderer, Dygraph.Plotters) that the CDN
+        # minified build doesn't expose.  R also bundles its own copy.
+        use_cdn = cdn and not self._extra_js and not self._point_shapes
+        if use_cdn:
             js_include = (
                 f'<link rel="stylesheet" href="{DYGRAPH_CSS_CDN}">\n'
                 f'<script src="{DYGRAPH_JS_CDN}"></script>'
@@ -1598,10 +1702,33 @@ class Dygraph:
             js_include = f"<style>{dygraph_css}</style>\n<script>{dygraph_js}</script>"
 
         extra_js_blocks = ""
+        # Compatibility shim: CDN build may not expose Dygraph.Interaction or
+        # Dygraph.Plotters namespaces that our bundled version and R both have.
+        extra_js_blocks += (
+            "<script>"
+            "if(!Dygraph.Interaction)Dygraph.Interaction={};"
+            "if(!Dygraph.Interaction.defaultModel)Dygraph.Interaction.defaultModel=Dygraph.defaultInteractionModel;"
+            "if(!Dygraph.Interaction.nonInteractiveModel_)Dygraph.Interaction.nonInteractiveModel_=Dygraph.nonInteractiveModel_;"
+            "if(!Dygraph.Plotters)Dygraph.Plotters={};"
+            "</script>\n"
+        )
+        # Bundle moment.js + moment-timezone for date format charts
+        # (R bundles these too — needed for timezone-aware formatting)
+        if self._format == "date":
+            moment_js = (ASSETS_DIR / "moment.min.js").read_text()
+            moment_tz_js = (ASSETS_DIR / "moment-timezone.min.js").read_text()
+            extra_js_blocks += f"<script>{moment_js}</script>\n"
+            extra_js_blocks += f"<script>{moment_tz_js}</script>\n"
+        # Inject shapes.js if point shapes are used (defines Dygraph.Circles)
+        if self._point_shapes:
+            shapes_js = (ASSETS_DIR / "shapes.js").read_text()
+            extra_js_blocks += f"<script>{shapes_js}</script>\n"
         if self._extra_js:
             for js_code in dict.fromkeys(self._extra_js):
                 extra_js_blocks += f"<script>{js_code}</script>\n"
 
+        # The rendering JS below mirrors R's inst/htmlwidgets/dygraphs.js
+        # as closely as possible to ensure identical behavior.
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>{page_title}</title>
 {js_include}
@@ -1609,163 +1736,351 @@ class Dygraph:
 <div id="chart" style="width:{width}; height:{height_css};"></div>
 <script>
 (function() {{
+    var el = document.getElementById('chart');
     var config = {config_json};
+
+    // --- Transpose column-oriented data to row-oriented (R: HTMLWidgets.transposeArray2D) ---
     var data = config.data;
     var nRows = data[0].length, nCols = data.length, rows = [];
     for (var i = 0; i < nRows; i++) {{
         var row = [];
         for (var j = 0; j < nCols; j++) {{
             var val = data[j][i];
-            if (j === 0 && config.format === 'date' && typeof val === 'string') val = new Date(val);
+            if (j === 0 && config.format === 'date' && typeof val === 'string')
+                val = new Date(val);
             row.push(val);
         }}
         rows.push(row);
     }}
+
     var opts = config.attrs;
 
-    // Group sync: zoom + highlight across charts sharing config.group
-    if (config.group) {{
-        if (!window.__dyGroups) window.__dyGroups = {{}};
-        var grp = config.group;
-        if (!window.__dyGroups[grp]) window.__dyGroups[grp] = [];
-        var _container = document.getElementById('chart');
-        var _broadcastZoom = function(dw) {{
-            if (_container._suppressZoom) {{
-                _container._suppressZoom = false;
-                return;
+    // --- normalizeDateValue (R: dygraphs.js lines 753-760) ---
+    // For date-only scales (not hourly/minute/seconds) without fixedtz,
+    // add timezone offset so dates display correctly in local time.
+    function normalizeDateValue(scale, value, fixedtz) {{
+        var date = new Date(value);
+        if (scale !== 'minute' && scale !== 'hourly' && scale !== 'seconds' && !fixedtz) {{
+            var localAsUTC = date.getTime() + (date.getTimezoneOffset() * 60000);
+            date = new Date(localAsUTC);
+        }}
+        return date;
+    }}
+
+    // --- Date format setup (R: dygraphs.js lines 71-97) ---
+    if (config.format === 'date') {{
+        var scale = config.scale || 'daily';
+        var fixedtz = config.fixedtz || false;
+        var tzone = config.tzone || 'UTC';
+
+        // Install timezone-aware formatters when fixedtz (R: lines 74-81)
+        if (fixedtz && typeof moment !== 'undefined') {{
+            if (!opts.axes) opts.axes = {{}};
+            if (!opts.axes.x) opts.axes.x = {{}};
+            if (opts.axes.x.axisLabelFormatter === undefined) {{
+                opts.axes.x.axisLabelFormatter = (function(tz) {{
+                    return function(date, granularity) {{
+                        var m = moment(date).tz(tz);
+                        if (granularity >= Dygraph.DECADAL) return m.format('YYYY');
+                        if (granularity >= Dygraph.MONTHLY) return m.format('MMM YYYY');
+                        var frac = m.hour()*3600 + m.minute()*60 + m.second() + m.millisecond();
+                        if (frac === 0 || granularity >= Dygraph.DAILY) return m.format('DD MMM');
+                        return m.second() ? m.format('HH:mm:ss') : m.format('HH:mm');
+                    }};
+                }})(tzone);
             }}
-            window.__dyGroups[grp].forEach(function(peer) {{
-                if (peer.el === _container) return;
-                peer.el._suppressZoom = true;
-                peer.instance.updateOptions({{dateWindow: dw}});
+            if (opts.axes.x.valueFormatter === undefined) {{
+                opts.axes.x.valueFormatter = (function(sc, tz) {{
+                    return function(millis) {{
+                        var m = moment(millis).tz(tz);
+                        var za = ' (' + m.zoneAbbr() + ')';
+                        if (sc === 'yearly') return m.format('YYYY') + za;
+                        if (sc === 'monthly') return m.format('MMM, YYYY') + za;
+                        if (sc === 'daily' || sc === 'weekly') return m.format('MMM DD, YYYY') + za;
+                        return m.format('dddd, MMMM DD, YYYY HH:mm:ss') + za;
+                    }};
+                }})(scale, tzone);
+            }}
+            if (opts.axes.x.ticker === undefined) {{
+                opts.axes.x.ticker = (function(tz) {{
+                    return function(t, e, a, i, r) {{
+                        var gran = Dygraph.pickDateTickGranularity(t, e, a, i);
+                        if (gran < 0) return [];
+                        var n = i('axisLabelFormatter');
+                        var y = [];
+                        var spacing = Dygraph.TICK_PLACEMENT[gran].spacing;
+                        var d = moment(t).tz(tz);
+                        d.millisecond(0);
+                        var v = d.valueOf();
+                        var m = moment(v).tz(tz);
+                        for (; v <= e; v += spacing, m = moment(v).tz(tz)) {{
+                            y.push({{v: v, label: n(m, gran, i, r)}});
+                        }}
+                        return y;
+                    }};
+                }})(tzone);
+            }}
+        }}
+
+        // Default value formatter for non-fixedtz (R: lines 84-85, 427-447)
+        if (!fixedtz) {{
+            if (!opts.axes) opts.axes = {{}};
+            if (!opts.axes.x) opts.axes.x = {{}};
+            if (opts.axes.x.valueFormatter === undefined) {{
+                var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                opts.axes.x.valueFormatter = (function(sc) {{
+                    return function(millis) {{
+                        var d = new Date(millis);
+                        if (sc === 'yearly') return '' + d.getFullYear();
+                        if (sc === 'monthly') return monthNames[d.getMonth()] + ', ' + d.getFullYear();
+                        if (sc === 'daily' || sc === 'weekly')
+                            return monthNames[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+                        return d.toLocaleString();
+                    }};
+                }})(scale);
+            }}
+        }}
+
+        // Normalize data dates (R: lines 88-90)
+        for (var k = 0; k < rows.length; k++) {{
+            rows[k][0] = normalizeDateValue(scale, rows[k][0], fixedtz);
+        }}
+
+        // Normalize dateWindow (R: lines 91-96)
+        if (opts.dateWindow) {{
+            opts.dateWindow = opts.dateWindow.map(function(v) {{
+                return normalizeDateValue(scale, v, fixedtz).getTime();
             }});
-        }};
-        opts.zoomCallback = function(a, b) {{ _broadcastZoom([a, b]); }};
-        var _userDrawCb = opts.drawCallback;
-        opts.drawCallback = function(g, isInitial) {{
-            if (_userDrawCb) _userDrawCb(g, isInitial);
-            if (isInitial) return;
-            _broadcastZoom(g.xAxisRange());
-        }};
-        opts.highlightCallback = function(event, x, points, row) {{
-            if (_container._suppressHighlight) return;
-            window.__dyGroups[grp].forEach(function(peer) {{
-                if (peer.el === _container) return;
-                peer.el._suppressHighlight = true;
-                peer.instance.setSelection(row);
-                peer.el._suppressHighlight = false;
-            }});
-        }};
-        opts.unhighlightCallback = function() {{
-            if (_container._suppressHighlight) return;
-            window.__dyGroups[grp].forEach(function(peer) {{
-                if (peer.el === _container) return;
-                peer.el._suppressHighlight = true;
-                peer.instance.clearSelection();
-                peer.el._suppressHighlight = false;
-            }});
+        }}
+    }}
+
+    opts.file = rows;
+
+    // --- Resolve "auto" legend (R: dygraphs.js lines 64-69) ---
+    if (opts.legend === 'auto') {{
+        opts.legend = (data.length <= 2) ? 'onmouseover' : 'always';
+    }}
+
+    // --- disableZoom → nonInteractiveModel (R: dygraphs.js lines 53-55) ---
+    if (opts.disableZoom) {{
+        opts.interactionModel = Dygraph.Interaction.nonInteractiveModel_;
+    }}
+
+    // --- mobileDisableYTouch (R: dygraphs.js lines 112-122) ---
+    if (opts.mobileDisableYTouch !== false && /Mobi|Android/i.test(navigator.userAgent)) {{
+        if (!opts.interactionModel) {{
+            opts.interactionModel = Dygraph.Interaction.defaultModel;
+        }}
+        var _origTouchstart = opts.interactionModel.touchstart;
+        opts.interactionModel.touchstart = function(event, g, context) {{
+            context.touchDirections = {{x: true, y: false}};
+            if (_origTouchstart) _origTouchstart(event, g, context);
         }};
     }}
 
-    var g = new Dygraph(document.getElementById('chart'), rows, opts);
-
-    // Register in group
-    if (config.group) {{
-        window.__dyGroups[config.group].push({{
-            el: document.getElementById('chart'), instance: g
-        }});
-    }}
-
-    if (config.annotations && config.annotations.length > 0) {{
-        var anns = config.annotations.map(function(a) {{
-            var ann = {{
-                series: a.series,
-                x: config.format === 'date' ? new Date(a.x).getTime() : a.x,
-                shortText: a.shortText,
-                text: a.text || '',
-                attachAtBottom: a.attachAtBottom || false
-            }};
-            if (a.width) ann.width = a.width;
-            if (a.height) ann.height = a.height;
-            if (a.cssClass) ann.cssClass = a.cssClass;
-            if (a.tickHeight) ann.tickHeight = a.tickHeight;
-            if (a.tickColor) ann.tickColor = a.tickColor;
-            if (a.tickWidth) ann.tickWidth = a.tickWidth;
-            if (a.icon) ann.icon = a.icon;
-            if (a.clickHandler) ann.clickHandler = a.clickHandler;
-            if (a.mouseOverHandler) ann.mouseOverHandler = a.mouseOverHandler;
-            if (a.mouseOutHandler) ann.mouseOutHandler = a.mouseOutHandler;
-            if (a.dblClickHandler) ann.dblClickHandler = a.dblClickHandler;
-            return ann;
-        }});
-        g.setAnnotations(anns);
-    }}
-
-    // Shadings (underlay callback)
+    // --- Shadings → underlayCallback (R: addShadingCallback, lines 519-565) ---
     if (config.shadings && config.shadings.length > 0) {{
-        var shadingCb = function(canvas, area, dygraph) {{
-            for (var s = 0; s < config.shadings.length; s++) {{
-                var sh = config.shadings[s];
+        var prevUnderlayCallback = opts.underlayCallback;
+        opts.underlayCallback = function(canvas, area, g) {{
+            if (prevUnderlayCallback) prevUnderlayCallback(canvas, area, g);
+            for (var i = 0; i < config.shadings.length; i++) {{
+                var sh = config.shadings[i];
+                canvas.save();
                 canvas.fillStyle = sh.color;
                 if (sh.axis === 'x') {{
-                    var from = config.format === 'date' ? new Date(sh.from).getTime() : sh.from;
-                    var to = config.format === 'date' ? new Date(sh.to).getTime() : sh.to;
-                    var xl = dygraph.toDomXCoord(from), xr = dygraph.toDomXCoord(to);
-                    canvas.fillRect(xl, area.y, xr - xl, area.h);
-                }} else {{
-                    var yl = dygraph.toDomYCoord(sh.from), yr = dygraph.toDomYCoord(sh.to);
-                    canvas.fillRect(area.x, Math.min(yl,yr), area.w, Math.abs(yr-yl));
+                    var x1 = config.format === 'date' ? normalizeDateValue(config.scale, sh.from, config.fixedtz).getTime() : sh.from;
+                    var x2 = config.format === 'date' ? normalizeDateValue(config.scale, sh.to, config.fixedtz).getTime() : sh.to;
+                    var left = g.toDomXCoord(x1);
+                    var right = g.toDomXCoord(x2);
+                    canvas.fillRect(left, area.y, right - left, area.h);
+                }} else if (sh.axis === 'y') {{
+                    var bottom = g.toDomYCoord(sh.from);
+                    var top = g.toDomYCoord(sh.to);
+                    canvas.fillRect(area.x, bottom, area.w, top - bottom);
                 }}
+                canvas.restore();
             }}
         }};
-        g.updateOptions({{underlayCallback: shadingCb}});
     }}
 
-    // Events and limits (vertical/horizontal lines)
+    // --- Events/limits → underlayCallback chain (R: addEventCallback, lines 567-654) ---
     if (config.events && config.events.length > 0) {{
-        var prevUl = g.getOption('underlayCallback');
-        var eventCb = function(canvas, area, dygraph) {{
-            if (prevUl) prevUl(canvas, area, dygraph);
-            for (var e = 0; e < config.events.length; e++) {{
-                var ev = config.events[e];
+        var prevUnderlayCallback2 = opts.underlayCallback;
+        opts.underlayCallback = function(canvas, area, g) {{
+            if (prevUnderlayCallback2) prevUnderlayCallback2(canvas, area, g);
+            for (var i = 0; i < config.events.length; i++) {{
+                var ev = config.events[i];
+                canvas.save();
                 canvas.strokeStyle = ev.color || 'black';
-                canvas.lineWidth = 1;
-                if (ev.strokePattern) canvas.setLineDash(ev.strokePattern);
-                canvas.beginPath();
                 if (ev.axis === 'x') {{
-                    var pos = config.format === 'date' ? new Date(ev.pos).getTime() : ev.pos;
-                    var xp = dygraph.toDomXCoord(pos);
-                    canvas.moveTo(xp, area.y); canvas.lineTo(xp, area.y + area.h);
-                }} else {{
-                    var yp = dygraph.toDomYCoord(ev.pos);
-                    canvas.moveTo(area.x, yp); canvas.lineTo(area.x + area.w, yp);
+                    var xPos = config.format === 'date'
+                        ? g.toDomXCoord(normalizeDateValue(config.scale, ev.pos, config.fixedtz).getTime())
+                        : g.toDomXCoord(ev.pos);
+                    canvas.setLineDash(ev.strokePattern || [10, 5]);
+                    canvas.beginPath();
+                    canvas.moveTo(xPos, area.y);
+                    canvas.lineTo(xPos, area.y + area.h);
+                    canvas.stroke();
+                }} else if (ev.axis === 'y') {{
+                    var yPos = g.toDomYCoord(ev.pos);
+                    canvas.setLineDash(ev.strokePattern || [10, 5]);
+                    canvas.beginPath();
+                    canvas.moveTo(area.x, yPos);
+                    canvas.lineTo(area.x + area.w, yPos);
+                    canvas.stroke();
                 }}
-                canvas.stroke();
-                canvas.setLineDash([]);
+                canvas.restore();
+                // Draw label (R: rotated for x-axis, horizontal for y-axis)
                 if (ev.label) {{
+                    canvas.save();
                     canvas.fillStyle = ev.color || 'black';
                     canvas.font = '12px sans-serif';
+                    var size = canvas.measureText(ev.label);
                     if (ev.axis === 'x') {{
-                        canvas.fillText(ev.label, xp + 4,
-                            ev.labelLoc === 'bottom' ? area.y + area.h - 4 : area.y + 14);
+                        // R rotates x-event labels 90 degrees (lines 636-639)
+                        var tx = xPos - 4;
+                        var ty = ev.labelLoc === 'bottom'
+                            ? area.y + area.h - 10
+                            : area.y + size.width + 10;
+                        canvas.translate(tx, ty);
+                        canvas.rotate(3 * Math.PI / 2);
+                        canvas.translate(-tx, -ty);
+                        canvas.fillText(ev.label, tx, ty);
                     }} else {{
-                        var llx = ev.labelLoc === 'right'
-                            ? area.x + area.w - canvas.measureText(ev.label).width - 4
-                            : area.x + 4;
-                        canvas.fillText(ev.label, llx, yp - 4);
+                        var lx = ev.labelLoc === 'right'
+                            ? area.x + area.w - size.width - 10
+                            : area.x + 10;
+                        canvas.fillText(ev.label, lx, yPos - 4);
                     }}
+                    canvas.restore();
                 }}
             }}
         }};
-        g.updateOptions({{underlayCallback: eventCb}});
     }}
 
-    // Custom CSS injection
+    // --- Zoom callback: track userDateWindow (R: addZoomCallback, lines 449-481) ---
+    if (config.group) {{
+        var prevZoomCallback = opts.zoomCallback;
+        opts.zoomCallback = function(minDate, maxDate, yRanges) {{
+            if (prevZoomCallback) prevZoomCallback(minDate, maxDate, yRanges);
+            // Track whether zoom was user-initiated or shows full range
+            var xAxisRange = this.xAxisRange();
+            var xAxisExtremes = this.xAxisExtremes();
+            if (xAxisRange[0] !== xAxisExtremes[0] || xAxisRange[1] !== xAxisExtremes[1]) {{
+                this.userDateWindow = [minDate, maxDate];
+            }} else {{
+                this.userDateWindow = null;
+            }}
+            // Sync userDateWindow across group
+            var group = window.__dyGroups[config.group] || [];
+            for (var j = 0; j < group.length; j++) {{
+                group[j].instance.userDateWindow = this.userDateWindow;
+            }}
+        }};
+    }}
+
+    // --- Group sync: drawCallback (R: addGroupDrawCallback, lines 483-516) ---
+    if (config.group) {{
+        if (!window.__dyGroups) window.__dyGroups = {{}};
+        window.__dyGroups[config.group] = window.__dyGroups[config.group] || [];
+        var blockRedraw = false;
+        var prevDrawCallback = opts.drawCallback;
+        opts.drawCallback = function(me, initial) {{
+            if (prevDrawCallback) prevDrawCallback(me, initial);
+            if (blockRedraw || initial) return;
+            blockRedraw = true;
+            var range = me.xAxisRange();
+            var group = window.__dyGroups[config.group];
+            for (var j = 0; j < group.length; j++) {{
+                if (group[j].instance === me) continue;
+                var peerRange = group[j].instance.xAxisRange();
+                if (peerRange[0] !== range[0] || peerRange[1] !== range[1]) {{
+                    group[j].instance.updateOptions({{dateWindow: range}});
+                }}
+            }}
+            blockRedraw = false;
+        }};
+        // Highlight sync
+        opts.highlightCallback = function(event, x, points, row) {{
+            if (el._suppressHighlight) return;
+            var group = window.__dyGroups[config.group];
+            for (var j = 0; j < group.length; j++) {{
+                if (group[j].el === el) continue;
+                group[j].el._suppressHighlight = true;
+                group[j].instance.setSelection(row);
+                group[j].el._suppressHighlight = false;
+            }}
+        }};
+        opts.unhighlightCallback = function() {{
+            if (el._suppressHighlight) return;
+            var group = window.__dyGroups[config.group];
+            for (var j = 0; j < group.length; j++) {{
+                if (group[j].el === el) continue;
+                group[j].el._suppressHighlight = true;
+                group[j].instance.clearSelection();
+                group[j].el._suppressHighlight = false;
+            }}
+        }};
+    }}
+
+    // --- Plugins (R: dygraphs.js lines 125-138) ---
+    if (config.plugins && config.plugins.length > 0) {{
+        opts.plugins = [];
+        for (var p = 0; p < config.plugins.length; p++) {{
+            var pl = config.plugins[p];
+            if (Dygraph.Plugins && Dygraph.Plugins[pl.name]) {{
+                opts.plugins.push(new Dygraph.Plugins[pl.name](pl.options));
+            }}
+        }}
+    }}
+
+    // --- Point shapes (R: dygraphs.js lines 150-163) ---
+    if (config.pointShape) {{
+        var shapes = config.pointShape;
+        if (typeof shapes === 'string') {{
+            opts.drawPointCallback = Dygraph.Circles[shapes.toUpperCase()];
+            opts.drawHighlightPointCallback = Dygraph.Circles[shapes.toUpperCase()];
+        }} else {{
+            if (!opts.series) opts.series = {{}};
+            for (var sn in shapes) {{
+                if (!shapes.hasOwnProperty(sn)) continue;
+                if (!opts.series[sn]) opts.series[sn] = {{}};
+                opts.series[sn].drawPointCallback = Dygraph.Circles[shapes[sn].toUpperCase()];
+                opts.series[sn].drawHighlightPointCallback = Dygraph.Circles[shapes[sn].toUpperCase()];
+            }}
+        }}
+    }}
+
+    // --- CSS injection (R: dygraphs.js lines 200-208) ---
     if (config.css) {{
         var style = document.createElement('style');
-        style.textContent = config.css;
-        document.head.appendChild(style);
+        style.type = 'text/css';
+        if (style.styleSheet) style.styleSheet.cssText = config.css;
+        else style.appendChild(document.createTextNode(config.css));
+        document.getElementsByTagName('head')[0].appendChild(style);
     }}
+
+    // --- Create dygraph ---
+    var dygraph = new Dygraph(el, opts.file, opts);
+
+    // --- Register in group ---
+    if (config.group) {{
+        window.__dyGroups[config.group].push({{el: el, instance: dygraph}});
+    }}
+
+    // --- Annotations via ready() (R: dygraphs.js lines 244-253) ---
+    if (config.annotations && config.annotations.length > 0) {{
+        dygraph.ready(function() {{
+            config.annotations.map(function(a) {{
+                if (config.format === 'date')
+                    a.x = normalizeDateValue(config.scale, a.x, config.fixedtz).getTime();
+            }});
+            dygraph.setAnnotations(config.annotations);
+        }});
+    }}
+
+    // --- Resize handler (R: dygraphs.js lines 774-777) ---
+    window.addEventListener('resize', function() {{ dygraph.resize(); }});
 }})();
 </script></body></html>"""
 

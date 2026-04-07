@@ -121,7 +121,7 @@ def _compare_attrs(
         if isinstance(r_val, dict) and isinstance(py_val, dict):
             sub = _compare_attrs(r_val, py_val, ignore_keys=skip)
             diffs.extend(f"{key}.{d}" for d in sub)
-        elif isinstance(r_val, float) and isinstance(py_val, (int, float)):
+        elif isinstance(r_val, float) and isinstance(py_val, int | float):
             if abs(r_val - py_val) > 1e-9:
                 diffs.append(f"{key}: R={r_val!r} != Py={py_val!r}")
         elif r_val != py_val:
@@ -141,9 +141,7 @@ _R_TS_2COL = textwrap.dedent("""\
 
 
 def _py_df_2col() -> pd.DataFrame:
-    return pd.DataFrame(
-        {"a": [1, 2, 3, 4, 5], "b": [5, 4, 3, 2, 1]}, index=_DATES
-    )
+    return pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": [5, 4, 3, 2, 1]}, index=_DATES)
 
 
 _R_TS_3COL = textwrap.dedent("""\
@@ -178,8 +176,11 @@ def _py_df_1col() -> pd.DataFrame:
 # - highlightSeriesOpts: R emits [] for empty, Python omits
 # - colors: R may reorder when series labels are renamed; compare separately
 _SKIP_KEYS = {
-    "labels", "scale", "mobileDisableYTouch",
-    "highlightSeriesOpts", "colors",
+    "labels",
+    "scale",
+    "mobileDisableYTouch",
+    "highlightSeriesOpts",
+    "colors",
 }
 
 
@@ -249,10 +250,18 @@ class TestDyOptions:
         py = (
             Dygraph(_py_df_2col())
             .options(
-                fill_graph=True, fill_alpha=0.3, stroke_width=2,
-                draw_points=True, point_size=3, stacked_graph=True,
-                include_zero=True, animated_zooms=True, draw_grid=False,
-                step_plot=True, labels_kmb=True, disable_zoom=True,
+                fill_graph=True,
+                fill_alpha=0.3,
+                stroke_width=2,
+                draw_points=True,
+                point_size=3,
+                stacked_graph=True,
+                include_zero=True,
+                animated_zooms=True,
+                draw_grid=False,
+                step_plot=True,
+                labels_kmb=True,
+                disable_zoom=True,
                 colors=["#ff0000", "#00ff00"],
             )
             .to_dict()["attrs"]
@@ -281,7 +290,9 @@ class TestDySeries:
         # R renames "a" to "Alpha" in both labels and series keys
         assert "Alpha" in r["labels"]
         assert "Alpha" in py["labels"]
-        assert r["series"]["Alpha"]["strokeWidth"] == py["series"]["Alpha"]["strokeWidth"]
+        assert (
+            r["series"]["Alpha"]["strokeWidth"] == py["series"]["Alpha"]["strokeWidth"]
+        )
         # Colors: both have #ff0000 for Alpha; other color auto-generated
         assert "#ff0000" in r["colors"]
         assert "#ff0000" in py["colors"]
@@ -310,8 +321,13 @@ class TestDyAxis:
         """)
         py = (
             Dygraph(_py_df_2col())
-            .axis("y", label="Values", value_range=(0, 10),
-                  draw_grid=False, axis_line_color="red")
+            .axis(
+                "y",
+                label="Values",
+                value_range=(0, 10),
+                draw_grid=False,
+                axis_line_color="red",
+            )
             .to_dict()["attrs"]
         )
 
@@ -350,13 +366,16 @@ class TestDyHighlight:
         """)
         py = (
             Dygraph(_py_df_1col())
-            .highlight(circle_size=5, series_background_alpha=0.3,
-                       hide_on_mouse_out=False)
+            .highlight(
+                circle_size=5, series_background_alpha=0.3, hide_on_mouse_out=False
+            )
             .to_dict()["attrs"]
         )
 
         assert r["highlightCircleSize"] == py["highlightCircleSize"] == 5
-        assert r["highlightSeriesBackgroundAlpha"] == py["highlightSeriesBackgroundAlpha"]
+        assert (
+            r["highlightSeriesBackgroundAlpha"] == py["highlightSeriesBackgroundAlpha"]
+        )
         assert r["hideOverlayOnMouseOut"] == py["hideOverlayOnMouseOut"] == False  # noqa: E712
 
 
@@ -466,9 +485,7 @@ class TestEvents:
             cat(toJSON(strip_js(dg$x$events), auto_unbox=TRUE))
         """)
         py = (
-            Dygraph(_py_df_1col())
-            .limit(3, label="L", color="blue")
-            .to_dict()["events"]
+            Dygraph(_py_df_1col()).limit(3, label="L", color="blue").to_dict()["events"]
         )
 
         assert len(r) == len(py) == 1
@@ -546,7 +563,12 @@ class TestStrokePatterns:
 
     @pytest.mark.parametrize(
         "name,expected",
-        [("dashed", [7, 3]), ("dotted", [2, 2]), ("dotdash", [7, 2, 2, 2]), ("solid", [1, 0])],
+        [
+            ("dashed", [7, 3]),
+            ("dotted", [2, 2]),
+            ("dotdash", [7, 2, 2, 2]),
+            ("solid", [1, 0]),
+        ],
     )
     def test_named_pattern(self, name: str, expected: list[int]) -> None:
         r = _run_r(f"""
@@ -575,7 +597,9 @@ class TestPerSeriesOptions:
         """)
         py = (
             Dygraph(_py_df_2col())
-            .series("a", fill_graph=True, draw_points=True, point_size=3, step_plot=True)
+            .series(
+                "a", fill_graph=True, draw_points=True, point_size=3, step_plot=True
+            )
             .to_dict()["attrs"]["series"]["a"]
         )
         assert r["fillGraph"] == py["fillGraph"] == True  # noqa: E712
@@ -674,7 +698,11 @@ class TestAxisVariants:
             .to_dict()["attrs"]
         )
         assert r["xlabel"] == py["xlabel"] == "Time"
-        assert r["axes"]["x"]["axisLabelFontSize"] == py["axes"]["x"]["axisLabelFontSize"] == 12
+        assert (
+            r["axes"]["x"]["axisLabelFontSize"]
+            == py["axes"]["x"]["axisLabelFontSize"]
+            == 12
+        )
 
     def test_y2_axis_independent_ticks(self) -> None:
         r = _run_r(f"""
@@ -764,8 +792,14 @@ class TestMultipleOverlays:
         py = (
             Dygraph(_py_df_2col())
             .annotation("2020-01-02", text="A", series="a", tooltip="First")
-            .annotation("2020-01-04", text="B", series="b", tooltip="Second",
-                        width=20, height=20)
+            .annotation(
+                "2020-01-04",
+                text="B",
+                series="b",
+                tooltip="Second",
+                width=20,
+                height=20,
+            )
             .to_dict()["annotations"]
         )
         assert len(r) == len(py) == 2
@@ -837,7 +871,9 @@ class TestRangeSelectorAdvanced:
             Dygraph(_py_df_2col())
             .range_selector(
                 date_window=("2020-01-02", "2020-01-04"),
-                height=50, fill_color="#aabbcc", stroke_color="#112233",
+                height=50,
+                fill_color="#aabbcc",
+                stroke_color="#112233",
             )
             .to_dict()["attrs"]
         )
@@ -924,9 +960,11 @@ class TestPluginStructure:
                 dyRibbon(data=c(0,1,0,1,0), palette=c("red","blue"))
             cat(toJSON(strip_js(dg$x$plugins), auto_unbox=TRUE))
         """)
-        py = Dygraph(_py_df_1col()).ribbon(
-            data=[0, 1, 0, 1, 0], palette=["red", "blue"]
-        ).to_dict()["plugins"]
+        py = (
+            Dygraph(_py_df_1col())
+            .ribbon(data=[0, 1, 0, 1, 0], palette=["red", "blue"])
+            .to_dict()["plugins"]
+        )
         # R: {"Ribbon": {"data": [...], "options": {"palette": [...], "top": 1, "bottom": 0}}}
         # Python: [{"name": "Ribbon", "options": {"data": [...], "options": {"palette": [...]}}}]
         assert r["Ribbon"]["data"] == [0, 1, 0, 1, 0]
@@ -1014,8 +1052,13 @@ class TestOptionsEdgeCases:
         """)
         py = (
             Dygraph(_py_df_2col())
-            .options(digits_after_decimal=4, max_number_width=10, sig_figs=3,
-                     labels_kmg2=True, labels_utc=True)
+            .options(
+                digits_after_decimal=4,
+                max_number_width=10,
+                sig_figs=3,
+                labels_kmg2=True,
+                labels_utc=True,
+            )
             .to_dict()["attrs"]
         )
         assert r["digitsAfterDecimal"] == py["digitsAfterDecimal"] == 4
@@ -1040,17 +1083,33 @@ class TestOptionsEdgeCases:
         py = (
             Dygraph(_py_df_2col())
             .options(
-                axis_line_color="red", axis_line_width=2, axis_label_color="blue",
-                axis_label_font_size=10, axis_label_width=80, axis_tick_size=5,
-                title_height=30, right_gap=10, stroke_border_color="green",
-                color_value=0.7, color_saturation=0.8,
+                axis_line_color="red",
+                axis_line_width=2,
+                axis_label_color="blue",
+                axis_label_font_size=10,
+                axis_label_width=80,
+                axis_tick_size=5,
+                title_height=30,
+                right_gap=10,
+                stroke_border_color="green",
+                color_value=0.7,
+                color_saturation=0.8,
             )
             .to_dict()["attrs"]
         )
-        for key in ["axisLineColor", "axisLineWidth", "axisLabelColor",
-                     "axisLabelFontSize", "axisLabelWidth", "axisTickSize",
-                     "titleHeight", "rightGap", "strokeBorderColor",
-                     "colorValue", "colorSaturation"]:
+        for key in [
+            "axisLineColor",
+            "axisLineWidth",
+            "axisLabelColor",
+            "axisLabelFontSize",
+            "axisLabelWidth",
+            "axisTickSize",
+            "titleHeight",
+            "rightGap",
+            "strokeBorderColor",
+            "colorValue",
+            "colorSaturation",
+        ]:
             assert r[key] == py[key], f"{key}: R={r[key]!r} != Py={py[key]!r}"
 
     def test_boolean_options(self) -> None:
@@ -1066,13 +1125,19 @@ class TestOptionsEdgeCases:
         py = (
             Dygraph(_py_df_2col())
             .options(
-                draw_gap_edge_points=True, connect_separated_points=True,
-                draw_axes_at_zero=True, retain_date_window=True,
+                draw_gap_edge_points=True,
+                connect_separated_points=True,
+                draw_axes_at_zero=True,
+                retain_date_window=True,
             )
             .to_dict()["attrs"]
         )
-        for key in ["drawGapEdgePoints", "connectSeparatedPoints",
-                     "drawAxesAtZero", "retainDateWindow"]:
+        for key in [
+            "drawGapEdgePoints",
+            "connectSeparatedPoints",
+            "drawAxesAtZero",
+            "retainDateWindow",
+        ]:
             assert r[key] == py[key] == True, f"{key} mismatch"  # noqa: E712
 
     def test_stroke_border_width(self) -> None:
@@ -1199,11 +1264,7 @@ class TestAxisRemainingParams:
             dg <- dygraph(ts) %>% dyAxis("y", rangePad=20)
             cat(toJSON(strip_js(dg$x$attrs$yRangePad), auto_unbox=TRUE))
         """)
-        py = (
-            Dygraph(_py_df_2col())
-            .axis("y", range_pad=20)
-            .to_dict()["attrs"]
-        )
+        py = Dygraph(_py_df_2col()).axis("y", range_pad=20).to_dict()["attrs"]
         assert r == py["yRangePad"] == 20
 
     def test_axis_line_styling(self) -> None:
@@ -1231,8 +1292,12 @@ class TestAxisRemainingParams:
         """)
         py = (
             Dygraph(_py_df_2col())
-            .axis("y", axis_label_color="green", axis_label_font_size=10,
-                  axis_label_width=80)
+            .axis(
+                "y",
+                axis_label_color="green",
+                axis_label_font_size=10,
+                axis_label_width=80,
+            )
             .to_dict()["attrs"]["axes"]["y"]
         )
         assert r["axisLabelColor"] == py["axisLabelColor"] == "green"
@@ -1249,9 +1314,11 @@ class TestAxisRemainingParams:
         """)
         py = (
             Dygraph(_py_df_2col())
-            .axis("y",
-                  value_formatter="function(v){return v.toFixed(1);}",
-                  axis_label_formatter="function(v){return v + ' m';}")
+            .axis(
+                "y",
+                value_formatter="function(v){return v.toFixed(1);}",
+                axis_label_formatter="function(v){return v + ' m';}",
+            )
             .to_dict()["attrs"]["axes"]["y"]
         )
         r_vf = _normalise_value(r["valueFormatter"])
@@ -1463,13 +1530,13 @@ class TestUnzoomPlugin:
 
 # Known structural differences between R and Python that are intentional:
 _STRICT_SKIP_TOP = {
-    "scale",       # R emits "daily"/"monthly", Python doesn't (unused by JS)
-    "fixedtz",     # R-only xts metadata
-    "tzone",       # R-only xts metadata
+    "scale",  # R emits "daily"/"monthly", Python doesn't (unused by JS)
+    "fixedtz",  # R-only xts metadata
+    "tzone",  # R-only xts metadata
 }
 _STRICT_SKIP_ATTRS = {
-    "labels",      # labels[0] differs: R="day", Python="Date" (index name)
-    "colors",      # R may reorder on series rename
+    "labels",  # labels[0] differs: R="day", Python="Date" (index name)
+    "colors",  # R may reorder on series rename
     "mobileDisableYTouch",  # R always emits, Python only when non-default
     "highlightSeriesOpts",  # R emits [], Python omits
 }
@@ -1490,11 +1557,7 @@ def _deep_normalise(obj: Any) -> Any:
         return ("__JS__", obj.code)
     if isinstance(obj, dict):
         # Remove None values (Python emits "group": null, R omits it)
-        return {
-            k: _deep_normalise(v)
-            for k, v in sorted(obj.items())
-            if v is not None
-        }
+        return {k: _deep_normalise(v) for k, v in sorted(obj.items()) if v is not None}
     if isinstance(obj, list):
         return [_deep_normalise(v) for v in obj]
     if isinstance(obj, float):
@@ -1572,8 +1635,9 @@ class TestStrictJsonDiff:
             cat(toJSON(strip_js(dg$x), auto_unbox=TRUE))
         """)
         py = _python_config(
-            Dygraph(_py_df_2col())
-            .options(fill_graph=True, stroke_width=2, draw_points=True)
+            Dygraph(_py_df_2col()).options(
+                fill_graph=True, stroke_width=2, draw_points=True
+            )
         )
         r_norm, py_norm = self._prepare(r, py)
         diffs = _diff_dicts(r_norm, py_norm)

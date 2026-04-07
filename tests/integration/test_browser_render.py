@@ -28,9 +28,7 @@ from dygraphs import Dygraph
 # ---------------------------------------------------------------------------
 
 _DATES = pd.date_range("2020-01-01", periods=10, freq="D")
-_DF = pd.DataFrame(
-    {"a": range(1, 11), "b": range(10, 0, -1)}, index=_DATES
-)
+_DF = pd.DataFrame({"a": range(1, 11), "b": range(10, 0, -1)}, index=_DATES)
 
 
 @pytest.fixture(scope="module")
@@ -69,9 +67,7 @@ def driver():
 def _render(driver: Any, dg: Dygraph, *, cdn: bool = True) -> dict[str, Any]:
     """Write to_html() to a temp file, open in Chrome, return diagnostics."""
     html = dg.to_html(cdn=cdn)
-    with tempfile.NamedTemporaryFile(
-        suffix=".html", delete=False, mode="w"
-    ) as f:
+    with tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w") as f:
         f.write(html)
         path = f.name
 
@@ -86,14 +82,11 @@ def _render(driver: Any, dg: Dygraph, *, cdn: bool = True) -> dict[str, Any]:
     canvases = driver.find_elements("tag name", "canvas")
 
     # Check for dygraph instance
-    has_instance = driver.execute_script(
-        "return typeof Dygraph !== 'undefined'"
-    )
+    has_instance = driver.execute_script("return typeof Dygraph !== 'undefined'")
 
     # Get chart div content
     chart_html = driver.execute_script(
-        "var el = document.getElementById('chart'); "
-        "return el ? el.innerHTML : '';"
+        "var el = document.getElementById('chart'); return el ? el.innerHTML : '';"
     )
 
     Path(path).unlink(missing_ok=True)
@@ -119,8 +112,7 @@ def _assert_rendered(result: dict[str, Any]) -> None:
     """Assert chart actually rendered (has canvas elements)."""
     assert result["has_dygraph"], "Dygraph library not loaded"
     assert result["canvas_count"] > 0, (
-        f"No canvas elements — chart didn't render. "
-        f"HTML: {result['chart_html'][:200]}"
+        f"No canvas elements — chart didn't render. HTML: {result['chart_html'][:200]}"
     )
 
 
@@ -137,10 +129,7 @@ class TestBasicRender:
         _assert_rendered(result)
 
     def test_chart_with_options(self, driver) -> None:
-        dg = (
-            Dygraph(_DF)
-            .options(fill_graph=True, draw_points=True, stacked_graph=True)
-        )
+        dg = Dygraph(_DF).options(fill_graph=True, draw_points=True, stacked_graph=True)
         result = _render(driver, dg)
         _assert_no_errors(result)
         _assert_rendered(result)
@@ -181,8 +170,7 @@ class TestOverlayRender:
         dg = (
             Dygraph(_DF)
             .event("2020-01-03", label="Event A", color="red")
-            .event("2020-01-07", label="Event B", color="blue",
-                   stroke_pattern="dotted")
+            .event("2020-01-07", label="Event B", color="blue", stroke_pattern="dotted")
             .limit(5, label="Threshold", color="green")
         )
         result = _render(driver, dg)
@@ -193,15 +181,21 @@ class TestOverlayRender:
         dg = (
             Dygraph(_DF)
             .annotation("2020-01-03", text="A", tooltip="First", series="a")
-            .annotation("2020-01-07", text="B", tooltip="Second", series="b",
-                        width=20, height=20)
+            .annotation(
+                "2020-01-07",
+                text="B",
+                tooltip="Second",
+                series="b",
+                width=20,
+                height=20,
+            )
         )
         result = _render(driver, dg)
         _assert_no_errors(result)
         _assert_rendered(result)
         # Check annotation divs exist
         ann_count = driver.execute_script(
-            "return document.querySelectorAll('.dygraph-annotation').length"
+            "return document.querySelectorAll('.dygraphDefaultAnnotation').length"
         )
         assert ann_count >= 1, "Annotations should render as DOM elements"
 
@@ -268,7 +262,9 @@ class TestCombinedRender:
         dg = (
             Dygraph(_DF, title="Full Featured")
             .options(
-                fill_graph=True, draw_points=True, stroke_width=2,
+                fill_graph=True,
+                draw_points=True,
+                stroke_width=2,
                 animated_zooms=True,
             )
             .series("a", label="Alpha", color="#ff0000", stroke_width=3)
@@ -294,12 +290,9 @@ class TestCombinedRender:
 
     def test_callbacks_no_error(self, driver) -> None:
         """JS callbacks should not cause errors."""
-        dg = (
-            Dygraph(_DF)
-            .callbacks(
-                click="function(e,x,pts){ console.log('click'); }",
-                zoom="function(min,max){ console.log('zoom',min,max); }",
-            )
+        dg = Dygraph(_DF).callbacks(
+            click="function(e,x,pts){ console.log('click'); }",
+            zoom="function(min,max){ console.log('zoom',min,max); }",
         )
         result = _render(driver, dg)
         _assert_no_errors(result)
@@ -307,9 +300,7 @@ class TestCombinedRender:
 
     def test_custom_css_injected(self, driver) -> None:
         """Custom CSS should be injected into the page."""
-        with tempfile.NamedTemporaryFile(
-            suffix=".css", delete=False, mode="w"
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".css", delete=False, mode="w") as f:
             f.write(".dygraph-title { color: rgb(255, 0, 0) !important; }")
             css_path = f.name
 
@@ -417,9 +408,7 @@ class TestGroupSyncRender:
 }})();
 </script></body></html>"""
 
-        with tempfile.NamedTemporaryFile(
-            suffix=".html", delete=False, mode="w"
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w") as f:
             f.write(page)
             path = f.name
 
@@ -427,7 +416,11 @@ class TestGroupSyncRender:
         time.sleep(4)
 
         logs = driver.get_log("browser")
-        errors = [e for e in logs if e["level"] == "SEVERE" and "favicon" not in e["message"].lower()]
+        errors = [
+            e
+            for e in logs
+            if e["level"] == "SEVERE" and "favicon" not in e["message"].lower()
+        ]
         assert not errors, f"JS errors: {[e['message'] for e in errors]}"
 
         # Both charts rendered

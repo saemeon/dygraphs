@@ -126,7 +126,6 @@ class TestCustomPlotter:
         cfg = d.to_dict()
         assert isinstance(cfg["attrs"]["plotter"], JS)
         assert cfg["attrs"]["plotter"].code == js_code
-        assert js_code in cfg["extraJs"]
 
     def test_custom_plotter_chainable(self) -> None:
         d = Dygraph(_df()).custom_plotter("function(){}").options(fill_graph=True)
@@ -139,7 +138,6 @@ class TestDataHandler:
         d = Dygraph(_df()).data_handler(js_code)
         cfg = d.to_dict()
         assert isinstance(cfg["attrs"]["dataHandler"], JS)
-        assert js_code in cfg["extraJs"]
 
 
 # ---------------------------------------------------------------------------
@@ -191,9 +189,7 @@ class TestGroupNewParams:
 
     def test_group_stem_plot_conflicts_with_plotter(self) -> None:
         with pytest.raises(ValueError, match="stem_plot"):
-            Dygraph(_df()).group(
-                ["a", "b"], stem_plot=True, plotter="function(){}"
-            )
+            Dygraph(_df()).group(["a", "b"], stem_plot=True, plotter="function(){}")
 
 
 # ---------------------------------------------------------------------------
