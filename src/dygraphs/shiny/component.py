@@ -97,6 +97,27 @@ def dygraph_ui(
         }}
         processJS(opts);
 
+        // Inject plugin/plotter JS before instantiation
+        if (config.extraJs) {{
+            for (var ej = 0; ej < config.extraJs.length; ej++) {{
+                try {{ eval(config.extraJs[ej]); }} catch(e) {{
+                    console.warn('dygraphs: failed to eval extraJs:', e);
+                }}
+            }}
+        }}
+
+        // Plugins
+        if (config.plugins) {{
+            var plugs = [];
+            for (var p = 0; p < config.plugins.length; p++) {{
+                var pl = config.plugins[p];
+                if (Dygraph.Plugins && Dygraph.Plugins[pl.name]) {{
+                    plugs.push(new Dygraph.Plugins[pl.name](pl.options));
+                }}
+            }}
+            if (plugs.length > 0) opts.plugins = plugs;
+        }}
+
         // Destroy previous instance
         if (el._dygraphInstance) el._dygraphInstance.destroy();
 

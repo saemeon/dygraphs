@@ -1289,6 +1289,8 @@ class Dygraph:
             x["pointShape"] = self._point_shapes
         if self._css:
             x["css"] = self._css
+        if self._extra_js:
+            x["extraJs"] = list(dict.fromkeys(self._extra_js))
         return x
 
     def to_json(self, **kwargs: Any) -> str:
@@ -1413,10 +1415,15 @@ class Dygraph:
             dygraph_css = (ASSETS_DIR / "dygraph.css").read_text()
             js_include = f"<style>{dygraph_css}</style>\n<script>{dygraph_js}</script>"
 
+        extra_js_blocks = ""
+        if self._extra_js:
+            for js_code in dict.fromkeys(self._extra_js):
+                extra_js_blocks += f"<script>{js_code}</script>\n"
+
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>{page_title}</title>
 {js_include}
-</head><body>
+{extra_js_blocks}</head><body>
 <div id="chart" style="width:{width}; height:{height_css};"></div>
 <script>
 (function() {{
@@ -1435,14 +1442,94 @@ class Dygraph:
     var opts = config.attrs;
     var g = new Dygraph(document.getElementById('chart'), rows, opts);
     if (config.annotations && config.annotations.length > 0) {{
-        g.setAnnotations(config.annotations.map(function(a) {{
-            return {{
+        var anns = config.annotations.map(function(a) {{
+            var ann = {{
                 series: a.series,
                 x: config.format === 'date' ? new Date(a.x).getTime() : a.x,
-                shortText: a.shortText, text: a.text || '',
+                shortText: a.shortText,
+                text: a.text || '',
                 attachAtBottom: a.attachAtBottom || false
             }};
-        }}));
+            if (a.width) ann.width = a.width;
+            if (a.height) ann.height = a.height;
+            if (a.cssClass) ann.cssClass = a.cssClass;
+            if (a.tickHeight) ann.tickHeight = a.tickHeight;
+            if (a.tickColor) ann.tickColor = a.tickColor;
+            if (a.tickWidth) ann.tickWidth = a.tickWidth;
+            if (a.icon) ann.icon = a.icon;
+            if (a.clickHandler) ann.clickHandler = a.clickHandler;
+            if (a.mouseOverHandler) ann.mouseOverHandler = a.mouseOverHandler;
+            if (a.mouseOutHandler) ann.mouseOutHandler = a.mouseOutHandler;
+            if (a.dblClickHandler) ann.dblClickHandler = a.dblClickHandler;
+            return ann;
+        }});
+        g.setAnnotations(anns);
+    }}
+
+    // Shadings (underlay callback)
+    if (config.shadings && config.shadings.length > 0) {{
+        var shadingCb = function(canvas, area, dygraph) {{
+            for (var s = 0; s < config.shadings.length; s++) {{
+                var sh = config.shadings[s];
+                canvas.fillStyle = sh.color;
+                if (sh.axis === 'x') {{
+                    var from = config.format === 'date' ? new Date(sh.from).getTime() : sh.from;
+                    var to = config.format === 'date' ? new Date(sh.to).getTime() : sh.to;
+                    var xl = dygraph.toDomXCoord(from), xr = dygraph.toDomXCoord(to);
+                    canvas.fillRect(xl, area.y, xr - xl, area.h);
+                }} else {{
+                    var yl = dygraph.toDomYCoord(sh.from), yr = dygraph.toDomYCoord(sh.to);
+                    canvas.fillRect(area.x, Math.min(yl,yr), area.w, Math.abs(yr-yl));
+                }}
+            }}
+        }};
+        g.updateOptions({{underlayCallback: shadingCb}});
+    }}
+
+    // Events and limits (vertical/horizontal lines)
+    if (config.events && config.events.length > 0) {{
+        var prevUl = g.getOption('underlayCallback');
+        var eventCb = function(canvas, area, dygraph) {{
+            if (prevUl) prevUl(canvas, area, dygraph);
+            for (var e = 0; e < config.events.length; e++) {{
+                var ev = config.events[e];
+                canvas.strokeStyle = ev.color || 'black';
+                canvas.lineWidth = 1;
+                if (ev.strokePattern) canvas.setLineDash(ev.strokePattern);
+                canvas.beginPath();
+                if (ev.axis === 'x') {{
+                    var pos = config.format === 'date' ? new Date(ev.pos).getTime() : ev.pos;
+                    var xp = dygraph.toDomXCoord(pos);
+                    canvas.moveTo(xp, area.y); canvas.lineTo(xp, area.y + area.h);
+                }} else {{
+                    var yp = dygraph.toDomYCoord(ev.pos);
+                    canvas.moveTo(area.x, yp); canvas.lineTo(area.x + area.w, yp);
+                }}
+                canvas.stroke();
+                canvas.setLineDash([]);
+                if (ev.label) {{
+                    canvas.fillStyle = ev.color || 'black';
+                    canvas.font = '12px sans-serif';
+                    if (ev.axis === 'x') {{
+                        canvas.fillText(ev.label, xp + 4,
+                            ev.labelLoc === 'bottom' ? area.y + area.h - 4 : area.y + 14);
+                    }} else {{
+                        var llx = ev.labelLoc === 'right'
+                            ? area.x + area.w - canvas.measureText(ev.label).width - 4
+                            : area.x + 4;
+                        canvas.fillText(ev.label, llx, yp - 4);
+                    }}
+                }}
+            }}
+        }};
+        g.updateOptions({{underlayCallback: eventCb}});
+    }}
+
+    // Custom CSS injection
+    if (config.css) {{
+        var style = document.createElement('style');
+        style.textContent = config.css;
+        document.head.appendChild(style);
     }}
 }})();
 </script></body></html>"""

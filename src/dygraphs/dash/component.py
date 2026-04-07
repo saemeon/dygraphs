@@ -184,6 +184,15 @@ def _build_render_js(
             _broadcastZoom([dw[0], dw[1]]);
         }};
 
+        // Inject plugin/plotter JS before instantiation
+        if (config.extraJs) {{
+            for (var ej = 0; ej < config.extraJs.length; ej++) {{
+                try {{ eval(config.extraJs[ej]); }} catch(e) {{
+                    console.warn('dygraphs: failed to eval extraJs:', e);
+                }}
+            }}
+        }}
+
         // Plugins
         if (config.plugins) {{
             var plugs = [];
