@@ -13,20 +13,23 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from dygraphs.utils import JS
+from dygraphs.utils import (
+    DYGRAPH_CSS_CDN as _DYGRAPH_CSS_CDN,
+)
+from dygraphs.utils import (
+    DYGRAPH_JS_CDN as _DYGRAPH_JS_CDN,
+)
+from dygraphs.utils import (
+    serialise_js,
+)
 
 if TYPE_CHECKING:
     from dash import Dash
     from dash.development.base_component import Component
 
     from dygraphs.dygraph import Dygraph
-
-_DYGRAPH_JS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.js"
-_DYGRAPH_CSS_CDN = (
-    "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.css"
-)
 
 # ---------------------------------------------------------------------------
 # Modebar SVG icons
@@ -130,7 +133,9 @@ def _build_render_js(
             for (var key in obj) {{
                 if (typeof obj[key] === 'string' && obj[key].indexOf('__JS__:') === 0) {{
                     var code = obj[key].slice(7, -6);
-                    try {{ obj[key] = eval('(' + code + ')'); }} catch(e) {{}}
+                    try {{ obj[key] = eval('(' + code + ')'); }} catch(e) {{
+                        console.warn('dygraphs: eval failed for "' + key + '":', e);
+                    }}
                 }} else if (typeof obj[key] === 'object') {{
                     processJS(obj[key]);
                 }}
@@ -435,17 +440,7 @@ def dygraph_to_dash(
 
     # Serialise config — handle JS objects
     config = dg.to_dict()
-
-    def _serialise(obj: Any) -> Any:
-        if isinstance(obj, JS):
-            return f"__JS__:{obj.code}:__JS__"
-        if isinstance(obj, dict):
-            return {k: _serialise(v) for k, v in obj.items()}
-        if isinstance(obj, list):
-            return [_serialise(v) for v in obj]
-        return obj
-
-    serialised_config = _serialise(config)
+    serialised_config = serialise_js(config)
 
     component = html.Div(
         [

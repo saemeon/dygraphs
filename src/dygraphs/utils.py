@@ -4,7 +4,20 @@ from __future__ import annotations
 
 import colorsys
 import math
+import re
 from typing import Any
+
+# ---------------------------------------------------------------------------
+# Dygraphs JS library version & CDN URLs (single source of truth)
+# ---------------------------------------------------------------------------
+
+DYGRAPH_VERSION = "2.2.1"
+DYGRAPH_JS_CDN = (
+    f"https://cdnjs.cloudflare.com/ajax/libs/dygraph/{DYGRAPH_VERSION}/dygraph.min.js"
+)
+DYGRAPH_CSS_CDN = (
+    f"https://cdnjs.cloudflare.com/ajax/libs/dygraph/{DYGRAPH_VERSION}/dygraph.min.css"
+)
 
 
 def merge_dicts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
@@ -100,6 +113,27 @@ class JS:
 
     def __hash__(self) -> int:
         return hash(self.code)
+
+
+def unwrap_js_markers(json_str: str) -> str:
+    """Remove ``__JS__:…:__JS__`` quote wrappers from serialised JSON.
+
+    When ``JS`` objects are serialised via ``json.dumps`` they are encoded as
+    ``"__JS__:<code>:__JS__"`` strings.  This function strips the surrounding
+    double-quotes and markers so the code appears as raw JS in the output.
+    """
+    return re.sub(r'"__JS__:(.*?):__JS__"', r"\1", json_str)
+
+
+def serialise_js(obj: Any) -> Any:
+    """Recursively convert ``JS`` objects to ``__JS__`` marker strings."""
+    if isinstance(obj, JS):
+        return f"__JS__:{obj.code}:__JS__"
+    if isinstance(obj, dict):
+        return {k: serialise_js(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [serialise_js(v) for v in obj]
+    return obj
 
 
 def make_error_bar_data(

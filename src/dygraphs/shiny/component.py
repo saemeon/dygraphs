@@ -9,28 +9,20 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from dygraphs.utils import JS
+from dygraphs.utils import (
+    DYGRAPH_CSS_CDN as _DYGRAPH_CSS_CDN,
+)
+from dygraphs.utils import (
+    DYGRAPH_JS_CDN as _DYGRAPH_JS_CDN,
+)
+from dygraphs.utils import (
+    serialise_js,
+)
 
 if TYPE_CHECKING:
     from dygraphs.dygraph import Dygraph
 
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
-
-_DYGRAPH_JS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.js"
-_DYGRAPH_CSS_CDN = (
-    "https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.css"
-)
-
-
-def _serialise(obj: Any) -> Any:
-    """Recursively convert JS objects to __JS__ markers for JSON transport."""
-    if isinstance(obj, JS):
-        return f"__JS__:{obj.code}:__JS__"
-    if isinstance(obj, dict):
-        return {k: _serialise(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_serialise(v) for v in obj]
-    return obj
 
 
 def dygraph_ui(
@@ -88,7 +80,9 @@ def dygraph_ui(
             for (var key in obj) {{
                 if (typeof obj[key] === 'string' && obj[key].indexOf('__JS__:') === 0) {{
                     var code = obj[key].slice(7, -6);
-                    try {{ obj[key] = eval('(' + code + ')'); }} catch(e) {{}}
+                    try {{ obj[key] = eval('(' + code + ')'); }} catch(e) {{
+                        console.warn('dygraphs: eval failed for "' + key + '":', e);
+                    }}
                 }} else if (typeof obj[key] === 'object') {{
                     processJS(obj[key]);
                 }}
@@ -226,5 +220,5 @@ async def render_dygraph(
     dg
         Configured ``Dygraph`` builder instance.
     """
-    config = _serialise(dg.to_dict())
+    config = serialise_js(dg.to_dict())
     await session.send_custom_message(f"dygraphs_{element_id}", config)

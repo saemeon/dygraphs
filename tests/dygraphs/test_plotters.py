@@ -70,7 +70,7 @@ class TestGroupPlotters:
         d = Dygraph(_df()).multi_column_group(["a", "b"])
         cfg = d.to_dict()
         assert isinstance(cfg["attrs"]["series"]["a"]["plotter"], JS)
-        assert cfg["attrs"]["series"]["a"]["group"] == "ab"
+        assert cfg["attrs"]["series"]["a"]["group"] == "a\x1fb"
 
     def test_candlestick_group(self) -> None:
         d = Dygraph(_df()).candlestick_group(["a", "b"])

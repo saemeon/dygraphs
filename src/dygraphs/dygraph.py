@@ -11,10 +11,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from dygraphs.utils import (
+    DYGRAPH_CSS_CDN,
+    DYGRAPH_JS_CDN,
     JS,
     auto_colors,
     merge_dicts,
     resolve_stroke_pattern,
+    unwrap_js_markers,
 )
 
 if TYPE_CHECKING:
@@ -262,7 +265,17 @@ class Dygraph:
                 raise ImportError(msg)
             import io
 
-            data = pd.read_csv(io.StringIO(data))
+            try:
+                data = pd.read_csv(io.StringIO(data))
+            except Exception as exc:
+                msg = f"Failed to parse CSV data: {exc}"
+                raise ValueError(msg) from exc
+            if data.empty or len(data.columns) < 2:
+                msg = (
+                    "CSV data must have at least 2 columns "
+                    f"(got {len(data.columns)})"
+                )
+                raise ValueError(msg)
             # If first column looks like dates, use it as index
             first_col_name = data.columns[0]
             first_col = data[first_col_name]
@@ -803,7 +816,7 @@ class Dygraph:
                 msg = f"Series {n!r} not found. Valid: {labels[1:]}"
                 raise ValueError(msg)
 
-        group_id = "".join(names)
+        group_id = "\x1f".join(sorted(names))
         self._attrs.setdefault("series", {})
 
         for i, n in enumerate(names):
@@ -1304,11 +1317,7 @@ class Dygraph:
             raise TypeError(msg)
 
         raw = json.dumps(self.to_dict(), default=_default, **kwargs)
-        # Un-quote JS markers
-        import re
-
-        raw = re.sub(r'"__JS__:(.*?):__JS__"', r"\1", raw)
-        return raw
+        return unwrap_js_markers(raw)
 
     # ---- Dash integration --------------------------------------------
 
@@ -1407,8 +1416,8 @@ class Dygraph:
 
         if cdn:
             js_include = (
-                '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.css">\n'
-                '<script src="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.2.1/dygraph.min.js"></script>'
+                f'<link rel="stylesheet" href="{DYGRAPH_CSS_CDN}">\n'
+                f'<script src="{DYGRAPH_JS_CDN}"></script>'
             )
         else:
             dygraph_js = (ASSETS_DIR / "dygraph-combined.js").read_text()
