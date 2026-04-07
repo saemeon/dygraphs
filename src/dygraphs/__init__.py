@@ -48,13 +48,6 @@ def dygraph_to_dash(*args, **kwargs):  # type: ignore[no-untyped-def]  # noqa: A
     return _fn(*args, **kwargs)
 
 
-def sync_dygraphs(*args, **kwargs):  # type: ignore[no-untyped-def]  # noqa: ANN002, ANN003
-    """Wire zoom sync across Dash charts. Requires ``dygraphs[dash]``."""
-    from dygraphs.dash import sync_dygraphs as _fn
-
-    return _fn(*args, **kwargs)
-
-
 def stacked_bar(*args, **kwargs):  # type: ignore[no-untyped-def]  # noqa: ANN002, ANN003
     """Create a stacked bar chart for Dash. Requires ``dygraphs[dash]``."""
     from dygraphs.dash import stacked_bar as _fn
@@ -93,6 +86,5 @@ __all__ = [
     "dygraph_strategy",
     "dygraph_to_dash",
     "stacked_bar",
-    "sync_dygraphs",
     "__version__",
 ]

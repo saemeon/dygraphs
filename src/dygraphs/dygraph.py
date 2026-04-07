@@ -1449,7 +1449,60 @@ class Dygraph:
         rows.push(row);
     }}
     var opts = config.attrs;
+
+    // Group sync: zoom + highlight across charts sharing config.group
+    if (config.group) {{
+        if (!window.__dyGroups) window.__dyGroups = {{}};
+        var grp = config.group;
+        if (!window.__dyGroups[grp]) window.__dyGroups[grp] = [];
+        var _container = document.getElementById('chart');
+        var _broadcastZoom = function(dw) {{
+            if (_container._suppressZoom) {{
+                _container._suppressZoom = false;
+                return;
+            }}
+            window.__dyGroups[grp].forEach(function(peer) {{
+                if (peer.el === _container) return;
+                peer.el._suppressZoom = true;
+                peer.instance.updateOptions({{dateWindow: dw}});
+            }});
+        }};
+        opts.zoomCallback = function(a, b) {{ _broadcastZoom([a, b]); }};
+        var _userDrawCb = opts.drawCallback;
+        opts.drawCallback = function(g, isInitial) {{
+            if (_userDrawCb) _userDrawCb(g, isInitial);
+            if (isInitial) return;
+            _broadcastZoom(g.xAxisRange());
+        }};
+        opts.highlightCallback = function(event, x, points, row) {{
+            if (_container._suppressHighlight) return;
+            window.__dyGroups[grp].forEach(function(peer) {{
+                if (peer.el === _container) return;
+                peer.el._suppressHighlight = true;
+                peer.instance.setSelection(row);
+                peer.el._suppressHighlight = false;
+            }});
+        }};
+        opts.unhighlightCallback = function() {{
+            if (_container._suppressHighlight) return;
+            window.__dyGroups[grp].forEach(function(peer) {{
+                if (peer.el === _container) return;
+                peer.el._suppressHighlight = true;
+                peer.instance.clearSelection();
+                peer.el._suppressHighlight = false;
+            }});
+        }};
+    }}
+
     var g = new Dygraph(document.getElementById('chart'), rows, opts);
+
+    // Register in group
+    if (config.group) {{
+        window.__dyGroups[config.group].push({{
+            el: document.getElementById('chart'), instance: g
+        }});
+    }}
+
     if (config.annotations && config.annotations.length > 0) {{
         var anns = config.annotations.map(function(a) {{
             var ann = {{

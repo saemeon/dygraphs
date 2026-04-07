@@ -5,8 +5,10 @@ clientside callback output + JS that loads dygraphs on demand.
 
 Includes:
 - dygraph_to_dash() — render a Dygraph builder into Dash layout
-- sync_dygraphs()   — wire zoom/pan sync across charts
 - stacked_bar()     — canvas stacked bar with interactive range selector
+
+Charts sharing the same ``group`` name automatically sync zoom, pan,
+and highlight via a global JS group registry.
 """
 
 from __future__ import annotations
@@ -88,7 +90,7 @@ def _build_render_js(
         )
         modebar_html = modebar_html.replace('"', '\\"')
 
-    return f"""function(config, xrangeData, optsOverride) {{
+    return f"""function(config, optsOverride) {{
     if (!config) return {{data:[],layout:{{}}}};
 
     // Load CSS once
@@ -150,32 +152,41 @@ def _build_render_js(
             processJS(opts);
         }}
 
-        // Apply synced xrange if from another chart
-        if (xrangeData && xrangeData.dateWindow && xrangeData.source !== '{graph_id}') {{
-            opts.dateWindow = xrangeData.dateWindow;
-            container._suppressZoom = true;
+        // Group-based sync: zoom + highlight across charts sharing config.group.
+        // Initialise global group registry.
+        if (!window.__dyGroups) window.__dyGroups = {{}};
+
+        if (config.group) {{
+            var grp = config.group;
+            if (!window.__dyGroups[grp]) window.__dyGroups[grp] = [];
+            // Remove stale entry for this container (re-render)
+            window.__dyGroups[grp] = window.__dyGroups[grp].filter(
+                function(e) {{ return e.id !== '{graph_id}'; }});
         }}
 
-        // Sync: broadcast dateWindow changes with debounce.
-        // drawCallback fires during range-selector panning; zoomCallback
-        // alone does NOT fire while the user drags the range-selector bar.
-        var _doBroadcast = function(dw) {{
-            var prev = container._lastBroadcastDW;
-            if (prev && prev[0] === dw[0] && prev[1] === dw[1]) return;
-            container._lastBroadcastDW = dw;
-            window['__dyZoom_{js_id}'] = {{ dateWindow: dw, source:'{graph_id}' }};
-        }};
+        // Zoom broadcast with debounce (drawCallback fires during range-selector panning)
         var _broadcastZoom = function(dw) {{
             if (container._suppressZoom) {{
                 container._suppressZoom = false;
-                // Record the window so a second callback (draw + zoom both
-                // fire) is deduplicated and never echoes back.
                 container._lastBroadcastDW = dw;
                 return;
             }}
+            var prev = container._lastBroadcastDW;
+            if (prev && prev[0] === dw[0] && prev[1] === dw[1]) return;
             clearTimeout(container._zoomDebounce);
             container._zoomDebounce = setTimeout(function() {{
-                _doBroadcast(dw);
+                container._lastBroadcastDW = dw;
+                if (!config.group || !window.__dyGroups[config.group]) return;
+                window.__dyGroups[config.group].forEach(function(peer) {{
+                    if (peer.id === '{graph_id}') return;
+                    peer.el._suppressZoom = true;
+                    peer.el._lastBroadcastDW = dw;
+                    if (peer.instance) {{
+                        peer.instance.updateOptions({{dateWindow: dw}});
+                    }} else if (peer.setDateWindow) {{
+                        peer.setDateWindow(dw);
+                    }}
+                }});
             }}, 30);
         }};
         opts.zoomCallback = function(a, b) {{
@@ -188,6 +199,32 @@ def _build_render_js(
             var dw = g.xAxisRange();
             _broadcastZoom([dw[0], dw[1]]);
         }};
+
+        // Highlight sync: hover one chart → highlight same row in group
+        if (config.group) {{
+            var _userHighlightCb = opts.highlightCallback;
+            opts.highlightCallback = function(event, x, points, row, seriesName) {{
+                if (_userHighlightCb) _userHighlightCb(event, x, points, row, seriesName);
+                if (container._suppressHighlight) return;
+                window.__dyGroups[config.group].forEach(function(peer) {{
+                    if (peer.id === '{graph_id}' || !peer.instance) return;
+                    peer.el._suppressHighlight = true;
+                    peer.instance.setSelection(row);
+                    peer.el._suppressHighlight = false;
+                }});
+            }};
+            var _userUnhighlightCb = opts.unhighlightCallback;
+            opts.unhighlightCallback = function(event) {{
+                if (_userUnhighlightCb) _userUnhighlightCb(event);
+                if (container._suppressHighlight) return;
+                window.__dyGroups[config.group].forEach(function(peer) {{
+                    if (peer.id === '{graph_id}' || !peer.instance) return;
+                    peer.el._suppressHighlight = true;
+                    peer.instance.clearSelection();
+                    peer.el._suppressHighlight = false;
+                }});
+            }};
+        }}
 
         // Inject plugin/plotter JS before instantiation
         if (config.extraJs) {{
@@ -239,6 +276,13 @@ def _build_render_js(
                 document.getElementById('{chart_div_id}'), rows, opts);
         }}
         var g = container._dygraphInstance;
+
+        // Register in group for sync
+        if (config.group && window.__dyGroups[config.group]) {{
+            window.__dyGroups[config.group].push({{
+                id: '{graph_id}', el: container, instance: g
+            }});
+        }}
 
         // ResizeObserver for responsive resize
         if (!container._resizeObserver) {{
@@ -431,7 +475,6 @@ def dygraph_to_dash(
     cid = component_id or f"dygraph-{uuid.uuid4().hex[:8]}"
     store_id = f"{cid}-store"
     opts_store_id = f"{cid}-opts"
-    xrange_store_id = f"{cid}-xrange"
     container_id = f"{cid}-container"
     chart_div_id = f"{cid}-chart"
     hidden_graph_id = f"{cid}-hidden-graph"
@@ -446,7 +489,6 @@ def dygraph_to_dash(
         [
             dcc.Store(id=store_id, data=serialised_config),
             dcc.Store(id=opts_store_id, data=None),
-            dcc.Store(id=xrange_store_id, data=None),
             dcc.Graph(id=hidden_graph_id, style={"display": "none"}),
             html.Div(id=container_id, style={"width": width}),
         ],
@@ -461,79 +503,10 @@ def dygraph_to_dash(
             js,
             Output(hidden_graph_id, "figure"),
             Input(store_id, "data"),
-            Input(xrange_store_id, "data"),
             Input(opts_store_id, "data"),
         )
 
     return component
-
-
-# ---------------------------------------------------------------------------
-# sync_dygraphs — wire zoom sync across any mix of charts
-# ---------------------------------------------------------------------------
-
-
-def sync_dygraphs(app: Dash, graph_ids: list[str]) -> Component:
-    """Wire zoom/pan sync across multiple dygraph/stacked_bar charts.
-
-    Uses ``Object.defineProperty`` on ``window.__dyZoom_<id>`` to propagate
-    range changes across charts via ``set_props`` on their ``-xrange`` stores.
-
-    Parameters
-    ----------
-    app
-        Dash app instance.
-    graph_ids
-        List of component_id prefixes (same ids passed to ``dygraph_to_dash``
-        or ``stacked_bar``).
-
-    Returns
-    -------
-    Component
-        Hidden ``html.Div`` to include in the layout.
-    """
-    from dash import dcc, html
-    from dash.dependencies import Input, Output
-
-    sync_id = "_".join(graph_ids)
-    dummy_id = f"sync-dummy-{sync_id}"
-
-    lines = ["function(d) {"]
-    for gid in graph_ids:
-        jid = _safe_js_id(gid)
-        set_props_calls = "\n".join(
-            f"                window.dash_clientside.set_props('{g}-xrange', {{data: v}});"
-            for g in graph_ids
-            if g != gid
-        )
-        lines.extend(
-            [
-                f"    Object.defineProperty(window, '__dyZoom_{jid}', {{",
-                "        configurable: true,",
-                f"        get: function() {{ return this['___dyZoom_{jid}']; }},",
-                "        set: function(v) {",
-                f"            this['___dyZoom_{jid}'] = v;",
-                "            if (!v) return;",
-                set_props_calls,
-                "        }",
-                "    });",
-            ]
-        )
-    lines.extend(
-        [
-            "    return window.dash_clientside.no_update;",
-            "}",
-        ]
-    )
-
-    js = "\n".join(lines)
-
-    app.clientside_callback(
-        js,
-        Output(dummy_id, "data"),
-        Input(dummy_id, "data"),
-    )
-    return html.Div([dcc.Store(id=dummy_id, data=0)], style={"display": "none"})
 
 
 # ---------------------------------------------------------------------------
@@ -550,6 +523,7 @@ def stacked_bar(
     height: int = 300,
     title: str = "",
     selector_height: int = 40,
+    group: str | None = None,
 ) -> Component:
     """Create a canvas-based stacked bar chart with interactive range selector.
 
@@ -569,13 +543,14 @@ def stacked_bar(
         Chart title.
     selector_height
         Range selector height in pixels.
+    group
+        Synchronisation group name. Charts sharing the same group name
+        will sync their x-axis zoom/pan.
     """
     from dash import dcc, html
     from dash.dependencies import Input, Output
 
-    js_id = _safe_js_id(graph_id)
     store_id = graph_id
-    xrange_store_id = f"{graph_id}-xrange"
     container_id = f"{graph_id}-container"
     hidden_graph_id = f"{graph_id}-hidden-graph"
 
@@ -584,7 +559,9 @@ def stacked_bar(
     mt = 40 if title else 12
     sh = selector_height
 
-    js = f"""function(csvData, xrangeData) {{
+    group_json = json.dumps(group)
+
+    js = f"""function(csvData) {{
         function render() {{
             var container = document.getElementById('{container_id}');
             if (!container) return;
@@ -614,14 +591,10 @@ def stacked_bar(
             }});
             var yPad=(yMax-yMin)*0.08||1; yMin-=yPad; yMax+=yPad;
 
-            var xMinMs, xMaxMs;
-            if (xrangeData && xrangeData.dateWindow) {{
-                xMinMs = Math.max(xrangeData.dateWindow[0], allMs0);
-                xMaxMs = Math.min(xrangeData.dateWindow[1], allMs1);
-            }} else {{
-                xMinMs = allMs0;
-                xMaxMs = allMs1;
-            }}
+            var xMinMs = container._groupDateWindow
+                ? Math.max(container._groupDateWindow[0], allMs0) : allMs0;
+            var xMaxMs = container._groupDateWindow
+                ? Math.min(container._groupDateWindow[1], allMs1) : allMs1;
 
             var W = container.clientWidth || 800;
             var H = {height};
@@ -758,9 +731,23 @@ def stacked_bar(
                     if (newMax > st.allMs1) {{ newMax=st.allMs1; newMin=newMax-span; }}
                     newMin=Math.max(newMin,st.allMs0);
                     newMax=Math.min(newMax,st.allMs1);
-                    var v = {{ dateWindow:[newMin,newMax], source:'{graph_id}' }};
-                    window.dash_clientside.set_props('{graph_id}-xrange', {{data: v}});
-                    window['__dyZoom_{js_id}'] = v;
+                    container._groupDateWindow = [newMin, newMax];
+                    // Re-render this chart with new window
+                    render();
+                    // Broadcast to group peers
+                    var grpName = {group_json};
+                    if (grpName && window.__dyGroups && window.__dyGroups[grpName]) {{
+                        window.__dyGroups[grpName].forEach(function(peer) {{
+                            if (peer.id === '{graph_id}') return;
+                            peer.el._suppressZoom = true;
+                            peer.el._lastBroadcastDW = [newMin, newMax];
+                            if (peer.instance) {{
+                                peer.instance.updateOptions({{dateWindow: [newMin, newMax]}});
+                            }} else if (peer.setDateWindow) {{
+                                peer.setDateWindow([newMin, newMax]);
+                            }}
+                        }});
+                    }}
                 }}
 
                 if (mode==='jump') {{
@@ -783,6 +770,22 @@ def stacked_bar(
             cv.addEventListener('mousedown', container._onMouseDown);
         }}
 
+        // Register in group for sync
+        var grpName = {group_json};
+        if (grpName) {{
+            if (!window.__dyGroups) window.__dyGroups = {{}};
+            if (!window.__dyGroups[grpName]) window.__dyGroups[grpName] = [];
+            window.__dyGroups[grpName] = window.__dyGroups[grpName].filter(
+                function(e) {{ return e.id !== '{graph_id}'; }});
+            window.__dyGroups[grpName].push({{
+                id: '{graph_id}', el: container, instance: null,
+                setDateWindow: function(dw) {{
+                    container._groupDateWindow = dw;
+                    render();
+                }}
+            }});
+        }}
+
         render();
         return {{data:[],layout:{{}}}};
     }}"""
@@ -791,13 +794,11 @@ def stacked_bar(
         js,
         Output(hidden_graph_id, "figure"),
         Input(store_id, "data"),
-        Input(xrange_store_id, "data"),
     )
 
     return html.Div(
         [
             dcc.Store(id=store_id, data=initial_data),
-            dcc.Store(id=xrange_store_id, data=None),
             dcc.Graph(id=hidden_graph_id, style={"display": "none"}),
             html.Div(id=container_id),
         ]

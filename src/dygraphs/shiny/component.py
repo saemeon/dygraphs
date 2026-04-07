@@ -112,12 +112,59 @@ def dygraph_ui(
             if (plugs.length > 0) opts.plugins = plugs;
         }}
 
+        // Group sync: zoom + highlight across charts sharing config.group
+        if (config.group) {{
+            if (!window.__dyGroups) window.__dyGroups = {{}};
+            var grp = config.group;
+            if (!window.__dyGroups[grp]) window.__dyGroups[grp] = [];
+            window.__dyGroups[grp] = window.__dyGroups[grp].filter(
+                function(e) {{ return e.el !== el; }});
+            var _broadcastZoom = function(dw) {{
+                if (el._suppressZoom) {{ el._suppressZoom = false; return; }}
+                window.__dyGroups[grp].forEach(function(peer) {{
+                    if (peer.el === el) return;
+                    peer.el._suppressZoom = true;
+                    peer.instance.updateOptions({{dateWindow: dw}});
+                }});
+            }};
+            opts.zoomCallback = function(a, b) {{ _broadcastZoom([a, b]); }};
+            var _userDrawCb = opts.drawCallback;
+            opts.drawCallback = function(g, isInitial) {{
+                if (_userDrawCb) _userDrawCb(g, isInitial);
+                if (isInitial) return;
+                _broadcastZoom(g.xAxisRange());
+            }};
+            opts.highlightCallback = function(event, x, points, row) {{
+                if (el._suppressHighlight) return;
+                window.__dyGroups[grp].forEach(function(peer) {{
+                    if (peer.el === el) return;
+                    peer.el._suppressHighlight = true;
+                    peer.instance.setSelection(row);
+                    peer.el._suppressHighlight = false;
+                }});
+            }};
+            opts.unhighlightCallback = function() {{
+                if (el._suppressHighlight) return;
+                window.__dyGroups[grp].forEach(function(peer) {{
+                    if (peer.el === el) return;
+                    peer.el._suppressHighlight = true;
+                    peer.instance.clearSelection();
+                    peer.el._suppressHighlight = false;
+                }});
+            }};
+        }}
+
         // Destroy previous instance
         if (el._dygraphInstance) el._dygraphInstance.destroy();
 
         // Create dygraph
         el._dygraphInstance = new Dygraph(el, rows, opts);
         var g = el._dygraphInstance;
+
+        // Register in group
+        if (config.group) {{
+            window.__dyGroups[config.group].push({{ el: el, instance: g }});
+        }}
 
         // Annotations
         if (config.annotations && config.annotations.length > 0) {{
