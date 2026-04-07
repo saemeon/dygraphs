@@ -520,7 +520,255 @@ class Dygraph:
         mobile_disable_y_touch: bool = True,
         use_data_timezone: bool = False,
     ) -> Dygraph:
-        """Set global chart options (mirrors R ``dyOptions``)."""
+        """Set global chart options.
+
+        Mirrors R ``dyOptions``.
+
+        Parameters
+        ----------
+        stacked_graph : bool, optional
+            If set, stack series on top of one another rather than
+            drawing them independently. By default False.
+        fill_graph : bool, optional
+            Fill the area underneath the graph. Not compatible with
+            error bars. Can also be set per-series. By default False.
+        fill_alpha : float, optional
+            Transparency for filled regions (0.0 = invisible,
+            1.0 = as dark as the line). By default 0.15.
+        step_plot : bool, optional
+            Display as a step plot instead of a line plot. Can also
+            be set per-series. By default False.
+        stem_plot : bool, optional
+            Display as a stem plot instead of a line plot. Can also
+            be set per-series. By default False.
+        draw_points : bool, optional
+            Draw a small dot at each data point. Can also be set
+            per-series. By default False.
+        point_size : float, optional
+            Size in pixels of the dot drawn at each point. Also
+            controls the size of dots at isolated points.
+            By default 1.0.
+        point_shape : str, optional
+            Shape of the dot drawn at each point. One of ``"dot"``,
+            ``"triangle"``, ``"square"``, ``"diamond"``,
+            ``"pentagon"``, ``"hexagon"``, ``"circle"``, ``"star"``,
+            ``"plus"``, or ``"ex"``. By default ``"dot"``.
+        draw_gap_edge_points : bool, optional
+            Draw points at the edges of gaps in the data.
+            By default False.
+        connect_separated_points : bool, optional
+            If True, connect points even when there are missing values
+            in between (useful when different series have data at
+            different x-values). By default False.
+        stroke_width : float, optional
+            Width in pixels of the lines connecting data points. Can
+            also be set per-series. By default 1.0.
+        stroke_pattern : str | list[int] | None, optional
+            A predefined pattern (``"dotted"``, ``"dashed"``,
+            ``"dotdash"``, ``"solid"``) or a custom array where even
+            indices are draw lengths and odd are space lengths in
+            pixels. Can also be set per-series. By default None
+            (solid line).
+        stroke_border_width : float | None, optional
+            Draw a border around graph lines to make crossing lines
+            more distinguishable. Can also be set per-series.
+            By default None.
+        stroke_border_color : str, optional
+            Color for the line border when ``stroke_border_width`` is
+            set. Can also be set per-series. By default ``"white"``.
+        plotter : str | None, optional
+            A JavaScript function (or array of functions) which plots
+            each data series. May also be set per-series.
+            By default None.
+        colors : list[str] | None, optional
+            Colors for the data series, e.g. ``"#AABBCC"``,
+            ``"rgb(255,100,200)"``, or ``"yellow"``. If not specified,
+            equally-spaced points around a colour wheel are used.
+            By default None.
+        color_value : float, optional
+            Value component (0.0--1.0) of auto-generated series
+            colours in HSV space. By default 0.5.
+        color_saturation : float, optional
+            Saturation component (0.0--1.0) of auto-generated series
+            colours in HSV space. By default 1.0.
+        draw_x_axis : bool, optional
+            Whether to draw the x-axis. Setting to False also
+            prevents x-axis ticks and reclaims the space.
+            By default True.
+        draw_y_axis : bool, optional
+            Whether to draw the y-axis. Setting to False also
+            prevents y-axis ticks and reclaims the space.
+            By default True.
+        include_zero : bool, optional
+            Always include zero in the y-axis range, typically as the
+            lowest value. By default False.
+        draw_axes_at_zero : bool, optional
+            Draw the X axis at Y=0 and the Y axis at X=0 if those
+            positions are inside the visible area; otherwise draw at
+            the edges as usual. By default False.
+        logscale : bool, optional
+            Show the y-axis in log scale. Values <= 0 are not
+            displayed. By default False.
+        axis_tick_size : float, optional
+            Spacing between axis labels and tick marks.
+            By default 3.0.
+        axis_line_color : str, optional
+            Color of x- and y-axis lines (CSS string).
+            By default ``"black"``.
+        axis_line_width : float, optional
+            Thickness in pixels of x- and y-axis lines.
+            By default 0.3.
+        axis_label_color : str, optional
+            Color for x- and y-axis labels (CSS string).
+            By default ``"black"``.
+        axis_label_font_size : int, optional
+            Font size in pixels for axis labels.
+            By default 14.
+        axis_label_width : int, optional
+            Width in pixels of the divs containing axis labels.
+            By default 60.
+        draw_grid : bool, optional
+            Whether to display grid lines. Can also be set
+            per-axis. By default True.
+        grid_line_color : str | None, optional
+            Color of grid lines. By default None.
+        grid_line_width : float, optional
+            Thickness in pixels of grid lines. By default 0.3.
+        title_height : int | None, optional
+            Height in pixels of the chart title; also controls its
+            default font size. By default None.
+        right_gap : int, optional
+            Pixels of blank space at the right edge, making it
+            easier to highlight the rightmost point.
+            By default 5.
+        digits_after_decimal : int, optional
+            Number of digits after the decimal point in normal
+            display mode. By default 2.
+        labels_kmb : bool, optional
+            Show K/M/B for thousands/millions/billions on y-axis.
+            By default False.
+        labels_kmg2 : bool, optional
+            Show k/M/G for kilo/Mega/Giga on y-axis (base 2).
+            By default False.
+        labels_utc : bool, optional
+            Show date/time labels in UTC instead of local time.
+            Incompatible with ``use_data_timezone``.
+            By default False.
+        max_number_width : int, optional
+            If a number has more than this many digits left of the
+            decimal, switch to scientific notation. By default 6.
+        sig_figs : int | None, optional
+            Display a fixed number of significant figures instead of
+            fixed decimal places. By default None.
+        pan_edge_fraction : float | None, optional
+            Farthest a graph may be panned, as a fraction of the
+            display (e.g. 0.1 = 10%). None means no bounds.
+            By default None.
+        animated_zooms : bool, optional
+            Animate the transition between zoom windows.
+            By default False.
+        disable_zoom : bool, optional
+            Disable click-and-drag zooming. By default False.
+        retain_date_window : bool, optional
+            Keep the current zoom level when updating the chart
+            with new data. By default False.
+        error_bars : bool, optional
+            Enable symmetric error bars. By default False.
+        custom_bars : bool, optional
+            Enable custom (asymmetric) bars. By default False.
+        sigma : float | None, optional
+            When ``error_bars`` is True, number of standard
+            deviations to shade. By default None.
+        fractions : bool, optional
+            If True, values are interpreted as fractions and error
+            bars are drawn using a Wilson confidence interval.
+            By default False.
+        wilson_interval : bool, optional
+            Use a Wilson confidence interval when ``fractions`` is
+            True. By default True.
+        visibility : list[bool] | None, optional
+            Array of booleans controlling per-series visibility.
+            By default None.
+        legend_formatter : str | None, optional
+            JavaScript function to format legend values.
+            By default None.
+        range_selector_plot_line_width : float | None, optional
+            Line width in the range selector mini plot.
+            By default None.
+        range_selector_plot_fill_gradient_color : str | None, optional
+            Gradient color in the range selector fill.
+            By default None.
+        range_selector_background_line_width : float | None, optional
+            Background line width in the range selector.
+            By default None.
+        range_selector_background_stroke_color : str | None, optional
+            Background stroke color in the range selector.
+            By default None.
+        range_selector_foreground_stroke_color : str | None, optional
+            Foreground stroke color in the range selector.
+            By default None.
+        range_selector_foreground_line_width : float | None, optional
+            Foreground line width in the range selector.
+            By default None.
+        range_selector_alpha : float | None, optional
+            Alpha transparency of the range selector.
+            By default None.
+        grid_line_pattern : list[int] | None, optional
+            Custom dash pattern for grid lines. By default None.
+        resizable : str | None, optional
+            If set (e.g. ``"both"``), allow the chart to be
+            resized by the user. By default None.
+        pixel_ratio : float | None, optional
+            Custom pixel ratio for high-DPI rendering.
+            By default None.
+        stacked_graph_nan_fill : {"all", "inside", "none"} or None, optional
+            How to handle NaN in stacked graphs. By default None.
+        animate_background_fade : bool, optional
+            Animate the background fade effect. By default True.
+        x_label_height : int | None, optional
+            Height in pixels of the x-axis label.
+            By default None.
+        y_label_width : int | None, optional
+            Width in pixels of the y-axis label.
+            By default None.
+        legend_follow_offset_x : int | None, optional
+            Horizontal pixel offset for the follow legend.
+            By default None.
+        legend_follow_offset_y : int | None, optional
+            Vertical pixel offset for the follow legend.
+            By default None.
+        range_selector_veil_colour : str | None, optional
+            Color of the veil drawn over deselected areas of the
+            range selector. By default None.
+        delimiter : str | None, optional
+            Delimiter for CSV data parsing. By default None.
+        x_value_parser : str | None, optional
+            JavaScript function to parse x-values from CSV.
+            By default None.
+        display_annotations : bool, optional
+            Display annotations from data columns.
+            By default False.
+        data_handler : str | None, optional
+            Custom JavaScript data handler. By default None.
+        mobile_disable_y_touch : bool, optional
+            Disable touch events on the Y axis for mobile devices
+            to avoid interfering with scrolling.
+            By default True.
+        use_data_timezone : bool, optional
+            Use the timezone of the underlying data for display.
+            Incompatible with ``labels_utc``.
+            By default False.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        axis : Per-axis configuration.
+        series : Per-series configuration.
+        """
         if stem_plot:
             if plotter is not None:
                 msg = "stem_plot provides its own plotter, cannot combine with plotter="
@@ -713,7 +961,89 @@ class Dygraph:
         grid_line_width: float | None = None,
         independent_ticks: bool | None = None,
     ) -> Dygraph:
-        """Configure a specific axis (mirrors R ``dyAxis``)."""
+        """Configure a specific axis.
+
+        Mirrors R ``dyAxis``. Options that are not set explicitly use
+        the global default from :meth:`options`.
+
+        Parameters
+        ----------
+        name : {"x", "y", "y2"}
+            Axis to configure.
+        label : str | None, optional
+            Label to display for the axis. By default None.
+        value_range : tuple[float | None, float | None] | None, optional
+            Explicitly set the range to ``(low, high)``. If either
+            limit is None it is calculated automatically.
+            By default None.
+        logscale : bool | None, optional
+            Show this axis in log scale. Values <= 0 are not
+            displayed. Ignored for date-based x-axes.
+            By default None.
+        ticker : str | None, optional
+            JavaScript function to generate custom tick marks.
+            By default None.
+        range_pad : float | None, optional
+            Extra space in pixels around the value range to keep
+            edge points visible. By default None.
+        label_width : int | None, optional
+            Width in pixels of the div containing the y-axis label
+            (affects the rotated label's height).
+            By default None.
+        label_height : int | None, optional
+            Height in pixels of the x-axis label div.
+            By default None.
+        axis_height : int | None, optional
+            Height in pixels of the x-axis. Only applicable to the
+            x-axis. By default None.
+        axis_line_color : str | None, optional
+            Color of the axis line (CSS string).
+            By default None.
+        axis_line_width : float | None, optional
+            Thickness in pixels of the axis line.
+            By default None.
+        pixels_per_label : int | None, optional
+            Minimum pixel spacing between axis labels. Larger values
+            yield a sparser axis. By default None.
+        axis_label_color : str | None, optional
+            Color for axis labels (CSS string). By default None.
+        axis_label_font_size : int | None, optional
+            Font size in pixels for axis labels. By default None.
+        axis_label_width : int | None, optional
+            Width in pixels of axis labels. By default None.
+        axis_label_formatter : str | None, optional
+            JavaScript function to format tick values displayed on
+            the axis. By default None.
+        value_formatter : str | None, optional
+            JavaScript function to format values shown on mouse-over.
+            By default None.
+        draw_grid : bool | None, optional
+            Whether to display grid lines for this axis.
+            By default None.
+        grid_line_color : str | None, optional
+            Color of grid lines for this axis. By default None.
+        grid_line_width : float | None, optional
+            Thickness in pixels of grid lines. By default None.
+        independent_ticks : bool | None, optional
+            Only valid for y and y2. When True, the axis has its
+            own independent ticks; when False, ticks align to the
+            other y-axis. By default None.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        Raises
+        ------
+        ValueError
+            If *name* is not one of ``"x"``, ``"y"``, ``"y2"``, or
+            if *axis_height* is specified for a non-x axis.
+
+        See Also
+        --------
+        options : Global chart options.
+        """
         if name not in ("x", "y", "y2"):
             msg = f"Axis name must be 'x', 'y', or 'y2', got {name!r}"
             raise ValueError(msg)
@@ -797,20 +1127,85 @@ class Dygraph:
         show_in_range_selector: bool | None = None,
         columns: list[str] | None = None,
     ) -> Dygraph:
-        """Configure a data series (mirrors R ``dySeries``).
+        """Configure display options for a data series.
+
+        Mirrors R ``dySeries``. Options not set explicitly use the
+        global defaults from :meth:`options`.
 
         Parameters
         ----------
-        columns
+        name : str | None, optional
+            Series name (must match a column label). If None, the
+            first unprocessed series is used. By default None.
+        label : str | None, optional
+            Display label for the series. Uses *name* if not set.
+            By default None.
+        color : str | None, optional
+            CSS color string (e.g. ``"#AABBCC"``, ``"rgb(255,100,200)"``,
+            ``"yellow"``). If not specified, the global colour palette
+            is used. By default None.
+        axis : {"y", "y2"}, optional
+            Y-axis to associate the series with.
+            By default ``"y"``.
+        step_plot : bool | None, optional
+            Display as a step plot instead of a line plot.
+            By default None.
+        stem_plot : bool | None, optional
+            Display as a stem plot instead of a line plot.
+            By default None.
+        fill_graph : bool | None, optional
+            Fill the area underneath the series. Not compatible with
+            error bars. By default None.
+        draw_points : bool | None, optional
+            Draw a small dot at each data point. By default None.
+        point_size : float | None, optional
+            Size in pixels of the dot drawn at each point.
+            By default None.
+        point_shape : str | None, optional
+            Shape of the dot (see :meth:`options` for valid shapes).
+            By default None.
+        stroke_width : float | None, optional
+            Width in pixels of the line connecting points.
+            By default None.
+        stroke_pattern : str | list[int] | None, optional
+            A predefined pattern (``"dotted"``, ``"dashed"``,
+            ``"dotdash"``, ``"solid"``) or a custom array of
+            draw/space lengths. By default None.
+        stroke_border_width : float | None, optional
+            Border width around the line to make crossing lines
+            more distinguishable. By default None.
+        stroke_border_color : str | None, optional
+            Color for the line border. By default None.
+        plotter : str | None, optional
+            JavaScript plotter function for this series.
+            By default None.
+        highlight_circle_size : int | None, optional
+            Size in pixels of the circle drawn over a highlighted
+            point. By default None.
+        show_in_range_selector : bool | None, optional
+            Whether to show this series in the range selector mini
+            plot. By default None.
+        columns : list[str] | None, optional
             For error bar series, pass 2 or 3 column names:
 
-            - 2 names ``[value, error]`` → symmetric error bars
+            - 2 names ``[value, error]`` -- symmetric error bars
               (sets ``errorBars=True``).
-            - 3 names ``[low, mid, high]`` → custom bars
+            - 3 names ``[low, mid, high]`` -- custom bars
               (sets ``customBars=True``).
 
-            The columns are merged into a single series with tuple values
-            and the consumed columns are removed.
+            The columns are merged into a single series with tuple
+            values and the consumed columns are removed.
+            By default None.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        group : Configure multiple series at once.
+        options : Global chart options.
         """
         labels = self._attrs["labels"]
 
@@ -953,7 +1348,61 @@ class Dygraph:
         stroke_border_color: str | None = None,
         plotter: str | None = None,
     ) -> Dygraph:
-        """Configure a group of series (mirrors R ``dyGroup``)."""
+        """Configure a group of series with shared options.
+
+        Mirrors R ``dyGroup``. Options are applied uniformly across
+        all named series. List arguments (``color``, ``label``,
+        ``point_shape``) are cycled if shorter than *names*.
+
+        Note: ``dyGroup`` turns off ``stackedGraph`` in R because
+        stacking calculates cumulatives over all series, not just a
+        subset.
+
+        Parameters
+        ----------
+        names : list[str]
+            Series names (must match column labels).
+        label : list[str] | None, optional
+            Display labels for each series. By default None.
+        color : list[str] | None, optional
+            Colors for each series (CSS strings). By default None.
+        axis : {"y", "y2"}, optional
+            Y-axis for all series in the group.
+            By default ``"y"``.
+        step_plot : bool | None, optional
+            Display as step plots. By default None.
+        stem_plot : bool | None, optional
+            Display as stem plots. By default None.
+        fill_graph : bool | None, optional
+            Fill the area underneath each series. By default None.
+        draw_points : bool | None, optional
+            Draw a dot at each point. By default None.
+        point_size : float | None, optional
+            Size in pixels of each dot. By default None.
+        point_shape : list[str] | None, optional
+            Shapes for each series' dots. By default None.
+        stroke_width : float | None, optional
+            Line width in pixels. By default None.
+        stroke_pattern : str | list[int] | None, optional
+            Stroke pattern (see :meth:`options`). By default None.
+        stroke_border_width : float | None, optional
+            Border width around lines. By default None.
+        stroke_border_color : str | None, optional
+            Border color for lines. By default None.
+        plotter : str | None, optional
+            JavaScript plotter function for the group (used for
+            grouped custom plotters like multi-column).
+            By default None.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        series : Configure a single series.
+        """
         if len(names) == 1:
             return self.series(
                 names[0], color=color[0] if color else None, plotter=plotter
@@ -1027,7 +1476,41 @@ class Dygraph:
         labels_separate_lines: bool = False,
         hide_on_mouse_out: bool = True,
     ) -> Dygraph:
-        """Configure legend (mirrors R ``dyLegend``)."""
+        """Configure the series legend.
+
+        Mirrors R ``dyLegend``.
+
+        Parameters
+        ----------
+        show : {"auto", "always", "onmouseover", "follow", "never"}, optional
+            When to display the legend. ``"auto"`` shows ``"always"``
+            when more than one series is plotted, ``"onmouseover"``
+            for a single series. ``"follow"`` shows the legend as an
+            overlay that follows the mouse. By default ``"auto"``.
+        width : int, optional
+            Width in pixels of the legend div. By default 250.
+        show_zero_values : bool, optional
+            Show zero-value labels in the legend. By default True.
+        labels_div : str | None, optional
+            ID of an external div to display data labels in, rather
+            than on the graph. By default None.
+        labels_separate_lines : bool, optional
+            Put a line break between series labels. Often used with
+            *labels_div*. By default False.
+        hide_on_mouse_out : bool, optional
+            Hide the legend when the mouse leaves the chart area.
+            Also affects :meth:`highlight` hiding.
+            By default True.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        highlight : Mouse-over highlighting behaviour.
+        """
         opts: dict[str, Any] = {}
         if show == "never":
             opts["showLabelsOnHighlight"] = False
@@ -1052,7 +1535,42 @@ class Dygraph:
         series_opts: dict[str, Any] | None = None,
         hide_on_mouse_out: bool = True,
     ) -> Dygraph:
-        """Configure highlight behaviour (mirrors R ``dyHighlight``)."""
+        """Configure series mouse-over highlighting.
+
+        Mirrors R ``dyHighlight``. Highlighting is always enabled;
+        this method customises its appearance.
+
+        Parameters
+        ----------
+        circle_size : int, optional
+            Size in pixels of the dot drawn over highlighted points.
+            By default 3.
+        series_background_alpha : float, optional
+            Fade the background while highlighting a series.
+            1.0 = fully visible background (disable fading),
+            0.0 = hidden background (show highlighted series only).
+            By default 0.5.
+        series_background_color : str | None, optional
+            Background color used when fading non-highlighted series.
+            By default None.
+        series_opts : dict[str, Any] | None, optional
+            Options applied to the series closest to the mouse
+            pointer (e.g. ``{"strokeWidth": 3}``). See
+            :meth:`series` for valid keys. By default None.
+        hide_on_mouse_out : bool, optional
+            Hide highlighting effects when the mouse leaves the
+            chart area. Also affects :meth:`legend` hiding.
+            By default True.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        legend : Legend display options.
+        """
         opts: dict[str, Any] = {
             "highlightCircleSize": circle_size,
             "highlightSeriesBackgroundAlpha": series_background_alpha,
@@ -1087,7 +1605,66 @@ class Dygraph:
         dbl_click_handler: str | None = None,
         series: str | None = None,
     ) -> Dygraph:
-        """Add an annotation (mirrors R ``dyAnnotation``)."""
+        """Add a text annotation at a data point.
+
+        Mirrors R ``dyAnnotation``. Annotations are bound to a
+        specific series; if not specified, the last series is used.
+
+        Parameters
+        ----------
+        x : Any
+            Position on the x-axis (numeric or date/time value).
+        text : str
+            Short text to overlay on the chart at *x*.
+        tooltip : str | None, optional
+            Additional text displayed on mouse hover.
+            By default None.
+        width : int | None, optional
+            Width in pixels of the annotation flag.
+            By default None.
+        height : int | None, optional
+            Height in pixels of the annotation flag.
+            By default None.
+        css_class : str | None, optional
+            CSS class for styling the annotation. By default None.
+        tick_height : int | None, optional
+            Height in pixels of the tick connecting the point to
+            its flag or icon. By default None.
+        tick_color : str | None, optional
+            Color of the tick mark. By default None.
+        tick_width : int | None, optional
+            Width in pixels of the tick mark. By default None.
+        attach_at_bottom : bool, optional
+            If True, attach the annotation to the x-axis rather
+            than to the actual data point. By default False.
+        icon : str | None, optional
+            URL of an icon to display instead of text.
+            By default None.
+        click_handler : str | None, optional
+            JavaScript function called when the annotation is
+            clicked. By default None.
+        mouse_over_handler : str | None, optional
+            JavaScript function called when the mouse hovers over
+            the annotation. By default None.
+        mouse_out_handler : str | None, optional
+            JavaScript function called when the mouse exits the
+            annotation. By default None.
+        dbl_click_handler : str | None, optional
+            JavaScript function called on double-click.
+            By default None.
+        series : str | None, optional
+            Series to attach the annotation to. By default the last
+            series in the data.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        callbacks : Set annotation event handlers globally.
+        """
         if self._format == "date":
             import pandas as pd
 
@@ -1142,7 +1719,31 @@ class Dygraph:
         color: str = "#EFEFEF",
         axis: Literal["x", "y"] = "x",
     ) -> Dygraph:
-        """Add background shading (mirrors R ``dyShading``)."""
+        """Add a background shading region.
+
+        Mirrors R ``dyShading``.
+
+        Parameters
+        ----------
+        from_ : Any
+            Start position (date/time or numeric).
+        to : Any
+            End position (date/time or numeric).
+        color : str, optional
+            Shading color (CSS string, e.g. ``"#AABBCC"`` or
+            ``"yellow"``). By default ``"#EFEFEF"`` (light gray).
+        axis : {"x", "y"}, optional
+            Axis to apply shading along. By default ``"x"``.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        event : Add a vertical event line.
+        """
         if axis == "x" and self._format == "date":
             import pandas as pd
 
@@ -1162,7 +1763,37 @@ class Dygraph:
         color: str = "black",
         stroke_pattern: str | list[int] = "dashed",
     ) -> Dygraph:
-        """Add a vertical event line (mirrors R ``dyEvent``)."""
+        """Add a vertical event line.
+
+        Mirrors R ``dyEvent``.
+
+        Parameters
+        ----------
+        x : Any
+            Position on the x-axis (numeric or date/time).
+        label : str | None, optional
+            Label displayed next to the event line.
+            By default None.
+        label_loc : {"top", "bottom"}, optional
+            Vertical position of the label. By default ``"top"``.
+        color : str, optional
+            Color of the event line (CSS string).
+            By default ``"black"``.
+        stroke_pattern : str | list[int], optional
+            A predefined pattern (``"dotted"``, ``"dashed"``,
+            ``"dotdash"``, ``"solid"``) or a custom array of
+            draw/space lengths. By default ``"dashed"``.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        limit : Add a horizontal limit line.
+        shading : Add a shaded region.
+        """
         if self._format == "date":
             import pandas as pd
 
@@ -1191,7 +1822,36 @@ class Dygraph:
         color: str = "black",
         stroke_pattern: str | list[int] = "dashed",
     ) -> Dygraph:
-        """Add a horizontal limit line (mirrors R ``dyLimit``)."""
+        """Add a horizontal limit line.
+
+        Mirrors R ``dyLimit``.
+
+        Parameters
+        ----------
+        value : float
+            Y-axis position of the limit line.
+        label : str | None, optional
+            Label displayed next to the line. By default None.
+        label_loc : {"left", "right"}, optional
+            Horizontal position of the label.
+            By default ``"left"``.
+        color : str, optional
+            Color of the limit line (CSS string).
+            By default ``"black"``.
+        stroke_pattern : str | list[int], optional
+            A predefined pattern (``"dotted"``, ``"dashed"``,
+            ``"dotdash"``, ``"solid"``) or a custom array of
+            draw/space lengths. By default ``"dashed"``.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        event : Add a vertical event line.
+        """
         self._events.append(
             {
                 "pos": value,
@@ -1215,7 +1875,39 @@ class Dygraph:
         keep_mouse_zoom: bool = True,
         retain_date_window: bool = False,
     ) -> Dygraph:
-        """Add a range selector widget (mirrors R ``dyRangeSelector``)."""
+        """Add an interactive range selector to the chart.
+
+        Mirrors R ``dyRangeSelector``. Adds a mini-plot below the
+        main chart that allows users to pan and zoom to various
+        date/value ranges.
+
+        Parameters
+        ----------
+        date_window : tuple[Any, Any] | None, optional
+            Initially zoom in on a section of the graph, given as
+            ``(earliest, latest)``. By default None (full range).
+        height : int, optional
+            Height in pixels of the range selector widget.
+            By default 40.
+        fill_color : str, optional
+            Fill color for the range selector mini plot (CSS string).
+            Use ``""`` to turn off fill. By default ``"#A7B1C4"``.
+        stroke_color : str, optional
+            Stroke color for the range selector mini plot (CSS
+            string). Use ``""`` to turn off stroke.
+            By default ``"#808FAB"``.
+        keep_mouse_zoom : bool, optional
+            Keep mouse zoom enabled when a range selector is active.
+            By default True.
+        retain_date_window : bool, optional
+            Keep the current zoom level when updating with new data.
+            By default False.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         opts: dict[str, Any] = {
             "showRangeSelector": True,
             "rangeSelectorHeight": height,
@@ -1253,7 +1945,25 @@ class Dygraph:
         show: bool = True,
         roll_period: int = 1,
     ) -> Dygraph:
-        """Add rolling average control (mirrors R ``dyRoller``)."""
+        """Add a rolling average period text box.
+
+        Mirrors R ``dyRoller``. Displays a text box at the bottom
+        left of the plot. Y-values are averaged over the specified
+        number of time-scale units (e.g. days, months, years).
+
+        Parameters
+        ----------
+        show : bool, optional
+            Whether to show the roller text box. By default True.
+        roll_period : int, optional
+            Number of time-scale units to average values over.
+            By default 1.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         self._attrs = merge_dicts(
             self._attrs,
             {"showRoller": show, "rollPeriod": roll_period},
@@ -1279,7 +1989,61 @@ class Dygraph:
         annotation_mouse_out: str | None = None,
         annotation_dbl_click: str | None = None,
     ) -> Dygraph:
-        """Set JS callbacks (mirrors R ``dyCallbacks``)."""
+        """Set JavaScript callbacks for dygraph events.
+
+        Mirrors R ``dyCallbacks``. See the `dygraph options reference
+        <https://dygraphs.com/options.html>`_ for callback signatures.
+
+        Parameters
+        ----------
+        click : str | None, optional
+            Called when the canvas is clicked. By default None.
+        draw : str | None, optional
+            Called every time the dygraph is drawn (initial draw,
+            after zooming, and while panning). By default None.
+        highlight : str | None, optional
+            Called every time a new point is highlighted.
+            By default None.
+        point_click : str | None, optional
+            Called when a data point is clicked. By default None.
+        underlay : str | None, optional
+            Called before the chart is drawn (useful for drawing
+            on the canvas behind the chart). By default None.
+        unhighlight : str | None, optional
+            Called when the user stops highlighting any point
+            by mousing out. By default None.
+        zoom : str | None, optional
+            Called when the zoom window changes. By default None.
+        draw_highlight_point : str | None, optional
+            Custom drawing for a highlighted point. Should draw
+            within ``pointSize`` pixels from ``(cx, cy)``.
+            By default None.
+        draw_point : str | None, optional
+            Custom drawing when ``drawPoints`` is enabled. Should
+            draw within ``pointSize`` pixels from ``(cx, cy)``.
+            By default None.
+        annotation_click : str | None, optional
+            Called when an annotation is clicked. Can also be set
+            per-annotation. By default None.
+        annotation_mouse_over : str | None, optional
+            Called when the mouse hovers over an annotation.
+            By default None.
+        annotation_mouse_out : str | None, optional
+            Called when the mouse exits an annotation.
+            By default None.
+        annotation_dbl_click : str | None, optional
+            Called when an annotation is double-clicked.
+            By default None.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        annotation : Per-annotation event handlers.
+        """
         mapping = {
             "clickCallback": click,
             "drawCallback": draw,
@@ -1305,14 +2069,39 @@ class Dygraph:
     # ---- CSS (dyCSS) -------------------------------------------------
 
     def css(self, path: str | Path) -> Dygraph:
-        """Apply custom CSS file (mirrors R ``dyCSS``)."""
+        """Apply a custom CSS file to the chart.
+
+        Mirrors R ``dyCSS``. Styles are injected into the page and
+        affect all dygraphs on the same page. See the `CSS
+        documentation <https://dygraphs.com/css.html>`_ for
+        available styles.
+
+        Parameters
+        ----------
+        path : str | Path
+            Path to a CSS file.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         self._css = Path(path).read_text()
         return self
 
     # ---- plotters (Plotters) -----------------------------------------
 
     def bar_chart(self) -> Dygraph:
-        """Bar chart plotter (mirrors R ``dyBarChart``)."""
+        """Apply a bar chart plotter.
+
+        Mirrors R ``dyBarChart``. Automatically selects a
+        multi-column plotter when more than one data series exists.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         n_series = len(self._data) - 1
         if n_series > 1:
             js = _read_plotter("multicolumn")
@@ -1324,57 +2113,161 @@ class Dygraph:
         return self
 
     def stacked_bar_chart(self) -> Dygraph:
-        """Stacked bar chart (mirrors R ``dyStackedBarChart``)."""
+        """Apply a stacked bar chart plotter.
+
+        Mirrors R ``dyStackedBarChart``.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("stackedbarchart")
         self._attrs["plotter"] = JS("Dygraph.Plotters.StackedBarChart")
         self._extra_js.append(js)
         return self
 
     def multi_column(self) -> Dygraph:
-        """Multi-column bar chart (mirrors R ``dyMultiColumn``)."""
+        """Apply a multi-column (grouped) bar chart plotter.
+
+        Mirrors R ``dyMultiColumn``.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("multicolumn")
         self._attrs["plotter"] = JS("Dygraph.Plotters.MultiColumn")
         self._extra_js.append(js)
         return self
 
     def bar_series(self, name: str, **kwargs: Any) -> Dygraph:
-        """Bar plotter for a single series (mirrors R ``dyBarSeries``)."""
+        """Apply a bar plotter to a single series.
+
+        Mirrors R ``dyBarSeries``.
+
+        Parameters
+        ----------
+        name : str
+            Series name (must match a column label).
+        **kwargs
+            Additional keyword arguments forwarded to
+            :meth:`series`.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("barseries")
         self._extra_js.append(js)
         return self.series(name, plotter="barSeriesPlotter", **kwargs)
 
     def stem_series(self, name: str, **kwargs: Any) -> Dygraph:
-        """Stem plotter for a single series (mirrors R ``dyStemSeries``)."""
+        """Apply a stem plotter to a single series.
+
+        Mirrors R ``dyStemSeries``.
+
+        Parameters
+        ----------
+        name : str
+            Series name (must match a column label).
+        **kwargs
+            Additional keyword arguments forwarded to
+            :meth:`series`.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("stemplot")
         self._extra_js.append(js)
         return self.series(name, plotter="stemPlotter", **kwargs)
 
     def shadow(self, name: str, **kwargs: Any) -> Dygraph:
-        """Fill-only plotter for a single series (mirrors R ``dyShadow``)."""
+        """Apply a fill-only (shadow) plotter to a single series.
+
+        Mirrors R ``dyShadow``.
+
+        Parameters
+        ----------
+        name : str
+            Series name (must match a column label).
+        **kwargs
+            Additional keyword arguments forwarded to
+            :meth:`series`.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("fillplotter")
         self._extra_js.append(js)
         return self.series(name, plotter="filledlineplotter", **kwargs)
 
     def filled_line(self, name: str, **kwargs: Any) -> Dygraph:
-        """Filled line plotter for a single series (mirrors R ``dyFilledLine``)."""
+        """Apply a filled-line plotter to a single series.
+
+        Mirrors R ``dyFilledLine``.
+
+        Parameters
+        ----------
+        name : str
+            Series name (must match a column label).
+        **kwargs
+            Additional keyword arguments forwarded to
+            :meth:`series`.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("filledline")
         self._extra_js.append(js)
         return self.series(name, plotter="filledlineplotter", **kwargs)
 
     def error_fill(self, name: str, **kwargs: Any) -> Dygraph:
-        """Error bar plotter for a single series (mirrors R ``dyErrorFill``)."""
+        """Apply an error-bar fill plotter to a single series.
+
+        Mirrors R ``dyErrorFill``.
+
+        Parameters
+        ----------
+        name : str
+            Series name (must match a column label).
+        **kwargs
+            Additional keyword arguments forwarded to
+            :meth:`series`.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("errorplotter")
         self._extra_js.append(js)
         return self.series(name, plotter="errorplotter", **kwargs)
 
     def candlestick(self, *, compress: bool = False) -> Dygraph:
-        """Candlestick chart for OHLC data (mirrors R ``dyCandlestick``).
+        """Apply a candlestick plotter for OHLC data.
+
+        Mirrors R ``dyCandlestick``.
 
         Parameters
         ----------
-        compress
+        compress : bool, optional
             If True, auto-compress OHLC data at different zoom levels
             (yearly/quarterly/monthly/weekly/daily).
+            By default False.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
         """
         js = _read_plotter("candlestick")
         self._attrs["plotter"] = JS("Dygraph.Plotters.CandlestickPlotter")
@@ -1386,31 +2279,111 @@ class Dygraph:
         return self
 
     def multi_column_group(self, names: list[str], **kwargs: Any) -> Dygraph:
-        """Multi-column on a subset of series (mirrors R ``dyMultiColumnGroup``)."""
+        """Apply a multi-column plotter to a subset of series.
+
+        Mirrors R ``dyMultiColumnGroup``.
+
+        Parameters
+        ----------
+        names : list[str]
+            Series names to include in the group.
+        **kwargs
+            Additional keyword arguments forwarded to
+            :meth:`group`.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("multicolumngroup")
         self._extra_js.append(js)
         return self.group(names, plotter="multiColumnGroupPlotter", **kwargs)
 
     def candlestick_group(self, names: list[str], **kwargs: Any) -> Dygraph:
-        """Candlestick on a subset (mirrors R ``dyCandlestickGroup``)."""
+        """Apply a candlestick plotter to a subset of series.
+
+        Mirrors R ``dyCandlestickGroup``.
+
+        Parameters
+        ----------
+        names : list[str]
+            Series names to include in the group.
+        **kwargs
+            Additional keyword arguments forwarded to
+            :meth:`group`.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("candlestickgroup")
         self._extra_js.append(js)
         return self.group(names, plotter="candlestickgroupPlotter", **kwargs)
 
     def stacked_bar_group(self, names: list[str], **kwargs: Any) -> Dygraph:
-        """Stacked bars on a subset (mirrors R ``dyStackedBarGroup``)."""
+        """Apply a stacked bar plotter to a subset of series.
+
+        Mirrors R ``dyStackedBarGroup``.
+
+        Parameters
+        ----------
+        names : list[str]
+            Series names to include in the group.
+        **kwargs
+            Additional keyword arguments forwarded to
+            :meth:`group`.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("stackedbargroup")
         self._extra_js.append(js)
         return self.group(names, plotter="stackedBarPlotter", **kwargs)
 
     def stacked_line_group(self, names: list[str], **kwargs: Any) -> Dygraph:
-        """Stacked lines on a subset (mirrors R ``dyStackedLineGroup``)."""
+        """Apply a stacked line plotter to a subset of series.
+
+        Mirrors R ``dyStackedLineGroup``.
+
+        Parameters
+        ----------
+        names : list[str]
+            Series names to include in the group.
+        **kwargs
+            Additional keyword arguments forwarded to
+            :meth:`group`.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("stackedlinegroup")
         self._extra_js.append(js)
         return self.group(names, plotter="linePlotter", **kwargs)
 
     def stacked_ribbon_group(self, names: list[str], **kwargs: Any) -> Dygraph:
-        """Stacked ribbons on a subset (mirrors R ``dyStackedRibbonGroup``)."""
+        """Apply a stacked ribbon plotter to a subset of series.
+
+        Mirrors R ``dyStackedRibbonGroup``.
+
+        Parameters
+        ----------
+        names : list[str]
+            Series names to include in the group.
+        **kwargs
+            Additional keyword arguments forwarded to
+            :meth:`group`.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         js = _read_plotter("stackedribbongroup")
         self._extra_js.append(js)
         return self.group(names, plotter="linePlotter", **kwargs)
@@ -1418,7 +2391,17 @@ class Dygraph:
     # ---- plugins (dyUnzoom, dyCrosshair, dyRibbon, dyRebase) ---------
 
     def unzoom(self) -> Dygraph:
-        """Enable unzoom button plugin (mirrors R ``dyUnzoom``)."""
+        """Enable the Unzoom button plugin.
+
+        Mirrors R ``dyUnzoom``. Adds an "Unzoom" button to the chart
+        when it is in a zoomed state (more discoverable than the
+        default double-click gesture).
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         self._plugins.append({"name": "Unzoom", "options": None})
         self._extra_js.append(_read_plugin("unzoom"))
         return self
@@ -1427,7 +2410,22 @@ class Dygraph:
         self,
         direction: Literal["both", "horizontal", "vertical"] = "both",
     ) -> Dygraph:
-        """Enable crosshair plugin (mirrors R ``dyCrosshair``)."""
+        """Enable the Crosshair plugin.
+
+        Mirrors R ``dyCrosshair``. Draws a crosshair line over the
+        point closest to the mouse when the user hovers over the
+        chart.
+
+        Parameters
+        ----------
+        direction : {"both", "horizontal", "vertical"}, optional
+            Which crosshair lines to draw. By default ``"both"``.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         self._plugins.append({"name": "Crosshair", "options": {"direction": direction}})
         self._extra_js.append(_read_plugin("crosshair"))
         return self
@@ -1440,7 +2438,36 @@ class Dygraph:
         top: float = 1.0,
         bottom: float = 0.0,
     ) -> Dygraph:
-        """Enable ribbon plugin (mirrors R ``dyRibbon``)."""
+        """Enable the Ribbon plugin.
+
+        Mirrors R ``dyRibbon``. Adds a horizontal band of colours
+        running through the chart, useful for visualising categorical
+        variables that change over time along the x-axis.
+
+        Parameters
+        ----------
+        data : list[float] | None, optional
+            Numeric values in the range 0--1 mapping to palette
+            indices. By default None.
+        palette : list[str] | None, optional
+            Color palette for the ribbon bands.
+            By default None.
+        parser : str | None, optional
+            JavaScript function ``(data, dygraph)`` returning an
+            array of numeric values. Used if *data* is not provided.
+            By default None.
+        top : float, optional
+            Vertical position (0--1) of the top edge of the ribbon,
+            relative to chart height. By default 1.0.
+        bottom : float, optional
+            Vertical position (0--1) of the bottom edge of the
+            ribbon, relative to chart height. By default 0.0.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         inner_opts: dict[str, Any] = {"top": top, "bottom": bottom}
         if palette is not None:
             inner_opts["palette"] = palette
@@ -1458,7 +2485,26 @@ class Dygraph:
         value: float = 100,
         percent: bool = False,
     ) -> Dygraph:
-        """Enable rebase/straw-broom plugin (mirrors R ``dyRebase``)."""
+        """Enable the Rebase (straw-broom) plugin.
+
+        Mirrors R ``dyRebase``. Rebases all series so that they
+        start from a common value, making it easier to compare
+        relative changes.
+
+        Parameters
+        ----------
+        value : float, optional
+            Base value for rebasing (e.g. 100 for percentage
+            comparison). By default 100.
+        percent : bool, optional
+            If True, rebase to percentage changes instead of an
+            absolute value. By default False.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
         base: Any = "percent" if percent else value
         self._plugins.append({"name": "Rebase", "options": base})
         self._extra_js.append(_read_plugin("rebase"))
@@ -1473,18 +2519,27 @@ class Dygraph:
         js: str | None = None,
         options: Any = None,
     ) -> Dygraph:
-        """Register a custom dygraphs plugin (mirrors R ``dyPlugin``).
+        """Register a custom dygraphs plugin.
+
+        Mirrors R ``dyPlugin``.
 
         Parameters
         ----------
-        name
+        name : str
             Plugin constructor name (e.g. ``"MyPlugin"``), must be
             accessible as ``Dygraph.Plugins[name]``.
-        js
+        js : str | None, optional
             Raw JavaScript source that defines the plugin. Injected
             into the page before the chart is instantiated.
-        options
+            By default None.
+        options : Any, optional
             Plugin options passed to the constructor.
+            By default None.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
         """
         self._plugins.append({"name": name, "options": options})
         if js is not None:
@@ -1492,25 +2547,39 @@ class Dygraph:
         return self
 
     def custom_plotter(self, js: str) -> Dygraph:
-        """Set a custom plotter from raw JS (mirrors R ``dyPlotter``).
+        """Set a custom plotter from raw JavaScript.
+
+        Mirrors R ``dyPlotter``.
 
         Parameters
         ----------
-        js
-            JavaScript source defining a plotter function.  Can be an inline
-            function expression or a named reference loaded via a ``<script>``
-            tag.
+        js : str
+            JavaScript source defining a plotter function. Can be
+            an inline function expression or a named reference loaded
+            via a ``<script>`` tag.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
         """
         self._attrs["plotter"] = JS(js)
         return self
 
     def data_handler(self, js: str) -> Dygraph:
-        """Set a custom data handler from raw JS (mirrors R ``dyDataHandler``).
+        """Set a custom data handler from raw JavaScript.
+
+        Mirrors R ``dyDataHandler``.
 
         Parameters
         ----------
-        js
+        js : str
             JavaScript source defining a data handler.
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
         """
         self._attrs["dataHandler"] = JS(js)
         return self
@@ -1518,17 +2587,22 @@ class Dygraph:
     # ---- series_data (R: dySeriesData) -----------------------------------
 
     def series_data(self, name: str, values: list[Any]) -> Dygraph:
-        """Add auxiliary data for a series (mirrors R ``dySeriesData``).
+        """Add auxiliary data for a series.
 
-        Appends an extra column of data that can be referenced by custom
-        formatters or plotters.
+        Mirrors R ``dySeriesData``. Appends an extra column of data
+        that can be referenced by custom formatters or plotters.
 
         Parameters
         ----------
-        name
+        name : str
             Column label for the auxiliary data.
-        values
+        values : list[Any]
             Data values (must be same length as existing columns).
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
         """
         if self._data and len(values) != len(self._data[0]):
             msg = (

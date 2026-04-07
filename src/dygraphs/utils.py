@@ -23,7 +23,20 @@ DYGRAPH_CSS_CDN = (
 def merge_dicts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
     """Recursively merge *overlay* into *base*, returning a new dict.
 
-    Mirrors R ``mergeLists``.
+    Mirrors R ``mergeLists``. Nested dicts are merged recursively;
+    other values in *overlay* overwrite those in *base*.
+
+    Parameters
+    ----------
+    base : dict[str, Any]
+        Base dictionary.
+    overlay : dict[str, Any]
+        Dictionary whose values take precedence.
+
+    Returns
+    -------
+    dict[str, Any]
+        Merged dictionary (new object, does not mutate inputs).
     """
     if not base:
         return dict(overlay)
@@ -44,6 +57,24 @@ def resolve_stroke_pattern(
     """Convert named stroke patterns to numeric arrays.
 
     Mirrors R ``resolveStrokePattern``.
+
+    Parameters
+    ----------
+    pattern : str | list[int] | None
+        A predefined name (``"dotted"``, ``"dashed"``, ``"dotdash"``,
+        ``"solid"``) or a custom array of draw/space lengths in
+        pixels, or None for a solid line.
+
+    Returns
+    -------
+    list[int] | None
+        Numeric dash array, or None for a solid line.
+
+    Raises
+    ------
+    ValueError
+        If *pattern* is a string that does not match a predefined
+        name.
     """
     if pattern is None:
         return None
@@ -65,9 +96,23 @@ def resolve_stroke_pattern(
 
 
 def hsv_to_hex(hue: float, saturation: float, value: float) -> str:
-    """Convert HSV (each 0-1) to ``#RRGGBB`` hex string.
+    """Convert HSV colour to a ``#rrggbb`` hex string.
 
     Mirrors R ``hsvToRGB``.
+
+    Parameters
+    ----------
+    hue : float
+        Hue component (0.0--1.0).
+    saturation : float
+        Saturation component (0.0--1.0).
+    value : float
+        Value/brightness component (0.0--1.0).
+
+    Returns
+    -------
+    str
+        Hex colour string, e.g. ``"#ff8000"``.
     """
     r, g, b = colorsys.hsv_to_rgb(hue, saturation, value)
     return f"#{math.floor(255 * r + 0.5):02x}{math.floor(255 * g + 0.5):02x}{math.floor(255 * b + 0.5):02x}"
@@ -78,9 +123,23 @@ def auto_colors(
     saturation: float = 1.0,
     value: float = 0.5,
 ) -> list[str]:
-    """Generate *n* equally-spaced colors on a colour wheel.
+    """Generate *n* equally-spaced colours on a colour wheel.
 
     Mirrors R ``dygraphColors``.
+
+    Parameters
+    ----------
+    n : int
+        Number of colours to generate.
+    saturation : float, optional
+        HSV saturation (0.0--1.0). By default 1.0.
+    value : float, optional
+        HSV value/brightness (0.0--1.0). By default 0.5.
+
+    Returns
+    -------
+    list[str]
+        List of ``#rrggbb`` hex colour strings.
     """
     half = math.ceil(n / 2)
     colors: list[str] = []
@@ -92,10 +151,16 @@ def auto_colors(
 
 
 class JS:
-    """Wrapper to mark a string as raw JavaScript (like R's ``htmlwidgets::JS``).
+    """Wrapper to mark a string as raw JavaScript.
 
-    When serialised to JSON the string is emitted verbatim (without quotes) so
-    that the browser can evaluate it.
+    Mirrors R ``htmlwidgets::JS``. When serialised to JSON the string
+    is emitted verbatim (without quotes) so that the browser can
+    evaluate it as code.
+
+    Parameters
+    ----------
+    code : str
+        Raw JavaScript source code.
     """
 
     __slots__ = ("code",)
@@ -135,12 +200,23 @@ def _unescape_json_string(m: re.Match[str]) -> str:
 
 
 def unwrap_js_markers(json_str: str) -> str:
-    """Remove ``__JS__:…:__JS__`` quote wrappers from serialised JSON.
+    """Remove ``__JS__:...:__JS__`` quote wrappers from serialised JSON.
 
-    When ``JS`` objects are serialised via ``json.dumps`` they are encoded as
-    ``"__JS__:<code>:__JS__"`` strings.  This function strips the surrounding
-    double-quotes and markers so the code appears as raw JS in the output,
-    with JSON string escapes reversed.
+    When ``JS`` objects are serialised via ``json.dumps`` they are
+    encoded as ``"__JS__:<code>:__JS__"`` strings. This function
+    strips the surrounding double-quotes and markers so the code
+    appears as raw JS in the output, with JSON string escapes
+    reversed.
+
+    Parameters
+    ----------
+    json_str : str
+        JSON string potentially containing JS markers.
+
+    Returns
+    -------
+    str
+        JSON string with JS markers unwrapped.
     """
     return re.sub(
         r'"__JS__:(.*?):__JS__"', _unescape_json_string, json_str, flags=re.DOTALL
@@ -178,8 +254,14 @@ def make_error_bar_data(
         Y-axis values.
     error
         Error values (± around y).
-    labels
+    labels : tuple[str, str, str], optional
         Column labels ``(x_label, y_label, error_label)``.
+        By default ``("x", "value", "error")``.
+
+    Returns
+    -------
+    dict[str, list[Any]]
+        Data dict suitable for ``Dygraph()``.
     """
     return {labels[0]: x, labels[1]: y, labels[2]: error}
 
@@ -202,7 +284,12 @@ def make_custom_bar_data(
         X-axis values.
     low, mid, high
         Low, middle, and high values for each point.
-    labels
-        Column labels.
+    labels : tuple[str, str, str, str], optional
+        Column labels. By default ``("x", "low", "mid", "high")``.
+
+    Returns
+    -------
+    dict[str, list[Any]]
+        Data dict suitable for ``Dygraph()``.
     """
     return {labels[0]: x, labels[1]: low, labels[2]: mid, labels[3]: high}
