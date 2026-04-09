@@ -2510,7 +2510,9 @@ class Dygraph:
     def shadow(self, name: str, **kwargs: Any) -> Dygraph:
         """Apply a fill-only (shadow) plotter to a single series.
 
-        Mirrors R ``dyShadow``.
+        Mirrors R ``dyShadow``. Draws the filled area underneath the
+        series without a line on top — distinct from :meth:`filled_line`,
+        which draws both.
 
         Parameters
         ----------
@@ -2528,10 +2530,14 @@ class Dygraph:
         -------
         Dygraph
             Self, for chaining.
+
+        See Also
+        --------
+        filled_line : Draws both the fill *and* the line.
         """
         js = _read_plotter("fillplotter")
         self._extra_js.append(js)
-        return self.series(name, plotter="filledlineplotter", **kwargs)
+        return self.series(name, plotter="fillplotter", **kwargs)
 
     def filled_line(self, name: str, **kwargs: Any) -> Dygraph:
         """Apply a filled-line plotter to a single series.

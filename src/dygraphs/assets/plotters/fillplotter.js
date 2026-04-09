@@ -1,6 +1,14 @@
-// the _fillplotter combined with the _lineplotter function extracted from dygraphs-combined-dev.js, available for use in conjunction with other per-series plotters and group plotters
+// the _fillplotter function extracted from dygraphs-combined-dev.js, available
+// for use in conjunction with other per-series plotters and group plotters.
+// Draws the filled area only — no line on top. Used by Dygraph.shadow() (the
+// dyShadow port). The companion filledline.js draws fill + line.
+//
+// IMPORTANT: this function is named ``fillplotter`` (not ``filledlineplotter``)
+// so it doesn't collide with filledline.js's exported symbol when both files
+// are injected into the same page (e.g. when one chart uses both .shadow()
+// and .filled_line()). See dygraph.py:Dygraph.shadow.
 
-function filledlineplotter(e) {
+function fillplotter(e) {
   var g = e.dygraph;
   var setName = e.setName;
 

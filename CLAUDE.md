@@ -263,6 +263,18 @@ These are the only items that move us toward the stated north star.
   remaining methods are exercised indirectly via wrapper tests
   (e.g. `dyCSS` flows through every chart's serialisation; the
   `dy*Series` family is covered by the per-series plotter tests).
+- [x] **Fix `shadow()` / `filled_line()` plotter name collision.**
+  Python's `assets/plotters/fillplotter.js` and
+  `assets/plotters/filledline.js` both declared
+  `function filledlineplotter(e)`. When a chart used both methods,
+  whichever JS file was injected last won the global namespace and
+  silently changed the other method's behaviour. R doesn't have this
+  bug because it inlines the plotter source directly into each
+  series's `plotter` field. Renamed the function in `fillplotter.js`
+  to `fillplotter` (matching the filename), updated `.shadow()` to
+  reference the new name, and added two regression tests in
+  `test_plotters.py` (`test_shadow_and_filled_line_use_distinct_plotters`,
+  `test_shadow_and_filled_line_inject_both_functions`).
 
 #### Next up
 *(no items pending — the Primary track is now complete and the
@@ -275,11 +287,6 @@ audit-flagged gaps are closed)*
   same runtime function, but the JSON shapes differ. The R parity
   comparisons in `TestPlotterFamily` and `TestSeriesPlotterFamily` are
   intentionally structural ("plotter is set"), not byte-for-byte.
-- **`shadow` and `filled_line` share the same plotter name in Python**
-  (`filledlineplotter`). R uses two distinct JS files (`fillplotter.js`
-  vs `filledline.js`). Smoke-checked during the parity audit; flagging
-  here in case it's actually a Python bug rather than a deliberate
-  consolidation. Worth a short investigation when someone has time.
 
 ### Tertiary track — Pythonic UX polish
 
