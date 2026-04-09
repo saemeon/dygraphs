@@ -255,19 +255,18 @@ These are the only items that move us toward the stated north star.
 - [x] **Verify constructor parameter renames are documented.** Audited
   Python `Dygraph.__init__` against R `dygraph()`. Only one rename:
   `main` → `title`. Documented in the "Naming convention" subsection.
+- [x] **Cover the remaining 9 R parity gaps in `test_r_parity.py`.**
+  Added five test classes (`TestGroupPlotterFamily` x5,
+  `TestDyPluginBare`, `TestDyPlotterCustom`, `TestDyDataHandler`,
+  `TestDySeriesData`) bringing explicit R-vs-Python comparison
+  coverage from 18 to 27 of 37 methods. Test count 85 → 94. The
+  remaining methods are exercised indirectly via wrapper tests
+  (e.g. `dyCSS` flows through every chart's serialisation; the
+  `dy*Series` family is covered by the per-series plotter tests).
 
 #### Next up
-1. **Cover the remaining R parity gaps in `test_r_parity.py`.** Methods
-   still without an R-vs-Python comparison test:
-   - `dyMultiColumnGroup`, `dyCandlestickGroup`, `dyStackedBarGroup`,
-     `dyStackedLineGroup`, `dyStackedRibbonGroup` — all use the same
-     "apply group plotter" pattern; one parametrized test class would
-     cover them.
-   - `dyPlugin` (the bare wrapper, not via Crosshair/Ribbon/Rebase),
-     `dyPlotter` (custom plotter, not via the chart-level family),
-     `dyDataHandler`, `dySeriesData` — single-method one-offs.
-   None are parity-blocking, but coverage is the only way to catch
-   per-parameter regressions before users do.
+*(no items pending — the Primary track is now complete and the
+audit-flagged gaps are closed)*
 
 #### Known structural divergences (not bugs, just things to remember)
 - **Plotter storage.** R stores the plotter NAME string in `x$plotter`
