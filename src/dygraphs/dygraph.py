@@ -84,6 +84,25 @@ def _read_plugin(name: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+#: Valid values for the ``periodicity=`` constructor override. Matches the
+#: set of scale strings emitted by ``xts::periodicity`` in R (see
+#: ``dygraphs-r/R/dygraph.R``), with one addition: Python's auto-detect does
+#: not currently emit ``"milliseconds"``, but users can pass it explicitly.
+_VALID_PERIODICITIES: frozenset[str] = frozenset(
+    {
+        "yearly",
+        "quarterly",
+        "monthly",
+        "weekly",
+        "daily",
+        "hourly",
+        "minute",
+        "seconds",
+        "milliseconds",
+    }
+)
+
+
 def _detect_scale(idx: Any) -> str:
     """Detect periodicity of a DatetimeIndex (mirrors R ``periodicity``).
 
@@ -158,6 +177,14 @@ class Dygraph:
         Chart title (``main`` in R).
     xlab, ylab
         Axis labels.
+    periodicity
+        Manually override the auto-detected periodicity of date data.
+        One of ``"yearly"``, ``"quarterly"``, ``"monthly"``, ``"weekly"``,
+        ``"daily"``, ``"hourly"``, ``"minute"``, ``"seconds"``,
+        ``"milliseconds"``. By default ``None``, in which case the scale
+        is inferred from the pandas index. Mirrors R's
+        ``dygraph(..., periodicity=...)``. Only valid for date-formatted
+        data — passing it with numeric data raises ``ValueError``.
     group
         Synchronisation group name (x-axis zoom is synced across group).
     width, height
@@ -197,6 +224,7 @@ class Dygraph:
         title: str | None = None,
         xlab: str | None = None,
         ylab: str | None = None,
+        periodicity: str | None = None,
         group: str | None = None,
         width: int | None = None,
         height: int | None = None,
@@ -218,8 +246,26 @@ class Dygraph:
         self._width = width
         self._height = height
 
+        if periodicity is not None and periodicity not in _VALID_PERIODICITIES:
+            msg = (
+                f"periodicity must be one of {sorted(_VALID_PERIODICITIES)}, "
+                f"got {periodicity!r}"
+            )
+            raise ValueError(msg)
+
         # Normalise data into (labels, columns, format, tzone, scale)
         labels, columns, fmt, tzone, scale = self._normalise_data(data)
+
+        # Manual periodicity override (R: dygraph(..., periodicity=...)).
+        # Only meaningful for date-format data — numeric x-axis has no scale.
+        if periodicity is not None:
+            if fmt != "date":
+                msg = (
+                    "periodicity can only be set for date-formatted data "
+                    "(pandas DatetimeIndex or similar); got numeric data"
+                )
+                raise ValueError(msg)
+            scale = periodicity
 
         # attrs = JS dygraph options
         attrs: dict[str, Any] = {}

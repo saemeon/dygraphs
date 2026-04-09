@@ -56,6 +56,62 @@ class TestDygraphCreation:
         assert d.to_dict()["attrs"]["title"] == "My Chart"
 
 
+class TestPeriodicityOverride:
+    """``periodicity=`` constructor kwarg (R: ``dygraph(..., periodicity=)``)."""
+
+    def test_autodetect_is_default(self) -> None:
+        """Daily index without an override is auto-detected as ``"daily"``."""
+        d = Dygraph(_sample_df())
+        assert d.to_dict()["scale"] == "daily"
+
+    def test_override_replaces_autodetected_scale(self) -> None:
+        """Passing ``periodicity="monthly"`` on a daily index wins."""
+        d = Dygraph(_sample_df(), periodicity="monthly")
+        assert d.to_dict()["scale"] == "monthly"
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "yearly",
+            "quarterly",
+            "monthly",
+            "weekly",
+            "daily",
+            "hourly",
+            "minute",
+            "seconds",
+            "milliseconds",
+        ],
+    )
+    def test_all_valid_values_accepted(self, value: str) -> None:
+        d = Dygraph(_sample_df(), periodicity=value)
+        assert d.to_dict()["scale"] == value
+
+    def test_invalid_value_rejected(self) -> None:
+        with pytest.raises(ValueError, match="periodicity must be one of"):
+            Dygraph(_sample_df(), periodicity="fortnightly")
+
+    def test_invalid_value_error_lists_valid_options(self) -> None:
+        """The error should name the actual offending value and list alternatives."""
+        with pytest.raises(ValueError, match="'fortnightly'") as exc_info:
+            Dygraph(_sample_df(), periodicity="fortnightly")
+        msg = str(exc_info.value)
+        for valid in ("yearly", "monthly", "daily", "milliseconds"):
+            assert valid in msg
+
+    def test_numeric_data_rejects_override(self) -> None:
+        """Non-date data has no meaningful scale — raise clearly."""
+        with pytest.raises(ValueError, match="only be set for date-formatted"):
+            Dygraph(_sample_numeric_df(), periodicity="daily")
+
+    def test_override_survives_to_html(self) -> None:
+        """The overridden scale must reach the rendered HTML config."""
+        html = Dygraph(_sample_df(), periodicity="yearly").to_html()
+        # to_html serialises via to_json, which puts "scale":"yearly" in the
+        # embedded config payload.
+        assert '"scale": "yearly"' in html or '"scale":"yearly"' in html
+
+
 # ---------------------------------------------------------------------------
 # Data input formats
 # ---------------------------------------------------------------------------

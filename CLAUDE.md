@@ -106,7 +106,7 @@ table groups by source file in `dygraphs-r/R/`.
 
 | R function | Python method | R source | Status |
 |---|---|---|---|
-| `dygraph(data, ...)` | `Dygraph(data, ...)` | `dygraph.R` | ✅ (see *Constructor parity gaps*) |
+| `dygraph(data, ...)` | `Dygraph(data, ...)` | `dygraph.R` | ✅ (see *Constructor parity*) |
 | `dyOptions` | `.options()` | `options.R` | ✅ |
 | `dyAxis` | `.axis()` | `axis.R` | ✅ |
 | `dySeries` | `.series()` | `series.R` | ✅ |
@@ -151,17 +151,20 @@ has a Python equivalent. `.dependency()` takes the pieces of R's
 `stylesheet`), reads referenced files eagerly, and inlines them as
 `<script>` / `<style>` tags in `to_html()` output.
 
-### Constructor parity gaps
+### Constructor parity
 
 R's `dygraph(data, main, xlab, ylab, periodicity, group, elementId, width,
-height)` vs Python's `Dygraph(data, title, xlab, ylab, group, width, height,
-...)`:
+height)` vs Python's `Dygraph(data, title, xlab, ylab, periodicity, group,
+width, height, ...)`:
 
-- ✅ `data`, `xlab`, `ylab`, `group`, `width`, `height` — direct mapping.
+- ✅ `data`, `xlab`, `ylab`, `periodicity`, `group`, `width`, `height` —
+  direct mapping.
 - ✅ `main` → `title` (Python rename; documented).
-- ❌ **`periodicity` override** — Python auto-detects from the pandas index
-  but provides no manual override. R lets you force a periodicity for
-  irregular data. Small but real gap.
+- ✅ `periodicity` accepts `"yearly"`, `"quarterly"`, `"monthly"`,
+  `"weekly"`, `"daily"`, `"hourly"`, `"minute"`, `"seconds"`,
+  `"milliseconds"` (matches `xts::periodicity$scale`). Defaults to
+  `None` = auto-detect from the pandas index. Only meaningful for
+  date-formatted data; passing it with numeric data raises `ValueError`.
 - N/A `elementId` — R's htmlwidgets needs an explicit DOM id; Python adapters
   manage their own component IDs (`cid` for Dash, output id for Shiny).
 
@@ -228,18 +231,20 @@ These are the only items that move us toward the stated north star.
   `htmltools::htmlDependency` directly, reads the referenced files eagerly,
   and inlines them as `<script>` / `<style>` tags before the main chart
   script in `to_html()` output. Pushes function-level parity to 37/37.
+- [x] **`periodicity=` constructor override.** Closes the last constructor
+  parity gap. Accepts the nine string values emitted by
+  `xts::periodicity$scale` (`"yearly"`, `"quarterly"`, `"monthly"`,
+  `"weekly"`, `"daily"`, `"hourly"`, `"minute"`, `"seconds"`,
+  `"milliseconds"`); `None` = auto-detect (default). Validated against
+  `_VALID_PERIODICITIES`; raises on numeric data.
 
 #### Next up
-1. **Add a `periodicity=` constructor override.** Python currently auto-detects
-   from the pandas index with no manual override. Add the kwarg, default
-   `None` (= auto), accept the same string values R does (`"yearly"`,
-   `"quarterly"`, `"monthly"`, `"weekly"`, `"daily"`, `"hourly"`, `"minute"`,
-   `"second"`, `"millisecond"`).
-2. **Audit `test_r_parity.py` coverage.** Confirm it has at least one test per
+1. **Audit `test_r_parity.py` coverage.** Confirm it has at least one test per
    row of the R↔Python mapping table. Anything missing is a parameter-parity
    blind spot. Add tests for any uncovered method — including a
-   `.dependency()` round-trip against R's `dyDependency`.
-3. **Verify constructor parameter renames are documented.** `main` → `title`
+   `.dependency()` round-trip against R's `dyDependency` and a
+   `periodicity=` round-trip.
+2. **Verify constructor parameter renames are documented.** `main` → `title`
    is the only one today; if any others sneak in during the audit, list them
    in the "Naming convention" subsection above.
 
