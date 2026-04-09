@@ -48,3 +48,75 @@ class TestPlugins:
         d = Dygraph(_df()).rebase(percent=True)
         plugins = d.to_dict()["plugins"]
         assert plugins[0]["options"] == "percent"
+
+
+class TestDependency:
+    """Tests for ``dependency()`` — the Python port of R ``dyDependency``."""
+
+    def test_dependency_without_files(self) -> None:
+        """Name+version only should still register a bookkeeping entry."""
+        d = Dygraph(_df()).dependency("MyDep", version="2.0")
+        cfg = d.to_dict()
+        assert cfg["dependencies"][0] == {
+            "name": "MyDep",
+            "version": "2.0",
+            "src": None,
+            "script": [],
+            "stylesheet": [],
+        }
+
+    def test_dependency_script_inlined_in_to_html(self, tmp_path) -> None:
+        js = tmp_path / "my-plugin.js"
+        js.write_text("window.__myPluginLoaded = true;")
+        d = Dygraph(_df()).dependency("MyDep", script=str(js))
+        html = d.to_html()
+        assert "window.__myPluginLoaded = true;" in html
+        assert f"<script>{js.read_text()}</script>" in html
+
+    def test_dependency_stylesheet_inlined_in_to_html(self, tmp_path) -> None:
+        css = tmp_path / "my-dep.css"
+        css.write_text(".my-dep-class { color: tomato; }")
+        d = Dygraph(_df()).dependency("MyDep", stylesheet=str(css))
+        html = d.to_html()
+        assert ".my-dep-class { color: tomato; }" in html
+        assert f"<style>{css.read_text()}</style>" in html
+
+    def test_dependency_src_resolves_relative_paths(self, tmp_path) -> None:
+        (tmp_path / "a.js").write_text("var a=1;")
+        (tmp_path / "b.css").write_text(".b{color:red}")
+        d = Dygraph(_df()).dependency(
+            "MyDep", src=tmp_path, script="a.js", stylesheet="b.css"
+        )
+        html = d.to_html()
+        assert "var a=1;" in html
+        assert ".b{color:red}" in html
+
+    def test_dependency_accepts_list_of_scripts(self, tmp_path) -> None:
+        (tmp_path / "a.js").write_text("var a=1;")
+        (tmp_path / "b.js").write_text("var b=2;")
+        d = Dygraph(_df()).dependency("MyDep", src=tmp_path, script=["a.js", "b.js"])
+        html = d.to_html()
+        assert "var a=1;" in html
+        assert "var b=2;" in html
+
+    def test_dependency_stylesheet_emitted_before_script(self, tmp_path) -> None:
+        """CSS must appear before JS so scripts can reference stylesheet classes."""
+        (tmp_path / "a.js").write_text("var a=1;")
+        (tmp_path / "b.css").write_text(".b{}")
+        d = Dygraph(_df()).dependency(
+            "MyDep", src=tmp_path, script="a.js", stylesheet="b.css"
+        )
+        html = d.to_html()
+        assert html.index(".b{}") < html.index("var a=1;")
+
+    def test_dependencies_field_absent_when_empty(self) -> None:
+        """No dependencies -> to_dict omits the key (matches plugins behaviour)."""
+        cfg = Dygraph(_df()).to_dict()
+        assert "dependencies" not in cfg
+
+    def test_dependency_chains(self) -> None:
+        """Multiple calls accumulate."""
+        d = Dygraph(_df()).dependency("A").dependency("B", version="3.0")
+        deps = d.to_dict()["dependencies"]
+        assert [x["name"] for x in deps] == ["A", "B"]
+        assert deps[1]["version"] == "3.0"

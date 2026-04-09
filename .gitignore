@@ -1,7 +1,4 @@
-# Reference copies of upstream R/JS dygraphs (cloned locally for parity work,
-# never part of the Python package). See CLAUDE.md "Bundled assets".
-/dygraphs-r/
-/dygraphs-js/
+# Legacy code from an earlier implementation. See CLAUDE.md.
 /PyDyGraphs/
 
 # Byte-compiled / optimized / DLL files

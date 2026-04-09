@@ -2,7 +2,7 @@
 
 Python wrapper for the [dygraphs](https://dygraphs.com) JavaScript charting library.
 
-**Core port of the R [dygraphs](https://rstudio.github.io/dygraphs/) package** — 36 of 37 exported R `dy*` functions plus the `dygraph()` constructor are ported to a Pythonic builder API (the one gap is `dyDependency`). The R package (by RStudio/JJ Allaire) is the most mature dygraphs wrapper in any language; this package faithfully ports its API design, data model, and test coverage to Python. See the *R Function Mapping* table below.
+**Core port of the R [dygraphs](https://rstudio.github.io/dygraphs/) package** — all 37 exported R `dy*` functions plus the `dygraph()` constructor are ported to a Pythonic builder API. The R package (by RStudio/JJ Allaire) is the most mature dygraphs wrapper in any language; this package faithfully ports its API design, data model, and test coverage to Python. See the *R Function Mapping* table below.
 
 Framework-agnostic core with adapters for [Plotly Dash](https://dash.plotly.com/) and [Shiny for Python](https://shiny.posit.co/py/).
 
@@ -108,6 +108,22 @@ html_string = chart.to_html()
 Path("chart.html").write_text(html_string)
 ```
 
+### Jupyter / IPython
+
+A `Dygraph` is its own display object — making it the last expression
+in a cell auto-renders it inline via `_repr_html_`, the same UX as
+`dygraph()` in RStudio's viewer:
+
+```python
+chart  # auto-displays
+```
+
+For loops or non-last-expression contexts, use the explicit helper:
+
+```python
+chart.show()  # uses IPython.display.HTML
+```
+
 ## Data Input
 
 | Format | Example |
@@ -150,11 +166,12 @@ chart = (
 
 | Method | R Equivalent | Description |
 |--------|-------------|-------------|
-| `Dygraph(data, ...)` | `dygraph()` | Create chart |
+| `Dygraph(data, ...)` | `dygraph()` | Create chart (also accepts `periodicity=`) |
 | `.options(...)` | `dyOptions()` | Global options |
 | `.axis(name, ...)` | `dyAxis()` | Per-axis config |
-| `.series(name, ...)` | `dySeries()` | Per-series config |
-| `.group(names, ...)` | `dyGroup()` | Group config |
+| `.series(name, ...)` | `dySeries()` | Per-series config (accepts `[names]` for error bands) |
+| `.group(names, ...)` | `dyGroup()` | Group of series — shared display options |
+| `.sync_group(name)` | — | Cross-chart sync alias for `group=` kwarg |
 | `.legend(...)` | `dyLegend()` | Legend options |
 | `.highlight(...)` | `dyHighlight()` | Highlight behavior |
 | `.annotation(x, text)` | `dyAnnotation()` | Data annotations |
@@ -164,7 +181,8 @@ chart = (
 | `.range_selector(...)` | `dyRangeSelector()` | Range selector |
 | `.roller(...)` | `dyRoller()` | Rolling average |
 | `.callbacks(...)` | `dyCallbacks()` | JS callbacks |
-| `.css(path)` | `dyCSS()` | Custom CSS |
+| `.css(css)` | `dyCSS()` | Custom CSS — file path or raw CSS string |
+| `.dependency(name, ...)` | `dyDependency()` | Attach external JS / CSS files |
 
 ### Plotters
 
@@ -321,6 +339,11 @@ Every R `dy*()` function has a Python equivalent:
 | `dyShadow()` | `.shadow()` | — |
 | `dyFilledLine()` | `.filled_line()` | — |
 | `dyErrorFill()` | `.error_fill()` | — |
+| `dyMultiColumnGroup()` | `.multi_column_group()` | — |
+| `dyCandlestickGroup()` | `.candlestick_group()` | — |
+| `dyStackedBarGroup()` | `.stacked_bar_group()` | — |
+| `dyStackedLineGroup()` | `.stacked_line_group()` | — |
+| `dyStackedRibbonGroup()` | `.stacked_ribbon_group()` | — |
 | `dyUnzoom()` | `.unzoom()` | — |
 | `dyCrosshair()` | `.crosshair()` | — |
 | `dyRibbon()` | `.ribbon()` | — |
@@ -329,5 +352,6 @@ Every R `dy*()` function has a Python equivalent:
 | `dyDataHandler()` | `.data_handler()` | — |
 | `dySeriesData()` | `.series_data()` | — |
 | `dyPlugin()` | `.plugin()` | — |
+| `dyDependency()` | `.dependency()` | — |
 
 See the [API Reference](api.md) for full parameter documentation generated from docstrings.

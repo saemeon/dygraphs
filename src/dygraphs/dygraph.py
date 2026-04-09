@@ -84,6 +84,25 @@ def _read_plugin(name: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+#: Valid values for the ``periodicity=`` constructor override. Matches the
+#: set of scale strings emitted by ``xts::periodicity`` in R (see
+#: ``dygraphs-r/R/dygraph.R``), with one addition: Python's auto-detect does
+#: not currently emit ``"milliseconds"``, but users can pass it explicitly.
+_VALID_PERIODICITIES: frozenset[str] = frozenset(
+    {
+        "yearly",
+        "quarterly",
+        "monthly",
+        "weekly",
+        "daily",
+        "hourly",
+        "minute",
+        "seconds",
+        "milliseconds",
+    }
+)
+
+
 def _detect_scale(idx: Any) -> str:
     """Detect periodicity of a DatetimeIndex (mirrors R ``periodicity``).
 
@@ -132,7 +151,10 @@ def _detect_scale(idx: Any) -> str:
         return "weekly"
     if seconds < 90 * 86400:
         return "monthly"
-    if seconds < 366 * 86400:
+    # Quarterly covers periods up to ~6 months. Anything coarser is
+    # unambiguously yearly. The old 366-day boundary mis-classified
+    # yearly-spaced data (median gap ≈ 365 days) as quarterly.
+    if seconds < 180 * 86400:
         return "quarterly"
     return "yearly"
 
@@ -158,8 +180,22 @@ class Dygraph:
         Chart title (``main`` in R).
     xlab, ylab
         Axis labels.
+    periodicity
+        Manually override the auto-detected periodicity of date data.
+        One of ``"yearly"``, ``"quarterly"``, ``"monthly"``, ``"weekly"``,
+        ``"daily"``, ``"hourly"``, ``"minute"``, ``"seconds"``,
+        ``"milliseconds"``. By default ``None``, in which case the scale
+        is inferred from the pandas index. Mirrors R's
+        ``dygraph(..., periodicity=...)``. Only valid for date-formatted
+        data — passing it with numeric data raises ``ValueError``.
     group
-        Synchronisation group name (x-axis zoom is synced across group).
+        Cross-chart synchronisation group name (a string). Charts that
+        share the same name auto-sync their x-axis zoom, pan, and
+        highlight. Mirrors R's ``dygraph(group=)``. Equivalent to
+        :meth:`sync_group`. **Not the same as** the :meth:`group` builder
+        method, which takes a *list of column names* and mirrors R's
+        ``dyGroup()`` to style a set of series together. The collision is
+        intentional — both names mirror the R API exactly.
     width, height
         Chart dimensions in pixels (``None`` = auto).
 
@@ -197,6 +233,7 @@ class Dygraph:
         title: str | None = None,
         xlab: str | None = None,
         ylab: str | None = None,
+        periodicity: str | None = None,
         group: str | None = None,
         width: int | None = None,
         height: int | None = None,
@@ -218,8 +255,26 @@ class Dygraph:
         self._width = width
         self._height = height
 
+        if periodicity is not None and periodicity not in _VALID_PERIODICITIES:
+            msg = (
+                f"periodicity must be one of {sorted(_VALID_PERIODICITIES)}, "
+                f"got {periodicity!r}"
+            )
+            raise ValueError(msg)
+
         # Normalise data into (labels, columns, format, tzone, scale)
         labels, columns, fmt, tzone, scale = self._normalise_data(data)
+
+        # Manual periodicity override (R: dygraph(..., periodicity=...)).
+        # Only meaningful for date-format data — numeric x-axis has no scale.
+        if periodicity is not None:
+            if fmt != "date":
+                msg = (
+                    "periodicity can only be set for date-formatted data "
+                    "(pandas DatetimeIndex or similar); got numeric data"
+                )
+                raise ValueError(msg)
+            scale = periodicity
 
         # attrs = JS dygraph options
         attrs: dict[str, Any] = {}
@@ -243,6 +298,7 @@ class Dygraph:
         self._shadings: list[dict[str, Any]] = []
         self._events: list[dict[str, Any]] = []
         self._plugins: list[dict[str, Any]] = []
+        self._dependencies: list[dict[str, Any]] = []
         self._css: str | None = None
         self._point_shapes: dict[str, str] = {}
         self._group = group
@@ -1159,7 +1215,7 @@ class Dygraph:
 
     def series(
         self,
-        name: str | None = None,
+        name: str | list[str] | tuple[str, ...] | None = None,
         *,
         label: str | None = None,
         color: str | None = None,
@@ -1186,9 +1242,14 @@ class Dygraph:
 
         Parameters
         ----------
-        name : str | None, optional
+        name : str | list[str] | tuple[str, ...] | None, optional
             Series name (must match a column label). If None, the
             first unprocessed series is used. By default None.
+
+            **R-style error-band shortcut.** If a list/tuple of 2 or 3
+            column names is passed instead of a single string, it is
+            forwarded to ``columns=`` — mirrors R's
+            ``dySeries(c("low","mid","high"))``.
         label : str | None, optional
             Display label for the series. Uses *name* if not set.
             By default None.
@@ -1274,6 +1335,20 @@ class Dygraph:
         options : Global chart options.
         """
         labels = self._attrs["labels"]
+
+        # R-style sugar: .series(["low","mid","high"]) is equivalent to
+        # .series(columns=["low","mid","high"]). Mirrors R's
+        # ``dySeries(c("low","mid","high"))`` idiom for error bands. Strings
+        # are iterable, so we explicitly exclude them.
+        if isinstance(name, list | tuple) and not isinstance(name, str):
+            if columns is not None:
+                msg = (
+                    "cannot pass both a list as the first argument and "
+                    "columns=; use one or the other"
+                )
+                raise ValueError(msg)
+            columns = list(name)
+            name = None
 
         # Handle error bar columns (R-style: dySeries(dg, c("low","mid","hi")))
         if columns is not None:
@@ -1395,6 +1470,46 @@ class Dygraph:
 
     # ---- group (dyGroup) ---------------------------------------------
 
+    def sync_group(self, name: str | None) -> Dygraph:
+        """Set the cross-chart synchronisation group name.
+
+        Charts that share the same ``sync_group`` name automatically sync
+        their x-axis zoom, pan, and highlight. This is the same value
+        accepted by the constructor's ``group=`` kwarg, exposed as a
+        builder method for discoverability and method-chain consistency.
+
+        Mirrors R's ``dygraph(group=)``. **Not to be confused with**
+        :meth:`group`, which styles a list of series together within a
+        single chart (R's ``dyGroup()``).
+
+        Parameters
+        ----------
+        name : str | None
+            Synchronisation group identifier. Pass ``None`` to clear.
+
+        Examples
+        --------
+        Two charts that auto-sync x-axis zoom:
+
+        >>> a = Dygraph(df1).sync_group("weather")
+        >>> b = Dygraph(df2).sync_group("weather")
+
+        Equivalent to passing ``group=`` to the constructor:
+
+        >>> a = Dygraph(df1, group="weather")  # same effect
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        group : Style a list of series together (the unrelated `dyGroup`).
+        """
+        self._group = name
+        return self
+
     def group(
         self,
         names: list[str],
@@ -1423,6 +1538,19 @@ class Dygraph:
         Note: ``dyGroup`` turns off ``stackedGraph`` in R because
         stacking calculates cumulatives over all series, not just a
         subset.
+
+        .. warning::
+            **Not to be confused with the constructor kwarg ``group=``.**
+            The two features share the name but do completely different
+            things:
+
+            - **This method (``.group([names], ...)``)** styles a *list of
+              series* together within a single chart. Takes a list of
+              column names. Mirrors R's ``dyGroup()``.
+            - **Constructor kwarg ``Dygraph(df, group="...")``** (a.k.a.
+              :meth:`sync_group`) synchronises zoom, pan, and highlight
+              across *multiple charts* that share the same group name.
+              Takes a string. Mirrors R's ``dygraph(group=)``.
 
         Parameters
         ----------
@@ -1474,6 +1602,7 @@ class Dygraph:
         See Also
         --------
         series : Configure a single series.
+        sync_group : Set the cross-chart sync name (the unrelated `group=` kwarg).
         """
         if len(names) == 1:
             return self.series(
@@ -2223,8 +2352,8 @@ class Dygraph:
 
     # ---- CSS (dyCSS) -------------------------------------------------
 
-    def css(self, path: str | Path) -> Dygraph:
-        """Apply a custom CSS file to the chart.
+    def css(self, css: str | Path) -> Dygraph:
+        """Apply custom CSS to the chart.
 
         Mirrors R ``dyCSS``. Styles are injected into the page and
         affect all dygraphs on the same page. See the `CSS
@@ -2233,19 +2362,35 @@ class Dygraph:
 
         Parameters
         ----------
-        path : str | Path
-            Path to a CSS file.
+        css : str | Path
+            Either a path to a CSS file (mirrors R's behavior) or a
+            raw CSS string. Raw strings are detected by the presence of
+            a ``{`` character; anything else is treated as a path. Pass
+            a :class:`pathlib.Path` to force the file-path interpretation.
 
         Examples
         --------
+        From a file (R-equivalent):
+
         >>> chart = Dygraph(df).css("custom-dygraph.css")
+
+        From a raw string (Python convenience):
+
+        >>> chart = Dygraph(df).css(".dygraph-title { color: red; }")
 
         Returns
         -------
         Dygraph
             Self, for chaining.
         """
-        self._css = Path(path).read_text()
+        if isinstance(css, Path):
+            self._css = css.read_text()
+        elif "{" in css:
+            # Raw CSS string — at least one rule body present.
+            self._css = css
+        else:
+            # Plain string with no braces: treat as a path (R-compatible).
+            self._css = Path(css).read_text()
         return self
 
     # ---- plotters (Plotters) -----------------------------------------
@@ -2368,7 +2513,9 @@ class Dygraph:
     def shadow(self, name: str, **kwargs: Any) -> Dygraph:
         """Apply a fill-only (shadow) plotter to a single series.
 
-        Mirrors R ``dyShadow``.
+        Mirrors R ``dyShadow``. Draws the filled area underneath the
+        series without a line on top — distinct from :meth:`filled_line`,
+        which draws both.
 
         Parameters
         ----------
@@ -2386,10 +2533,14 @@ class Dygraph:
         -------
         Dygraph
             Self, for chaining.
+
+        See Also
+        --------
+        filled_line : Draws both the fill *and* the line.
         """
         js = _read_plotter("fillplotter")
         self._extra_js.append(js)
-        return self.series(name, plotter="filledlineplotter", **kwargs)
+        return self.series(name, plotter="fillplotter", **kwargs)
 
     def filled_line(self, name: str, **kwargs: Any) -> Dygraph:
         """Apply a filled-line plotter to a single series.
@@ -2793,6 +2944,86 @@ class Dygraph:
             self._extra_js.append(js)
         return self
 
+    def dependency(
+        self,
+        name: str,
+        version: str = "1.0",
+        *,
+        src: str | Path | None = None,
+        script: str | list[str] | None = None,
+        stylesheet: str | list[str] | None = None,
+    ) -> Dygraph:
+        """Attach external JavaScript / CSS assets to the chart.
+
+        Mirrors R ``dyDependency``. In R, this takes an
+        ``htmltools::htmlDependency`` object; Python exposes the
+        constituent pieces directly.
+
+        Each referenced file is read eagerly (so the chart remains a
+        self-contained value) and inlined into ``to_html()`` output as
+        ``<script>`` / ``<link>`` tags before the main chart script.
+        ``name`` and ``version`` are stored for introspection but do not
+        affect rendering — they exist to match R's API shape.
+
+        Parameters
+        ----------
+        name : str
+            Dependency name (e.g. ``"Dygraph.Plugins.MyPlugin"``). Used
+            for bookkeeping; has no effect on how assets are loaded.
+        version : str, optional
+            Dependency version string. By default ``"1.0"``.
+        src : str | Path | None, optional
+            Directory that ``script`` / ``stylesheet`` paths are relative
+            to. If None, ``script`` / ``stylesheet`` are interpreted as
+            absolute or CWD-relative paths.
+        script : str | list[str] | None, optional
+            One or more JavaScript file paths, relative to ``src``.
+        stylesheet : str | list[str] | None, optional
+            One or more CSS file paths, relative to ``src``.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).dependency(
+        ...     "Dygraph.Plugins.MyPlugin",
+        ...     version="1.2",
+        ...     src="plugins",
+        ...     script="my-plugin.js",
+        ...     stylesheet="my-plugin.css",
+        ... )
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
+        base = Path(src) if src is not None else None
+
+        def _resolve(paths: str | list[str] | None) -> list[Path]:
+            if paths is None:
+                return []
+            if isinstance(paths, str):
+                paths = [paths]
+            return [(base / p) if base is not None else Path(p) for p in paths]
+
+        scripts = _resolve(script)
+        stylesheets = _resolve(stylesheet)
+
+        script_sources = [p.read_text() for p in scripts]
+        stylesheet_sources = [p.read_text() for p in stylesheets]
+
+        self._dependencies.append(
+            {
+                "name": name,
+                "version": version,
+                "src": str(src) if src is not None else None,
+                "script": [str(p) for p in scripts],
+                "stylesheet": [str(p) for p in stylesheets],
+                "_script_sources": script_sources,
+                "_stylesheet_sources": stylesheet_sources,
+            }
+        )
+        return self
+
     def custom_plotter(self, js: str) -> Dygraph:
         """Set a custom plotter from raw JavaScript.
 
@@ -2920,6 +3151,13 @@ class Dygraph:
             x["css"] = self._css
         if self._extra_js:
             x["extraJs"] = list(dict.fromkeys(self._extra_js))
+        if self._dependencies:
+            # Drop the eagerly-read source fields — the dict form is the
+            # introspection payload (R's `dygraph$dependencies` equivalent).
+            x["dependencies"] = [
+                {k: v for k, v in d.items() if not k.startswith("_")}
+                for d in self._dependencies
+            ]
         return x
 
     def to_json(self, **kwargs: Any) -> str:
@@ -3089,6 +3327,13 @@ class Dygraph:
         if self._extra_js:
             for js_code in dict.fromkeys(self._extra_js):
                 extra_js_blocks += f"<script>{js_code}</script>\n"
+        # User-supplied dependencies (R: dyDependency). Emit stylesheets
+        # first (inline <style>) so scripts can reference their classes.
+        for dep in self._dependencies:
+            for css_source in dep["_stylesheet_sources"]:
+                extra_js_blocks += f"<style>{css_source}</style>\n"
+            for js_source in dep["_script_sources"]:
+                extra_js_blocks += f"<script>{js_source}</script>\n"
 
         # The rendering JS below mirrors R's inst/htmlwidgets/dygraphs.js
         # as closely as possible to ensure identical behavior.
@@ -3464,6 +3709,41 @@ class Dygraph:
         """
         self._apply_declarative(**kwargs)
         return self
+
+    # ---- Jupyter / IPython display ------------------------------------
+
+    def _repr_html_(self) -> str:
+        """IPython rich-display hook — auto-renders in Jupyter notebooks.
+
+        Calling ``chart`` (or letting Jupyter implicitly display the last
+        cell expression) injects the standalone HTML returned by
+        :meth:`to_html`. The result is a complete chart, just like
+        running R's ``dygraph(...)`` in RStudio's viewer.
+
+        Notebook front-ends sandbox each output cell, so multiple charts
+        in the same notebook do not collide on element ids.
+        """
+        return self.to_html()
+
+    def show(self) -> Any:
+        """Display the chart in the current Jupyter / IPython environment.
+
+        Lets you write ``chart.show()`` explicitly when you don't want to
+        rely on Jupyter's last-expression auto-display (e.g. inside a
+        loop, or after a side-effecting line). Returns the IPython
+        display handle when IPython is available, otherwise prints a
+        short hint and returns ``None``.
+        """
+        try:
+            from IPython.display import HTML, display
+        except ImportError:
+            print(
+                "dygraphs.show() needs IPython to render in-place. "
+                "Use chart.to_html() to get the raw HTML, or call "
+                "Path('chart.html').write_text(chart.to_html())."
+            )
+            return None
+        return display(HTML(self.to_html()))
 
     # ---- copy --------------------------------------------------------
 

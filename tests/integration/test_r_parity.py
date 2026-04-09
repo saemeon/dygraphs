@@ -1525,6 +1525,452 @@ class TestUnzoomPlugin:
 
 
 # ---------------------------------------------------------------------------
+# Constructor-level features (periodicity= override)
+# ---------------------------------------------------------------------------
+
+
+class TestPeriodicityOverride:
+    """``dygraph(..., periodicity=)`` constructor override.
+
+    R takes an ``xts::periodicity`` list with a ``$scale`` field; Python
+    accepts the scale string directly. Compare the resulting ``x$scale``.
+    """
+
+    def test_periodicity_monthly_override(self) -> None:
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts, periodicity=list(scale="monthly", label="month"))
+            cat(toJSON(strip_js(dg$x$scale), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_2col(), periodicity="monthly").to_dict()["scale"]
+        assert r == "monthly"
+        assert py == "monthly"
+
+    def test_periodicity_default_is_autodetected_daily(self) -> None:
+        """Without an override, daily-spaced data lands on ``"daily"`` on both sides."""
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts)
+            cat(toJSON(strip_js(dg$x$scale), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_2col()).to_dict()["scale"]
+        assert r == "daily"
+        assert py == "daily"
+
+
+# ---------------------------------------------------------------------------
+# dyCSS — file → x$css string
+# ---------------------------------------------------------------------------
+
+
+class TestDyCSS:
+    def test_css_file_inlined_into_config(self, tmp_path) -> None:
+        css_file = tmp_path / "chart.css"
+        css_file.write_text(".dygraph-title { color: red; }")
+        # Use raw string for the R path so backslashes survive on Windows-ish
+        # paths and quotes inside the path are unlikely.
+        r_path = str(css_file).replace("\\", "/")
+        r = _run_r(f"""
+            {_R_TS_1COL}
+            dg <- dygraph(ts) %>% dyCSS("{r_path}")
+            cat(toJSON(strip_js(dg$x$css), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_1col()).css(css_file).to_dict()["css"]
+        # Both should contain the rule contents (R may or may not strip the
+        # trailing newline depending on readLines behaviour).
+        assert ".dygraph-title" in r
+        assert ".dygraph-title" in py
+
+
+# ---------------------------------------------------------------------------
+# dyDependency — manual external asset attachment
+# ---------------------------------------------------------------------------
+
+
+class TestDyDependency:
+    """Compare R ``dyDependency(htmlDependency(...))`` with Python ``.dependency()``.
+
+    R stores the htmlDependency object on ``x$dependencies``; Python stores
+    a normalised dict with the same fields (``name``, ``version``, ``src``,
+    ``script``, ``stylesheet``). The comparison is structural: both sides
+    must report the same dependency name, version, and script file
+    basename.
+    """
+
+    def test_dependency_name_and_version_round_trip(self, tmp_path) -> None:
+        js_file = tmp_path / "myplugin.js"
+        js_file.write_text("window.__myPlugin = 1;")
+        r_dir = str(tmp_path).replace("\\", "/")
+        r = _run_r(f"""
+            {_R_TS_1COL}
+            dep <- htmltools::htmlDependency(
+                "MyPlugin", "1.5",
+                src = "{r_dir}",
+                script = "myplugin.js",
+                all_files = FALSE
+            )
+            dg <- dygraph(ts) %>% dyDependency(dep)
+            cat(toJSON(strip_js(list(
+                name = dg$dependencies[[1]]$name,
+                version = dg$dependencies[[1]]$version,
+                script = dg$dependencies[[1]]$script
+            )), auto_unbox=TRUE))
+        """)
+        py_deps = (
+            Dygraph(_py_df_1col())
+            .dependency("MyPlugin", version="1.5", src=tmp_path, script="myplugin.js")
+            .to_dict()["dependencies"]
+        )
+        assert r["name"] == "MyPlugin"
+        assert r["version"] == "1.5"
+        assert r["script"] == "myplugin.js"
+        assert py_deps[0]["name"] == "MyPlugin"
+        assert py_deps[0]["version"] == "1.5"
+        # Python stores fully-qualified paths; R stores just the basename
+        # relative to src. Compare basenames for parity.
+        import os
+
+        assert os.path.basename(py_deps[0]["script"][0]) == "myplugin.js"
+
+
+# ---------------------------------------------------------------------------
+# Plotter family (dyBarChart / dyStackedBarChart / dyMultiColumn / dyCandlestick)
+# ---------------------------------------------------------------------------
+
+
+class TestPlotterFamily:
+    """Verify each ``dyX`` plotter family member emits a plotter on both sides.
+
+    Note: R stores the plotter NAME (e.g. ``"BarChart"``) in ``x$plotter``,
+    while Python stores a ``Dygraph.Plotters.X`` namespace lookup as a JS
+    expression (so the JS resolves it at render time). Both reach the same
+    runtime function. The comparison here is structural — both sides must
+    have a non-empty ``attrs.plotter`` (R) / ``attrs.plotter`` (Py).
+    """
+
+    def test_bar_chart_single_series(self) -> None:
+        r = _run_r(f"""
+            {_R_TS_1COL}
+            dg <- dygraph(ts) %>% dyBarChart()
+            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_1col()).bar_chart().to_dict()["attrs"].get("plotter")
+        # R emits a name string; Python emits a JS namespace lookup.
+        assert r and "BarChart" in str(r)
+        assert py is not None
+        assert "BarChart" in str(py)
+
+    def test_bar_chart_multi_series_falls_back_to_multi_column(self) -> None:
+        """R: dyBarChart() switches to MultiColumn when n>1. Python does too."""
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts) %>% dyBarChart()
+            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_2col()).bar_chart().to_dict()["attrs"].get("plotter")
+        assert "MultiColumn" in str(r)
+        assert "MultiColumn" in str(py)
+
+    def test_stacked_bar_chart(self) -> None:
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts) %>% dyStackedBarChart()
+            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+        """)
+        py = (
+            Dygraph(_py_df_2col()).stacked_bar_chart().to_dict()["attrs"].get("plotter")
+        )
+        assert "StackedBarChart" in str(r)
+        assert "StackedBarChart" in str(py)
+
+    def test_multi_column(self) -> None:
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts) %>% dyMultiColumn()
+            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_2col()).multi_column().to_dict()["attrs"].get("plotter")
+        assert "MultiColumn" in str(r)
+        assert "MultiColumn" in str(py)
+
+    def test_candlestick(self) -> None:
+        # Candlestick wants OHLC columns
+        r = _run_r("""
+            data <- data.frame(Date=as.Date("2020-01-01") + 0:4,
+                               Open=c(1,2,3,4,5), High=c(2,3,4,5,6),
+                               Low=c(0.5,1.5,2.5,3.5,4.5), Close=c(1.5,2.5,3.5,4.5,5.5))
+            ts <- xts(data[,c("Open","High","Low","Close")], order.by=data$Date)
+            dg <- dygraph(ts) %>% dyCandlestick()
+            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+        """)
+        ohlc = pd.DataFrame(
+            {
+                "Open": [1, 2, 3, 4, 5],
+                "High": [2, 3, 4, 5, 6],
+                "Low": [0.5, 1.5, 2.5, 3.5, 4.5],
+                "Close": [1.5, 2.5, 3.5, 4.5, 5.5],
+            },
+            index=_DATES,
+        )
+        py = Dygraph(ohlc).candlestick().to_dict()["attrs"].get("plotter")
+        assert "Candlestick" in str(r)
+        assert "Candlestick" in str(py)
+
+
+# ---------------------------------------------------------------------------
+# Series-level plotter family (dyBarSeries / dyStemSeries / dyShadow /
+# dyFilledLine / dyErrorFill)
+# ---------------------------------------------------------------------------
+
+
+class TestSeriesPlotterFamily:
+    """Each series-level plotter sets ``attrs$series$<name>$plotter``.
+
+    R inlines the plotter JS source as the value; Python stores a short
+    name reference and injects the JS source separately via ``extraJs``.
+    The comparison is structural: assert the named series has a plotter
+    set on both sides.
+    """
+
+    def _r_series_plotter_present(self, dy_func: str, series: str) -> bool:
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts) %>% {dy_func}("{series}")
+            has <- !is.null(dg$x$attrs$series[["{series}"]]$plotter)
+            cat(toJSON(has, auto_unbox=TRUE))
+        """)
+        return bool(r)
+
+    def _py_series_plotter_present(self, method_name: str, series: str) -> bool:
+        df = _py_df_2col()
+        dg = getattr(Dygraph(df), method_name)(series)
+        series_attrs = dg.to_dict()["attrs"].get("series", {})
+        return "plotter" in series_attrs.get(series, {})
+
+    def test_bar_series(self) -> None:
+        assert self._r_series_plotter_present("dyBarSeries", "a")
+        assert self._py_series_plotter_present("bar_series", "a")
+
+    def test_stem_series(self) -> None:
+        assert self._r_series_plotter_present("dyStemSeries", "a")
+        assert self._py_series_plotter_present("stem_series", "a")
+
+    def test_shadow(self) -> None:
+        assert self._r_series_plotter_present("dyShadow", "a")
+        assert self._py_series_plotter_present("shadow", "a")
+
+    def test_filled_line(self) -> None:
+        assert self._r_series_plotter_present("dyFilledLine", "a")
+        assert self._py_series_plotter_present("filled_line", "a")
+
+    def test_error_fill(self) -> None:
+        assert self._r_series_plotter_present("dyErrorFill", "a")
+        assert self._py_series_plotter_present("error_fill", "a")
+
+
+# ---------------------------------------------------------------------------
+# Group plotter family (dyMultiColumnGroup / dyCandlestickGroup /
+# dyStackedBarGroup / dyStackedLineGroup / dyStackedRibbonGroup)
+# ---------------------------------------------------------------------------
+
+
+class TestGroupPlotterFamily:
+    """5 group-level ``dy*Group`` plotters that wrap ``dyGroup`` with a JS plotter.
+
+    R inlines the plotter JS source as ``attrs$series$<name>$plotter``;
+    Python stores a short reference and injects the JS separately. The
+    structural check is: each named series in the group has a ``plotter``
+    key on ``attrs.series.<name>``.
+
+    Note: R's ``dyStackedBarGroup`` and ``dyStackedRibbonGroup`` short-circuit
+    to ``dyBarSeries`` / ``dyFilledLine`` when fewer than 2 names are passed,
+    so these tests always pass 2+ names to exercise the group path.
+    """
+
+    def _r_group_plotters_set(self, dy_func: str, names: list[str]) -> bool:
+        names_r = ", ".join(f'"{n}"' for n in names)
+        r = _run_r(f"""
+            {_R_TS_3COL}
+            dg <- dygraph(ts) %>% {dy_func}(c({names_r}))
+            present <- all(sapply(c({names_r}), function(n) {{
+                !is.null(dg$x$attrs$series[[n]]$plotter)
+            }}))
+            cat(toJSON(present, auto_unbox=TRUE))
+        """)
+        return bool(r)
+
+    def _py_group_plotters_set(self, method_name: str, names: list[str]) -> bool:
+        df = _py_df_3col()
+        dg = getattr(Dygraph(df), method_name)(names)
+        series_attrs = dg.to_dict()["attrs"].get("series", {})
+        return all("plotter" in series_attrs.get(n, {}) for n in names)
+
+    def test_multi_column_group(self) -> None:
+        assert self._r_group_plotters_set("dyMultiColumnGroup", ["a", "b"])
+        assert self._py_group_plotters_set("multi_column_group", ["a", "b"])
+
+    def test_stacked_bar_group(self) -> None:
+        assert self._r_group_plotters_set("dyStackedBarGroup", ["a", "b"])
+        assert self._py_group_plotters_set("stacked_bar_group", ["a", "b"])
+
+    def test_stacked_line_group(self) -> None:
+        assert self._r_group_plotters_set("dyStackedLineGroup", ["a", "b"])
+        assert self._py_group_plotters_set("stacked_line_group", ["a", "b"])
+
+    def test_stacked_ribbon_group(self) -> None:
+        assert self._r_group_plotters_set("dyStackedRibbonGroup", ["a", "b"])
+        assert self._py_group_plotters_set("stacked_ribbon_group", ["a", "b"])
+
+    def test_candlestick_group(self) -> None:
+        assert self._r_group_plotters_set("dyCandlestickGroup", ["a", "b"])
+        assert self._py_group_plotters_set("candlestick_group", ["a", "b"])
+
+
+# ---------------------------------------------------------------------------
+# dyPlugin — bare plugin registration wrapper
+# ---------------------------------------------------------------------------
+
+
+class TestDyPluginBare:
+    """``dyPlugin(name, path, options)`` — bare plugin registration.
+
+    Already exercised indirectly via ``dyCrosshair`` / ``dyRibbon`` /
+    ``dyRebase``, which are ``dyPlugin`` wrappers. This test exercises the
+    wrapper directly to catch regressions in the plugin-registration path
+    itself.
+
+    R stores the plugin under ``dg$x$plugins[[name]]`` (keyed by name);
+    Python stores it as a list of ``{"name", "options"}`` dicts under
+    ``to_dict()["plugins"]``.
+    """
+
+    def test_plugin_name_registered_on_both_sides(self, tmp_path) -> None:
+        js_file = tmp_path / "myplugin.js"
+        js_file.write_text("window.__myPlugin = 1;")
+        r_path = str(js_file).replace("\\", "/")
+        r = _run_r(f"""
+            {_R_TS_1COL}
+            dg <- dygraph(ts) %>%
+                dyPlugin("MyPlugin", "{r_path}", options=list(foo=1))
+            cat(toJSON(strip_js(names(dg$x$plugins)), auto_unbox=TRUE))
+        """)
+        py_plugins = (
+            Dygraph(_py_df_1col())
+            .plugin("MyPlugin", js="window.__myPlugin = 1;", options={"foo": 1})
+            .to_dict()["plugins"]
+        )
+        r_names = r if isinstance(r, list) else [r]
+        assert "MyPlugin" in r_names
+        assert any(p["name"] == "MyPlugin" for p in py_plugins)
+
+
+# ---------------------------------------------------------------------------
+# dyPlotter — custom chart-level plotter wrapper
+# ---------------------------------------------------------------------------
+
+
+class TestDyPlotterCustom:
+    """``dyPlotter(name, path)`` for a fully custom plotter.
+
+    Already exercised indirectly via ``dyBarChart`` / ``dyMultiColumn`` / etc.
+    in ``TestPlotterFamily``. This test covers the bare wrapper.
+
+    Note the structural divergence: R stores the plotter NAME in
+    ``dg$x$plotter``, while Python stores the JS SOURCE directly on
+    ``attrs.plotter`` as a ``JS()`` object. Both reach the same runtime
+    plotter through different mechanisms.
+    """
+
+    def test_custom_plotter_sets_attrs_plotter(self, tmp_path) -> None:
+        js_file = tmp_path / "myplotter.js"
+        js_file.write_text("function(e) { /* custom */ }")
+        r_path = str(js_file).replace("\\", "/")
+        r = _run_r(f"""
+            {_R_TS_1COL}
+            dg <- dygraph(ts) %>%
+                dyPlotter("MyPlotter", "{r_path}")
+            cat(toJSON(strip_js(dg$x$plotter), auto_unbox=TRUE))
+        """)
+        py_plotter = (
+            Dygraph(_py_df_1col())
+            .custom_plotter("function(e) { /* custom */ }")
+            .to_dict()["attrs"]
+            .get("plotter")
+        )
+        # R stores the name string; Python stores the JS source as a JS object.
+        assert r and "MyPlotter" in str(r)
+        assert py_plotter is not None
+
+
+# ---------------------------------------------------------------------------
+# dyDataHandler — custom data handler wrapper
+# ---------------------------------------------------------------------------
+
+
+class TestDyDataHandler:
+    """``dyDataHandler(name, path)`` sets ``x$dataHandler``.
+
+    Already exercised indirectly when ``dyCandlestick(compress=TRUE)`` uses
+    the ``CompressHandler``. This test covers the bare wrapper.
+
+    R stores the data handler NAME in ``dg$x$dataHandler``; Python stores
+    the JS source directly on ``attrs.dataHandler`` as a ``JS()`` object.
+    """
+
+    def test_data_handler_sets_attrs(self, tmp_path) -> None:
+        js_file = tmp_path / "myhandler.js"
+        js_file.write_text("function(rawData, i, name) { return rawData; }")
+        r_path = str(js_file).replace("\\", "/")
+        r = _run_r(f"""
+            {_R_TS_1COL}
+            dg <- dygraph(ts) %>%
+                dyDataHandler("MyHandler", "{r_path}")
+            cat(toJSON(strip_js(dg$x$dataHandler), auto_unbox=TRUE))
+        """)
+        py = (
+            Dygraph(_py_df_1col())
+            .data_handler("function(rawData, i, name) { return rawData; }")
+            .to_dict()["attrs"]
+            .get("dataHandler")
+        )
+        assert r and "MyHandler" in str(r)
+        assert py is not None
+
+
+# ---------------------------------------------------------------------------
+# dySeriesData — auxiliary data column
+# ---------------------------------------------------------------------------
+
+
+class TestDySeriesData:
+    """``dySeriesData(name, data)`` appends an auxiliary data column.
+
+    Structural divergence: R stores the aux column under
+    ``attr(dg$x, "data")`` (an R attribute, keyed by name) and does NOT
+    push the label into ``attrs$labels``. Python appends the name to
+    ``attrs.labels`` and the values to ``data``. The shared invariant
+    we check here: the new column name is reachable on both sides via
+    each implementation's aux-data accessor.
+    """
+
+    def test_aux_column_name_present_on_both_sides(self) -> None:
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts) %>%
+                dySeriesData("smoothed", c(1.5, 2.5, 3.5, 4.5, 5.5))
+            cat(toJSON(strip_js(names(attr(dg$x, "data"))), auto_unbox=TRUE))
+        """)
+        py_labels = (
+            Dygraph(_py_df_2col())
+            .series_data("smoothed", [1.5, 2.5, 3.5, 4.5, 5.5])
+            .to_dict()["attrs"]["labels"]
+        )
+        r_names = r if isinstance(r, list) else [r]
+        assert "smoothed" in r_names
+        assert "smoothed" in py_labels
+
+
+# ---------------------------------------------------------------------------
 # Strict full-JSON diff
 # ---------------------------------------------------------------------------
 
