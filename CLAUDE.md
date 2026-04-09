@@ -88,12 +88,13 @@ uv run mkdocs serve          # preview docs
 - `src/dygraphs/assets/` — vendored runtime: the dygraphs JavaScript library,
   plugins, `dygraph.css`, `moment.min.js`, and `dash_render.js` (the Dash
   clientside renderer). Shipped with the wheel.
-- `dygraphs-r/` and `dygraphs-js/` — **local-only reference clones** of the
-  upstream R package (`rstudio/dygraphs`) and JS library (`danvk/dygraphs`).
-  Cloned shallowly, gitignored, never shipped. Used as the source of truth
-  when porting features and resolving parity questions. If they're missing,
-  re-clone with `git clone --depth 1 https://github.com/rstudio/dygraphs.git
-  dygraphs-r` and the analogous command for `danvk/dygraphs`.
+- `dygraphs-r/` and `dygraphs-js/` — **vendored reference copies** of the
+  upstream R package (`rstudio/dygraphs`) and JS library (`danvk/dygraphs`),
+  checked into the repo for parity work. Source of truth when porting
+  features and resolving parity questions. Excluded from the wheel via
+  `tool.setuptools.packages.find` (`where = ["src"]`), so they never ship
+  to end users — they just come along when you clone the repo for
+  development.
 - `PyDyGraphs/` — legacy code from an earlier implementation; gitignored, not
   part of this package.
 
