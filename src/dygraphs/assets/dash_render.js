@@ -438,16 +438,25 @@
             instantiatePlugins(config, opts);
             applyPointShapes(config, opts);
 
-            // Create or update dygraph
+            // Always destroy + recreate (R/htmlwidgets model).
+            // One update path — no "did I forget to invalidate X" bugs.
             var ex = container._dygraphInstance;
             if (ex) {
-                ex.updateOptions(Object.assign({file: rows}, opts));
-            } else {
-                container.innerHTML = buildChartScaffold(setup);
-                container._dygraphInstance = new Dygraph(
-                    document.getElementById(setup.chartDivId), rows, opts
-                );
+                // Optionally preserve the user's zoom across data updates.
+                // Default is false (matches R's retainDateWindow = FALSE).
+                if (config.retainDateWindow) {
+                    var prevRange = ex.xAxisRange();
+                    if (prevRange) {
+                        opts.dateWindow = prevRange;
+                    }
+                }
+                ex.destroy();
+                container._dygraphInstance = null;
             }
+            container.innerHTML = buildChartScaffold(setup);
+            container._dygraphInstance = new Dygraph(
+                document.getElementById(setup.chartDivId), rows, opts
+            );
             var dygraph = container._dygraphInstance;
 
             // Re-register in group

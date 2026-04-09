@@ -178,9 +178,17 @@ class TestCapture:
         assert "true, true)" in strategy.capture  # hide=true, debug=true
 
     def test_modebar_uses_shared_js(self) -> None:
-        """component.py's __dyCap_ embeds the same shared JS constant."""
+        """component.py's __dyCap_ embeds the same shared JS constant.
+
+        Since the asset extraction, the modebar receives the capture JS
+        via the JSON-encoded ``setup.captureJs`` field, so the source is
+        present as a JSON-escaped substring rather than verbatim.
+        """
+        import json
+
         from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
         from dygraphs.dash.component import _build_render_js
 
         js = _build_render_js("g", "g-container", "g-chart", 320, modebar=True)
-        assert MULTI_CANVAS_CAPTURE_JS in js
+        encoded = json.dumps(MULTI_CANVAS_CAPTURE_JS)[1:-1]  # strip outer quotes
+        assert encoded in js
