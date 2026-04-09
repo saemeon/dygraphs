@@ -2352,7 +2352,12 @@ class Dygraph:
 
     # ---- CSS (dyCSS) -------------------------------------------------
 
-    def css(self, css: str | Path) -> Dygraph:
+    def css(
+        self,
+        css: str | Path | None = None,
+        *,
+        path: str | Path | None = None,
+    ) -> Dygraph:
         """Apply custom CSS to the chart.
 
         Mirrors R ``dyCSS``. Styles are injected into the page and
@@ -2362,11 +2367,16 @@ class Dygraph:
 
         Parameters
         ----------
-        css : str | Path
+        css : str | Path, optional
             Either a path to a CSS file (mirrors R's behavior) or a
             raw CSS string. Raw strings are detected by the presence of
             a ``{`` character; anything else is treated as a path. Pass
             a :class:`pathlib.Path` to force the file-path interpretation.
+        path : str | Path, optional, keyword-only
+            Backwards-compatible alias for ``css``. Before
+            raw-CSS-string support was added, this method's only
+            parameter was named ``path``; existing callers using
+            ``chart.css(path=...)`` keep working. Don't pass both.
 
         Examples
         --------
@@ -2383,14 +2393,22 @@ class Dygraph:
         Dygraph
             Self, for chaining.
         """
-        if isinstance(css, Path):
-            self._css = css.read_text()
-        elif "{" in css:
+        if css is not None and path is not None:
+            msg = "css() accepts 'css=' or 'path=', not both"
+            raise TypeError(msg)
+        arg = css if css is not None else path
+        if arg is None:
+            msg = "css() missing required argument"
+            raise TypeError(msg)
+
+        if isinstance(arg, Path):
+            self._css = arg.read_text()
+        elif "{" in arg:
             # Raw CSS string — at least one rule body present.
-            self._css = css
+            self._css = arg
         else:
             # Plain string with no braces: treat as a path (R-compatible).
-            self._css = Path(css).read_text()
+            self._css = Path(arg).read_text()
         return self
 
     # ---- plotters (Plotters) -----------------------------------------
@@ -2961,9 +2979,13 @@ class Dygraph:
 
         Each referenced file is read eagerly (so the chart remains a
         self-contained value) and inlined into ``to_html()`` output as
-        ``<script>`` / ``<link>`` tags before the main chart script.
-        ``name`` and ``version`` are stored for introspection but do not
-        affect rendering — they exist to match R's API shape.
+        ``<script>...</script>`` / ``<style>...</style>`` blocks before
+        the main chart script. Files are inlined (not linked via
+        ``<link rel="stylesheet">`` or ``<script src=...>``) so the
+        resulting HTML page is fully self-contained — no external
+        fetches at view time. ``name`` and ``version`` are stored for
+        introspection but do not affect rendering — they exist to
+        match R's API shape.
 
         Parameters
         ----------

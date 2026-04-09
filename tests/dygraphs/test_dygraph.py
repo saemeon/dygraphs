@@ -176,6 +176,30 @@ class TestCssRawString:
         html = Dygraph(_sample_df()).css(".my-cls { font-weight: bold }").to_html()
         assert ".my-cls { font-weight: bold }" in html
 
+    def test_css_accepts_legacy_path_keyword(self, tmp_path) -> None:
+        """Callers using the old ``css(path=...)`` keyword must keep
+        working.
+
+        Regression guard for a backwards-compat bug introduced when
+        raw-CSS-string support renamed the positional parameter from
+        ``path`` to ``css``. The method now accepts both keywords.
+        """
+        css_file = tmp_path / "legacy.css"
+        css_file.write_text(".legacy { color: green; }")
+        d = Dygraph(_sample_df()).css(path=str(css_file))
+        assert d.to_dict()["css"] == ".legacy { color: green; }"
+
+    def test_css_both_keywords_rejected(self) -> None:
+        """Passing both ``css=`` and ``path=`` raises TypeError —
+        refusing the ambiguous form rather than silently picking one."""
+        with pytest.raises(TypeError, match="not both"):
+            Dygraph(_sample_df()).css(css=".a {}", path="x.css")
+
+    def test_css_no_arguments_rejected(self) -> None:
+        """``.css()`` with no arguments raises TypeError."""
+        with pytest.raises(TypeError, match="missing required"):
+            Dygraph(_sample_df()).css()
+
 
 class TestSyncGroupAlias:
     """``.sync_group(name)`` is a builder alias for the constructor's
