@@ -5,9 +5,29 @@ from __future__ import annotations
 import socket
 import threading
 import time
+import urllib.request
 
 import pandas as pd
 import pytest
+
+
+def _poll(fn, *, timeout=10, interval=0.2):
+    """Poll ``fn()`` until truthy, raise TimeoutError otherwise."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        result = fn()
+        if result:
+            return result
+        time.sleep(interval)
+    raise TimeoutError(f"poll timed out after {timeout}s")
+
+
+def _try_connect(url: str) -> bool:
+    try:
+        urllib.request.urlopen(url, timeout=1)
+        return True
+    except Exception:
+        return False
 
 
 @pytest.fixture(scope="module")
@@ -43,13 +63,13 @@ def dash_app_url():
         s.bind(("", 0))
         port = s.getsockname()[1]
 
-    server_thread = threading.Thread(
+    threading.Thread(
         target=lambda: app.run(port=port, debug=False, use_reloader=False),
         daemon=True,
-    )
-    server_thread.start()
-    time.sleep(3)
-    yield f"http://127.0.0.1:{port}"
+    ).start()
+    url = f"http://127.0.0.1:{port}"
+    _poll(lambda: _try_connect(url), timeout=10)
+    yield url
 
 
 @pytest.fixture(scope="module")
@@ -80,59 +100,47 @@ def chrome_driver():
     driver.quit()
 
 
-def test_dygraph_renders_canvas(dash_app_url: str, chrome_driver) -> None:
-    """Verify the dygraph renders a canvas element in the browser."""
+@pytest.fixture(scope="module")
+def loaded_page(dash_app_url, chrome_driver):
+    """Navigate once, poll until the chart canvases appear, return the driver."""
     chrome_driver.get(dash_app_url)
-    time.sleep(5)  # extra time for CDN load + callback execution
+    _poll(
+        lambda: chrome_driver.execute_script(
+            "return document.querySelectorAll('#test-chart-container canvas')"
+            ".length > 0;"
+        ),
+        timeout=15,
+    )
+    return chrome_driver
 
-    # Check for JS errors
-    logs = chrome_driver.get_log("browser")
+
+def test_dygraph_renders_canvas(loaded_page) -> None:
+    """Verify the dygraph renders a canvas element in the browser."""
+    logs = loaded_page.get_log("browser")
     errors = [e for e in logs if e["level"] == "SEVERE"]
-    for err in errors:
-        print(f"JS ERROR: {err['message']}")
+    assert not errors, f"JS errors: {errors}"
 
-    heading = chrome_driver.find_element("id", "heading")
+    heading = loaded_page.find_element("id", "heading")
     assert "Integration Test" in heading.text
 
-    # The chart container should exist
-    container = chrome_driver.find_element("id", "test-chart-container")
-    assert container is not None
-
-    # Check what's inside the container
-    inner_html = chrome_driver.execute_script(
-        "return document.getElementById('test-chart-container').innerHTML"
-    )
-    print(f"Container innerHTML length: {len(inner_html)}")
-    print(f"Container innerHTML preview: {inner_html[:500]}")
-
-    # Dygraph renders into canvas elements
+    container = loaded_page.find_element("id", "test-chart-container")
     canvases = container.find_elements("tag name", "canvas")
-    assert len(canvases) > 0, (
-        f"Dygraph should render at least one canvas element. "
-        f"Container HTML: {inner_html[:300]}"
-    )
+    assert len(canvases) > 0, "Dygraph should render at least one canvas element"
 
 
-def test_dygraph_has_title(dash_app_url: str, chrome_driver) -> None:
+def test_dygraph_has_title(loaded_page) -> None:
     """Verify the chart title is rendered."""
-    chrome_driver.get(dash_app_url)
-    time.sleep(5)
-
-    container = chrome_driver.find_element("id", "test-chart-container")
+    container = loaded_page.find_element("id", "test-chart-container")
     titles = container.find_elements("class name", "dygraph-title")
     if titles:
         assert "Weather Data" in titles[0].text
 
 
-def test_dygraph_has_legend(dash_app_url: str, chrome_driver) -> None:
+def test_dygraph_has_legend(loaded_page) -> None:
     """Verify the legend is rendered."""
-    chrome_driver.get(dash_app_url)
-    time.sleep(5)
-
-    container = chrome_driver.find_element("id", "test-chart-container")
+    container = loaded_page.find_element("id", "test-chart-container")
     legends = container.find_elements("class name", "dygraph-legend")
-    # Legend might not render in headless if no hover — make this softer
-    inner_html = chrome_driver.execute_script(
+    inner_html = loaded_page.execute_script(
         "return document.getElementById('test-chart-container').innerHTML"
     )
     assert len(inner_html) > 100 or len(legends) > 0, (

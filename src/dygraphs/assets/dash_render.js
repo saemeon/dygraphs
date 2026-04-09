@@ -444,7 +444,8 @@
             if (ex) {
                 // Optionally preserve the user's zoom across data updates.
                 // Default is false (matches R's retainDateWindow = FALSE).
-                if (config.retainDateWindow) {
+                // The Python builder puts it under config.attrs.
+                if (opts.retainDateWindow) {
                     var prevRange = ex.xAxisRange();
                     if (prevRange) {
                         opts.dateWindow = prevRange;
