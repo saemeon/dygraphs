@@ -2,7 +2,7 @@
 
 Python wrapper for the [dygraphs](https://dygraphs.com) JavaScript charting library.
 
-**Core port of the R [dygraphs](https://rstudio.github.io/dygraphs/) package** — all 44 exported R functions ported to a Pythonic builder API. The R package (by RStudio/JJ Allaire) is the most mature dygraphs wrapper in any language; dygraphs faithfully ports its API design, data model, and test coverage to Python.
+**Core port of the R [dygraphs](https://rstudio.github.io/dygraphs/) package** — **all 37** exported R `dy*` functions plus the `dygraph()` constructor are ported to a Pythonic builder API (100% function-level parity). The R package (by RStudio/JJ Allaire) is the most mature dygraphs wrapper in any language; dygraphs faithfully ports its API design, data model, and test coverage to Python.
 
 Framework-agnostic core with adapters for [Plotly Dash](https://dash.plotly.com/) and [Shiny for Python](https://shiny.posit.co/py/).
 
@@ -11,10 +11,11 @@ Framework-agnostic core with adapters for [Plotly Dash](https://dash.plotly.com/
 - **Two API styles**: builder chaining (`Dygraph(df).options(...).series(...)`) and declarative (`Dygraph(df, options=Options(...), series=[Series(...)])`) — both produce identical output
 - **Full R port + full JS coverage**: options, axes, series, legend, highlight, annotations, shadings, events, limits, range selector, roller, callbacks — every documented and undocumented dygraph option is exposed
 - **Advanced plotters**: bar chart, stacked bar, candlestick, multi-column, stem, filled line, error fill + group variants
-- **Plugins**: unzoom, crosshair, ribbon, rebase
-- **Error bars**: symmetric, custom (low/mid/high), fractions with Wilson intervals
+- **Plugins**: unzoom, crosshair, ribbon, rebase, plus `.plugin()` and `.dependency()` for arbitrary external JS/CSS
+- **Error bars**: symmetric, custom (low/mid/high), fractions with Wilson intervals — also via R-style `dySeries(c("lwr","fit","upr"))` shortcut: `.series(["lwr","fit","upr"])`
 - **Zoom sync** across multiple charts (line + stacked bar) with debounced range-selector panning
 - **Stacked bar chart** with interactive canvas range selector
+- **Jupyter / IPython auto-display** — `_repr_html_` makes charts render inline as the last expression in a cell, same UX as `dygraph()` in RStudio's viewer
 - **Modebar overlay** (Plotly-style) with PNG download and reset zoom buttons
 - **Standalone HTML export** via `.to_html()` — no server needed
 - **dash-capture compatible** via `dygraph_strategy()`
@@ -107,6 +108,22 @@ html_string = chart.to_html()
 Path("chart.html").write_text(html_string)
 ```
 
+### Jupyter / IPython
+
+A `Dygraph` is its own display object. Make it the last expression in
+a cell and Jupyter renders it inline:
+
+```python
+chart  # auto-displays via _repr_html_
+```
+
+For non-last-expression contexts (loops, after side-effecting lines)
+use the explicit helper:
+
+```python
+chart.show()  # uses IPython.display.HTML
+```
+
 ## Data Input
 
 | Format | Example |
@@ -149,6 +166,46 @@ chart_b = Dygraph(df2, group="sync").range_selector().to_dash(app, component_id=
 chart_c = stacked_bar(app, "c", csv_data, title="Stacked Bar", group="sync")
 
 app.layout = html.Div([chart_a, chart_b, chart_c])
+```
+
+The constructor's `group=` kwarg has a chainable equivalent for fluent
+builders: `Dygraph(df).sync_group("sync")`. **Not to be confused with**
+`.group([names])`, which is the unrelated `dyGroup` port for styling
+a list of series together within a *single* chart.
+
+## Periodicity override
+
+By default, dygraphs auto-detects the time scale from a `DatetimeIndex`
+(daily, monthly, yearly, etc.). For irregular data or to force a
+specific scale, pass `periodicity=`:
+
+```python
+# Force monthly even if the index has finer granularity
+chart = Dygraph(df, title="Monthly view", periodicity="monthly")
+```
+
+Accepted values mirror R's `xts::periodicity$scale`: `"yearly"`,
+`"quarterly"`, `"monthly"`, `"weekly"`, `"daily"`, `"hourly"`,
+`"minute"`, `"seconds"`, `"milliseconds"`. Default `None` = auto.
+
+## External plugin assets
+
+Use `.dependency()` to attach external JavaScript / CSS files to a
+chart — the Python equivalent of R's `dyDependency(htmlDependency(...))`.
+Files are read eagerly and inlined as `<script>` / `<style>` tags in
+`to_html()` output:
+
+```python
+chart = (
+    Dygraph(df)
+    .dependency(
+        "Dygraph.Plugins.MyPlugin",
+        version="1.2",
+        src="plugins/",
+        script="my-plugin.js",
+        stylesheet="my-plugin.css",
+    )
+)
 ```
 
 ## Dynamic Updates (Dash)
@@ -196,11 +253,12 @@ capture_element(app, "btn", "chart-container", "img-store",
 
 | Method | R Equivalent | Description |
 |--------|-------------|-------------|
-| `Dygraph(data, ...)` | `dygraph()` | Create chart |
+| `Dygraph(data, ...)` | `dygraph()` | Create chart (also accepts `periodicity=`) |
 | `.options(...)` | `dyOptions()` | Global options |
 | `.axis(name, ...)` | `dyAxis()` | Per-axis config |
-| `.series(name, ...)` | `dySeries()` | Per-series config |
-| `.group(names, ...)` | `dyGroup()` | Group config |
+| `.series(name, ...)` | `dySeries()` | Per-series config (accepts `[names]` for error bands) |
+| `.group(names, ...)` | `dyGroup()` | Group of series — shared display options |
+| `.sync_group(name)` | — | Cross-chart sync alias for `group=` kwarg |
 | `.legend(...)` | `dyLegend()` | Legend options |
 | `.highlight(...)` | `dyHighlight()` | Highlight behavior |
 | `.annotation(x, text)` | `dyAnnotation()` | Data annotations |
@@ -210,14 +268,20 @@ capture_element(app, "btn", "chart-container", "img-store",
 | `.range_selector(...)` | `dyRangeSelector()` | Range selector |
 | `.roller(...)` | `dyRoller()` | Rolling average |
 | `.callbacks(...)` | `dyCallbacks()` | JS callbacks |
-| `.css(path)` | `dyCSS()` | Custom CSS |
-| `.update(...)` | — | Modify config |
-| `.copy()` | — | Deep copy |
+| `.css(css)` | `dyCSS()` | Custom CSS — accepts a file path or raw CSS string |
+| `.plugin(name, js, options)` | `dyPlugin()` | Register a custom dygraphs plugin |
+| `.dependency(name, ...)` | `dyDependency()` | Attach external JS / CSS files |
+| `.custom_plotter(js)` | `dyPlotter()` | Set a custom JS plotter |
+| `.data_handler(js)` | `dyDataHandler()` | Set a custom JS data handler |
+| `.series_data(name, values)` | `dySeriesData()` | Add an auxiliary data column |
+| `.update(...)` | — | Modify config post-construction |
+| `.copy()` | — | Deep copy for forking variants |
+| `.show()` | — | Render in Jupyter via `IPython.display` |
 | `.to_dash(app)` | — | Dash component |
 | `.to_shiny(id)` | — | Shiny component |
-| `.to_html()` | — | Standalone HTML |
-| `.to_dict()` | — | Plain dict |
-| `.to_json()` | — | JSON string |
+| `.to_html()` | — | Standalone HTML page |
+| `.to_dict()` | — | Plain dict (framework-agnostic) |
+| `.to_json()` | — | JSON string (with JS markers preserved) |
 | `Dygraph.from_csv(path)` | — | Load from CSV file |
 
 ### Declarative Dataclasses

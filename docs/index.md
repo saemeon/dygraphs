@@ -108,6 +108,22 @@ html_string = chart.to_html()
 Path("chart.html").write_text(html_string)
 ```
 
+### Jupyter / IPython
+
+A `Dygraph` is its own display object — making it the last expression
+in a cell auto-renders it inline via `_repr_html_`, the same UX as
+`dygraph()` in RStudio's viewer:
+
+```python
+chart  # auto-displays
+```
+
+For loops or non-last-expression contexts, use the explicit helper:
+
+```python
+chart.show()  # uses IPython.display.HTML
+```
+
 ## Data Input
 
 | Format | Example |
@@ -150,11 +166,12 @@ chart = (
 
 | Method | R Equivalent | Description |
 |--------|-------------|-------------|
-| `Dygraph(data, ...)` | `dygraph()` | Create chart |
+| `Dygraph(data, ...)` | `dygraph()` | Create chart (also accepts `periodicity=`) |
 | `.options(...)` | `dyOptions()` | Global options |
 | `.axis(name, ...)` | `dyAxis()` | Per-axis config |
-| `.series(name, ...)` | `dySeries()` | Per-series config |
-| `.group(names, ...)` | `dyGroup()` | Group config |
+| `.series(name, ...)` | `dySeries()` | Per-series config (accepts `[names]` for error bands) |
+| `.group(names, ...)` | `dyGroup()` | Group of series — shared display options |
+| `.sync_group(name)` | — | Cross-chart sync alias for `group=` kwarg |
 | `.legend(...)` | `dyLegend()` | Legend options |
 | `.highlight(...)` | `dyHighlight()` | Highlight behavior |
 | `.annotation(x, text)` | `dyAnnotation()` | Data annotations |
@@ -164,7 +181,8 @@ chart = (
 | `.range_selector(...)` | `dyRangeSelector()` | Range selector |
 | `.roller(...)` | `dyRoller()` | Rolling average |
 | `.callbacks(...)` | `dyCallbacks()` | JS callbacks |
-| `.css(path)` | `dyCSS()` | Custom CSS |
+| `.css(css)` | `dyCSS()` | Custom CSS — file path or raw CSS string |
+| `.dependency(name, ...)` | `dyDependency()` | Attach external JS / CSS files |
 
 ### Plotters
 
