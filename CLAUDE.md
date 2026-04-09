@@ -287,6 +287,22 @@ audit-flagged gaps are closed)*
   same runtime function, but the JSON shapes differ. The R parity
   comparisons in `TestPlotterFamily` and `TestSeriesPlotterFamily` are
   intentionally structural ("plotter is set"), not byte-for-byte.
+- **Data-handler storage** mirrors the plotter divergence: R's
+  `dyDataHandler(name, path)` stores the handler NAME string in
+  `dg$x$dataHandler`; Python's `.data_handler(js)` stores the JS
+  source as a `JS()` object on `attrs.dataHandler`. Both reach the
+  same runtime function via different mechanisms. `TestDyDataHandler`
+  is structural for the same reason.
+- **`dySeriesData` aux-column storage.** R stores the auxiliary column
+  under the R-only `attr(dg$x, "data")` attribute (keyed by name) and
+  does **not** push the label into `dg$x$attrs$labels`. Python pushes
+  the new name to `attrs.labels` and the values to `data` because
+  there's no Python equivalent of R attributes. `TestDySeriesData`
+  reads each side via its own aux-data accessor and asserts the
+  shared invariant: the new column name is reachable. If we ever want
+  per-byte parity here, the Python side would need a separate
+  aux-data store and the labels list would have to stay clean — a
+  larger refactor than the current shape warrants.
 
 ### Tertiary track — Pythonic UX polish
 
