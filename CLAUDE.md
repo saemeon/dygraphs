@@ -304,12 +304,21 @@ to-end UX review against R's `dygraphs` workflow.
   detects raw strings via the presence of `{` (any string with no
   braces is treated as a path, matching R). `Path` objects always read
   from disk.
+- [x] **Split `examples/gallery.py` into a 5-chapter package.** The
+  monolithic 1329-line script became `examples/gallery_pkg/` with one
+  module per theme: `basics` (data input, styling, point shapes, axes,
+  legend), `overlays` (annotations / events / shadings, range
+  selector + roller), `plotters` (bar / series / group / candlestick /
+  error bars), `plugins` (plugins, series groups, callbacks), and
+  `api` (everything else: formatting, interaction, stacked,
+  declarative, copy/update, custom plotter, series data, css, grid,
+  to_html). Each chapter exposes `ALL_SECTIONS`, a list of zero-arg
+  functions returning `(title, charts)` tuples; the package
+  `__init__.py` walks them in order. Output is **byte-identical** to
+  the old gallery (verified at 13.4 MB).
 
 #### Next up
-1. **Split `examples/gallery.py` (1329 lines)** into a docs gallery —
-   one chapter per plot family. Currently a single Python file with
-   ~30 examples; hard to navigate, hard to link to from the docs.
-2. **Document the `.group()` vs `group=` collision.** `Dygraph(df,
+1. **Document the `.group()` vs `group=` collision.** `Dygraph(df,
    group="sync-name")` is the *sync-group* kwarg (mirrors R's
    `dygraph(group=)`); `.group([...])` is the `dyGroup` port for
    styling a set of series together. Same name, very different
