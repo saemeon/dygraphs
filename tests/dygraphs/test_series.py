@@ -111,3 +111,96 @@ class TestSeriesRStyleErrorBands:
         """Regression: passing a single string must NOT be misread as a list."""
         d = Dygraph(self._band_df()).series("fit", color="red")
         assert d.to_dict()["attrs"]["colors"][1] == "red"
+
+
+class TestErrorBarCombinations:
+    """Error-bar features in combination with other options.
+
+    Each combination is exercised once to lock in the current shape so
+    a future refactor can't silently mangle the produced config.
+    """
+
+    @staticmethod
+    def _band_df() -> pd.DataFrame:
+        idx = pd.date_range("2020-01-01", periods=4, freq="D")
+        return pd.DataFrame(
+            {"lwr": [1, 2, 3, 4], "fit": [2, 3, 4, 5], "upr": [3, 4, 5, 6]}, index=idx
+        )
+
+    def test_custom_bars_with_log_scale(self) -> None:
+        """Custom bars must coexist with logscale — both flags survive."""
+        d = (
+            Dygraph(self._band_df())
+            .series(["lwr", "fit", "upr"], label="band")
+            .options(logscale=True)
+        )
+        cfg = d.to_dict()
+        assert cfg["attrs"]["customBars"] is True
+        assert cfg["attrs"]["logscale"] is True
+
+    def test_custom_bars_with_step_plot(self) -> None:
+        d = Dygraph(self._band_df()).series(
+            ["lwr", "fit", "upr"], label="band", step_plot=True
+        )
+        cfg = d.to_dict()
+        assert cfg["attrs"]["customBars"] is True
+        assert cfg["attrs"]["series"]["band"]["stepPlot"] is True
+
+    def test_symmetric_error_bars_with_step_plot(self) -> None:
+        idx = pd.date_range("2020-01-01", periods=3, freq="D")
+        df = pd.DataFrame({"y": [10, 20, 30], "err": [1, 2, 3]}, index=idx)
+        d = Dygraph(df).series(["y", "err"], label="signal", step_plot=True)
+        cfg = d.to_dict()
+        assert cfg["attrs"]["errorBars"] is True
+        assert cfg["attrs"]["series"]["signal"]["stepPlot"] is True
+
+    def test_custom_bars_with_fill_graph(self) -> None:
+        """fill_graph + custom bars: dygraphs.js draws the band fill."""
+        d = (
+            Dygraph(self._band_df())
+            .series(["lwr", "fit", "upr"], label="band")
+            .options(fill_graph=True)
+        )
+        cfg = d.to_dict()
+        assert cfg["attrs"]["customBars"] is True
+        assert cfg["attrs"]["fillGraph"] is True
+
+    def test_custom_bars_collapses_data_columns(self) -> None:
+        """The 3 source columns become 1 merged column of triples; the
+        original column names are removed from labels."""
+        d = Dygraph(self._band_df()).series(["lwr", "fit", "upr"], label="band")
+        cfg = d.to_dict()
+        labels = cfg["attrs"]["labels"]
+        # Date + the merged "band" — 2 columns total
+        assert len(cfg["data"]) == 2
+        assert "band" in labels
+        # Original individual columns are gone
+        assert "lwr" not in labels
+        assert "upr" not in labels
+        # The y-column rows are 3-tuples [low, mid, high]
+        assert all(len(row) == 3 for row in cfg["data"][1])
+
+    def test_two_independent_error_band_series(self) -> None:
+        """Two consecutive error-band declarations on disjoint columns."""
+        idx = pd.date_range("2020-01-01", periods=3, freq="D")
+        df = pd.DataFrame(
+            {
+                "lwr1": [1, 2, 3],
+                "fit1": [2, 3, 4],
+                "upr1": [3, 4, 5],
+                "lwr2": [10, 20, 30],
+                "fit2": [20, 30, 40],
+                "upr2": [30, 40, 50],
+            },
+            index=idx,
+        )
+        d = (
+            Dygraph(df)
+            .series(["lwr1", "fit1", "upr1"], label="signal_a")
+            .series(["lwr2", "fit2", "upr2"], label="signal_b")
+        )
+        labels = d.to_dict()["attrs"]["labels"]
+        assert "signal_a" in labels
+        assert "signal_b" in labels
+        # Both bands collapsed to 1 column each → Date + 2 series
+        assert len(d.to_dict()["data"]) == 3

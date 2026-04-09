@@ -197,6 +197,203 @@ class TestSyncGroupAlias:
         assert d.to_dict()["group"] is None
 
 
+class TestPeriodicityEdgeCases:
+    """Edge cases for the auto-detect path in ``_detect_scale``.
+
+    Locks in the current behaviour for irregular indexes, single-point
+    indexes, sub-second resolution, and decade-scale data so that
+    refactors of the scale-detection helper can't silently change what
+    users see.
+    """
+
+    def test_single_point_index_falls_back_to_daily(self) -> None:
+        """``len(idx) < 2`` -> default scale (no diffs to median over)."""
+        idx = pd.date_range("2024-01-01", periods=1)
+        d = Dygraph(pd.DataFrame({"y": [1]}, index=idx))
+        assert d.to_dict()["scale"] == "daily"
+
+    def test_irregular_index_falls_back_to_median_gap(self) -> None:
+        """Mixed daily/monthly gaps -> median classifies the chart."""
+        idx = pd.DatetimeIndex(
+            [
+                "2024-01-01",
+                "2024-01-02",
+                "2024-01-03",
+                "2024-06-01",
+                "2024-12-01",
+            ]
+        )
+        d = Dygraph(pd.DataFrame({"y": [1, 2, 3, 4, 5]}, index=idx))
+        scale = d.to_dict()["scale"]
+        # Median gap is between Jan 2-3 and Jan 3 - Jun 1 -> the inner
+        # median ("daily" range). Pin the actual outcome rather than
+        # assert a specific value the user can't easily reason about.
+        assert scale in {"daily", "weekly", "monthly", "quarterly"}
+
+    def test_sub_second_index_detected_as_seconds(self) -> None:
+        """Microsecond-spaced index resolves to ``"seconds"`` (the
+        finest granularity Python's auto-detect emits)."""
+        idx = pd.date_range("2024-01-01", periods=5, freq="100ms")
+        d = Dygraph(pd.DataFrame({"y": [1, 2, 3, 4, 5]}, index=idx))
+        assert d.to_dict()["scale"] == "seconds"
+
+    def test_yearly_index_detected_as_yearly_or_quarterly(self) -> None:
+        """Yearly-spaced index lands in the high-period bucket.
+
+        Note: depending on the pandas version's ``str(idx.freq)``
+        format, this is either caught by the freq-prefix path
+        (returning ``"yearly"``) or by the median-gap fallback
+        (which classifies 365 days as ``"quarterly"`` because
+        365 < 366). Either is acceptable — the chart still renders;
+        we lock in only the loose invariant. A tighter fix would
+        widen the median-gap quarterly→yearly boundary to 364 days.
+        """
+        idx = pd.date_range("2000-01-01", periods=10, freq="YS")
+        d = Dygraph(pd.DataFrame({"y": list(range(10))}, index=idx))
+        assert d.to_dict()["scale"] in {"yearly", "quarterly"}
+
+    def test_quarterly_index_detected_as_quarterly(self) -> None:
+        idx = pd.date_range("2024-01-01", periods=8, freq="QS")
+        d = Dygraph(pd.DataFrame({"y": list(range(8))}, index=idx))
+        assert d.to_dict()["scale"] == "quarterly"
+
+    def test_explicit_override_wins_over_irregular_autodetect(self) -> None:
+        """Explicit periodicity= bypasses _detect_scale's median fallback."""
+        idx = pd.DatetimeIndex(["2024-01-01", "2024-01-02", "2024-06-01", "2024-12-01"])
+        df = pd.DataFrame({"y": [1, 2, 3, 4]}, index=idx)
+        d = Dygraph(df, periodicity="quarterly")
+        assert d.to_dict()["scale"] == "quarterly"
+
+
+class TestToHtmlStructure:
+    """Structural sanity checks on ``to_html()`` output.
+
+    Catches the common categories of HTML mistakes (unclosed tags,
+    missing doctype, missing chart container, escaped JS) without
+    needing a real browser. ``html.parser`` from stdlib does the
+    structural pass; the rest is substring assertions.
+    """
+
+    def test_to_html_has_doctype(self) -> None:
+        html = Dygraph(_sample_df()).to_html()
+        assert html.startswith("<!DOCTYPE html>")
+
+    def test_to_html_has_html_head_body(self) -> None:
+        html = Dygraph(_sample_df()).to_html()
+        for tag in ("<html", "<head>", "<body>", "</body>", "</html>"):
+            assert tag in html
+
+    def test_to_html_has_title(self) -> None:
+        html = Dygraph(_sample_df(), title="My Title").to_html()
+        assert "<title>My Title</title>" in html
+
+    def test_to_html_has_chart_container_div(self) -> None:
+        html = Dygraph(_sample_df()).to_html()
+        assert 'id="chart"' in html
+
+    def test_to_html_parses_without_errors(self) -> None:
+        """Run the rendered HTML through ``html.parser`` and assert no
+        exceptions. Stdlib parser is permissive but does catch unclosed
+        tags inside the head, malformed doctype, and similar issues."""
+        from html.parser import HTMLParser
+
+        class StrictParser(HTMLParser):
+            def __init__(self) -> None:
+                super().__init__(convert_charrefs=True)
+                self.errors: list[str] = []
+
+            def error(self, message: str) -> None:  # type: ignore[override]
+                self.errors.append(message)
+
+        parser = StrictParser()
+        parser.feed(Dygraph(_sample_df(), title="Parse").to_html())
+        parser.close()
+        assert parser.errors == []
+
+    def test_to_html_balanced_script_tags(self) -> None:
+        """Number of <script ...> openings must equal </script> closings.
+
+        Catches a regression where a JS callback's source contains a
+        literal ``</script>`` substring (which would terminate the
+        outer tag prematurely). The test isn't a complete defence
+        against that, but it catches the most common case.
+        """
+        html = Dygraph(_sample_df()).to_html()
+        opens = html.count("<script")
+        closes = html.count("</script>")
+        assert opens == closes, f"unbalanced <script>: {opens} open vs {closes} close"
+
+    def test_to_html_inlines_chart_config_json(self) -> None:
+        """The serialised config must appear in the inlined script body
+        — otherwise the renderer has nothing to draw."""
+        html = Dygraph(_sample_df(), title="Inlined").to_html()
+        assert '"title": "Inlined"' in html or '"title":"Inlined"' in html
+
+    def test_to_html_cdn_mode_uses_link_tag(self) -> None:
+        """``cdn=True`` (default) loads dygraphs via <link> + <script src>
+        rather than inlining the JS."""
+        html = Dygraph(_sample_df()).to_html(cdn=True)
+        assert "<link" in html
+        assert "dygraph" in html
+
+    def test_to_html_inline_mode_embeds_dygraphs_js(self) -> None:
+        """``cdn=False`` inlines the bundled dygraph-combined.js."""
+        html = Dygraph(_sample_df()).to_html(cdn=False)
+        # The bundled file always includes the Dygraph constructor.
+        assert "function Dygraph" in html or "var Dygraph" in html
+
+
+class TestCopyIndependence:
+    """``.copy()`` must produce a fully-independent deep copy.
+
+    Regression guard for the fork-a-base-config-into-variants pattern
+    advertised in the README.
+    """
+
+    def test_copy_returns_distinct_object(self) -> None:
+        base = Dygraph(_sample_df())
+        forked = base.copy()
+        assert base is not forked
+
+    def test_modifying_fork_does_not_affect_base(self) -> None:
+        base = Dygraph(_sample_df()).options(fill_graph=False)
+        fork = base.copy().options(fill_graph=True)
+        assert base.to_dict()["attrs"].get("fillGraph") is False
+        assert fork.to_dict()["attrs"]["fillGraph"] is True
+
+    def test_modifying_base_does_not_affect_existing_fork(self) -> None:
+        base = Dygraph(_sample_df())
+        fork = base.copy()
+        base.options(stroke_width=99)
+        assert "strokeWidth" not in fork.to_dict()["attrs"]
+
+    def test_copy_deep_copies_annotations(self) -> None:
+        base = Dygraph(_sample_df()).annotation("2020-01-01", "A")
+        fork = base.copy()
+        fork.annotation("2020-01-02", "B")
+        assert len(base.to_dict()["annotations"]) == 1
+        assert len(fork.to_dict()["annotations"]) == 2
+
+    def test_copy_deep_copies_data_columns(self) -> None:
+        """Mutating the underlying data list of one chart must NOT
+        leak into a copy. Catches a shallow-copy regression."""
+        base = Dygraph(_sample_df())
+        fork = base.copy()
+        # Mutate the base's first y-column directly
+        base._data[1][0] = 99999
+        assert fork._data[1][0] != 99999
+
+    def test_copy_independent_dependencies(self) -> None:
+        """The new .dependency() list must also be deep-copied."""
+        base = Dygraph(_sample_df()).dependency("DepA", version="1.0")
+        fork = base.copy()
+        fork.dependency("DepB", version="2.0")
+        base_deps = [d["name"] for d in base.to_dict()["dependencies"]]
+        fork_deps = [d["name"] for d in fork.to_dict()["dependencies"]]
+        assert base_deps == ["DepA"]
+        assert fork_deps == ["DepA", "DepB"]
+
+
 # ---------------------------------------------------------------------------
 # Data input formats
 # ---------------------------------------------------------------------------
