@@ -79,7 +79,7 @@ def dygraph_ui(
             if (!obj || typeof obj !== 'object') return obj;
             for (var key in obj) {{
                 if (typeof obj[key] === 'string' && obj[key].indexOf('__JS__:') === 0) {{
-                    var code = obj[key].slice(7, -6);
+                    var code = obj[key].slice(7, -7);
                     try {{ obj[key] = eval('(' + code + ')'); }} catch(e) {{
                         console.warn('dygraphs: eval failed for "' + key + '":', e);
                     }}

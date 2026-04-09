@@ -3,6 +3,11 @@
 Uses the proven pattern: dcc.Store for data + dcc.Graph (hidden) as
 clientside callback output + JS that loads dygraphs on demand.
 
+The renderer JS itself lives in ``src/dygraphs/assets/dash_render.js``
+— a real JavaScript file, lintable, syntax-highlightable. This module
+loads it at import time and emits a tiny per-instance shim that
+dispatches to ``window.dygraphsDash.render(setup, config, opts)``.
+
 Includes:
 - dygraph_to_dash() — render a Dygraph builder into Dash layout
 - stacked_bar()     — canvas stacked bar with interactive range selector
@@ -15,8 +20,10 @@ from __future__ import annotations
 
 import json
 import uuid
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
 from dygraphs.utils import (
     DYGRAPH_CSS_CDN as _DYGRAPH_CSS_CDN,
 )
@@ -26,6 +33,14 @@ from dygraphs.utils import (
 from dygraphs.utils import (
     serialise_js,
 )
+
+# Read the renderer asset once at import time. It's an IIFE that
+# populates ``window.dygraphsDash`` on first execution and is a no-op
+# on subsequent inlines, so each per-instance clientside callback can
+# safely include it without re-initialising.
+_DASH_RENDER_JS = (
+    Path(__file__).parent.parent / "assets" / "dash_render.js"
+).read_text()
 
 if TYPE_CHECKING:
     from dash import Dash
@@ -78,7 +93,13 @@ def _build_render_js(
     *,
     modebar: bool = True,
 ) -> str:
-    """Build the clientside JS that initialises the dygraph."""
+    """Build the clientside callback shim for one chart instance.
+
+    Inlines :data:`_DASH_RENDER_JS` (idempotent) and dispatches to
+    ``window.dygraphsDash.render(setup, config, optsOverride)``. The
+    full renderer logic lives in ``src/dygraphs/assets/dash_render.js``;
+    this function only assembles the per-instance ``setup`` payload.
+    """
     js_id = _safe_js_id(graph_id)
     modebar_html = ""
     if modebar:
@@ -88,354 +109,31 @@ def _build_render_js(
             f'<button title="Reset zoom" onclick="window.__dyReset_{js_id}()">{_ICON_HOME}</button>'
             f"</div>"
         )
-        modebar_html = modebar_html.replace('"', '\\"')
 
-    return f"""function(config, optsOverride) {{
-    if (!config) return {{data:[],layout:{{}}}};
+    setup_json = json.dumps(
+        {
+            "containerId": container_id,
+            "chartDivId": chart_div_id,
+            "graphId": graph_id,
+            "height": height,
+            "modebar": modebar,
+            "cdnCssUrl": _DYGRAPH_CSS_CDN,
+            "cdnJsUrl": _DYGRAPH_JS_CDN,
+            "modebarCss": _MODEBAR_CSS,
+            "modebarHtml": modebar_html,
+            "captureJs": MULTI_CANVAS_CAPTURE_JS,
+        }
+    )
 
-    // Load CSS once
-    if (!document.getElementById('dygraph-css')) {{
-        var l = document.createElement('link');
-        l.id = 'dygraph-css'; l.rel = 'stylesheet';
-        l.href = '{_DYGRAPH_CSS_CDN}';
-        document.head.appendChild(l);
-    }}
-    if (!document.getElementById('dy-modebar-css')) {{
-        var ms = document.createElement('style');
-        ms.id = 'dy-modebar-css';
-        ms.textContent = {json.dumps(_MODEBAR_CSS)};
-        document.head.appendChild(ms);
-    }}
-
-    function render() {{
-        var container = document.getElementById('{container_id}');
-        if (!container) return;
-
-        // Transpose column-oriented data to row-oriented
-        var data = config.data;
-        var nRows = data[0].length;
-        var nCols = data.length;
-        var rows = [];
-        for (var i = 0; i < nRows; i++) {{
-            var row = [];
-            for (var j = 0; j < nCols; j++) {{
-                var val = data[j][i];
-                if (j === 0 && config.format === 'date' && typeof val === 'string') {{
-                    val = new Date(val);
-                }}
-                row.push(val);
-            }}
-            rows.push(row);
-        }}
-
-        // Build options, processing __JS__ markers
-        var opts = JSON.parse(JSON.stringify(config.attrs));
-        function processJS(obj) {{
-            if (!obj || typeof obj !== 'object') return obj;
-            for (var key in obj) {{
-                if (typeof obj[key] === 'string' && obj[key].indexOf('__JS__:') === 0) {{
-                    var code = obj[key].slice(7, -6);
-                    try {{ obj[key] = eval('(' + code + ')'); }} catch(e) {{
-                        console.warn('dygraphs: eval failed for "' + key + '":', e);
-                    }}
-                }} else if (typeof obj[key] === 'object') {{
-                    processJS(obj[key]);
-                }}
-            }}
-            return obj;
-        }}
-        processJS(opts);
-
-        // Merge runtime options override
-        if (optsOverride && typeof optsOverride === 'object') {{
-            Object.assign(opts, optsOverride);
-            processJS(opts);
-        }}
-
-        // Group-based sync: zoom + highlight across charts sharing config.group.
-        // Initialise global group registry.
-        if (!window.__dyGroups) window.__dyGroups = {{}};
-
-        if (config.group) {{
-            var grp = config.group;
-            if (!window.__dyGroups[grp]) window.__dyGroups[grp] = [];
-            // Remove stale entry for this container (re-render)
-            window.__dyGroups[grp] = window.__dyGroups[grp].filter(
-                function(e) {{ return e.id !== '{graph_id}'; }});
-        }}
-
-        // Zoom broadcast with debounce (drawCallback fires during range-selector panning)
-        var _broadcastZoom = function(dw) {{
-            if (container._suppressZoom) {{
-                container._suppressZoom = false;
-                container._lastBroadcastDW = dw;
-                return;
-            }}
-            var prev = container._lastBroadcastDW;
-            if (prev && prev[0] === dw[0] && prev[1] === dw[1]) return;
-            clearTimeout(container._zoomDebounce);
-            container._zoomDebounce = setTimeout(function() {{
-                container._lastBroadcastDW = dw;
-                if (!config.group || !window.__dyGroups[config.group]) return;
-                window.__dyGroups[config.group].forEach(function(peer) {{
-                    if (peer.id === '{graph_id}') return;
-                    peer.el._suppressZoom = true;
-                    peer.el._lastBroadcastDW = dw;
-                    if (peer.instance) {{
-                        peer.instance.updateOptions({{dateWindow: dw}});
-                    }} else if (peer.setDateWindow) {{
-                        peer.setDateWindow(dw);
-                    }}
-                }});
-            }}, 30);
-        }};
-        opts.zoomCallback = function(a, b) {{
-            _broadcastZoom([a, b]);
-        }};
-        var _userDrawCb = opts.drawCallback;
-        opts.drawCallback = function(g, isInitial) {{
-            if (_userDrawCb) _userDrawCb(g, isInitial);
-            if (isInitial) return;
-            var dw = g.xAxisRange();
-            _broadcastZoom([dw[0], dw[1]]);
-        }};
-
-        // Highlight sync: hover one chart → highlight same row in group
-        if (config.group) {{
-            var _userHighlightCb = opts.highlightCallback;
-            opts.highlightCallback = function(event, x, points, row, seriesName) {{
-                if (_userHighlightCb) _userHighlightCb(event, x, points, row, seriesName);
-                if (container._suppressHighlight) return;
-                window.__dyGroups[config.group].forEach(function(peer) {{
-                    if (peer.id === '{graph_id}' || !peer.instance) return;
-                    peer.el._suppressHighlight = true;
-                    peer.instance.setSelection(row);
-                    peer.el._suppressHighlight = false;
-                }});
-            }};
-            var _userUnhighlightCb = opts.unhighlightCallback;
-            opts.unhighlightCallback = function(event) {{
-                if (_userUnhighlightCb) _userUnhighlightCb(event);
-                if (container._suppressHighlight) return;
-                window.__dyGroups[config.group].forEach(function(peer) {{
-                    if (peer.id === '{graph_id}' || !peer.instance) return;
-                    peer.el._suppressHighlight = true;
-                    peer.instance.clearSelection();
-                    peer.el._suppressHighlight = false;
-                }});
-            }};
-        }}
-
-        // Inject plugin/plotter JS before instantiation
-        if (config.extraJs) {{
-            for (var ej = 0; ej < config.extraJs.length; ej++) {{
-                try {{ eval(config.extraJs[ej]); }} catch(e) {{
-                    console.warn('dygraphs: failed to eval extraJs:', e);
-                }}
-            }}
-        }}
-
-        // Plugins
-        if (config.plugins) {{
-            var plugs = [];
-            for (var p = 0; p < config.plugins.length; p++) {{
-                var pl = config.plugins[p];
-                if (Dygraph.Plugins && Dygraph.Plugins[pl.name]) {{
-                    plugs.push(new Dygraph.Plugins[pl.name](pl.options));
-                }}
-            }}
-            if (plugs.length > 0) opts.plugins = plugs;
-        }}
-
-        // Point shapes
-        if (config.pointShape) {{
-            var shapes = config.pointShape;
-            if (shapes.__global__) {{
-                opts.drawPointCallback = Dygraph.Circles[shapes.__global__.toUpperCase()];
-                opts.drawHighlightPointCallback = Dygraph.Circles[shapes.__global__.toUpperCase()];
-            }}
-            if (opts.series) {{
-                for (var sn in shapes) {{
-                    if (sn === '__global__') continue;
-                    if (!opts.series[sn]) opts.series[sn] = {{}};
-                    opts.series[sn].drawPointCallback = Dygraph.Circles[shapes[sn].toUpperCase()];
-                    opts.series[sn].drawHighlightPointCallback = Dygraph.Circles[shapes[sn].toUpperCase()];
-                }}
-            }}
-        }}
-
-        // Create or update dygraph
-        var ex = container._dygraphInstance;
-        if (ex) {{
-            ex.updateOptions(Object.assign({{ file: rows }}, opts));
-        }} else {{
-            container.innerHTML = '<div class="dy-modebar-wrap" style="position:relative">' +
-                '<div id="{chart_div_id}" style="width:100%;height:{height}px"></div>' +
-                '{modebar_html}</div>';
-            container._dygraphInstance = new Dygraph(
-                document.getElementById('{chart_div_id}'), rows, opts);
-        }}
-        var g = container._dygraphInstance;
-
-        // Register in group for sync
-        if (config.group && window.__dyGroups[config.group]) {{
-            window.__dyGroups[config.group].push({{
-                id: '{graph_id}', el: container, instance: g
-            }});
-        }}
-
-        // ResizeObserver for responsive resize
-        if (!container._resizeObserver) {{
-            container._resizeObserver = new ResizeObserver(function() {{
-                if (container._dygraphInstance) {{
-                    container._dygraphInstance.resize();
-                }}
-            }});
-            container._resizeObserver.observe(container);
-        }}
-
-        // Capture (download PNG) function
-        window.__dyCap_{js_id} = function() {{
-            var chartEl = document.getElementById('{chart_div_id}');
-            if (!chartEl) return;
-            // Hide range selector temporarily
-            var rs = chartEl.querySelector('.dygraph-rangesel-fgcanvas');
-            var rsBg = chartEl.querySelector('.dygraph-rangesel-bgcanvas');
-            var rsZ = chartEl.querySelector('.dygraph-rangesel-zoomhandle');
-            var hidden = [rs, rsBg, rsZ].filter(function(e){{ return e; }});
-            hidden.forEach(function(e){{ e.style.display = 'none'; }});
-            // Use html2canvas if available, else fallback to canvas merge
-            var canvases = chartEl.querySelectorAll('canvas');
-            if (canvases.length > 0) {{
-                var c = document.createElement('canvas');
-                c.width = chartEl.offsetWidth;
-                c.height = chartEl.offsetHeight;
-                var ctx = c.getContext('2d');
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, c.width, c.height);
-                // Draw all visible canvases
-                canvases.forEach(function(cv) {{
-                    if (cv.style.display === 'none') return;
-                    var r = cv.getBoundingClientRect();
-                    var pr = chartEl.getBoundingClientRect();
-                    ctx.drawImage(cv, r.left - pr.left, r.top - pr.top);
-                }});
-                // Draw title and labels (they're in regular divs)
-                var a = document.createElement('a');
-                a.download = '{graph_id}.png';
-                a.href = c.toDataURL('image/png');
-                a.click();
-            }}
-            hidden.forEach(function(e){{ e.style.display = ''; }});
-        }};
-
-        // Reset zoom function
-        window.__dyReset_{js_id} = function() {{
-            if (container._dygraphInstance) container._dygraphInstance.resetZoom();
-        }};
-
-        // Annotations
-        if (config.annotations && config.annotations.length > 0) {{
-            var anns = config.annotations.map(function(a) {{
-                var ann = {{
-                    series: a.series,
-                    x: config.format === 'date' ? new Date(a.x).getTime() : a.x,
-                    shortText: a.shortText,
-                    text: a.text || '',
-                    attachAtBottom: a.attachAtBottom || false
-                }};
-                if (a.width) ann.width = a.width;
-                if (a.height) ann.height = a.height;
-                if (a.cssClass) ann.cssClass = a.cssClass;
-                if (a.tickHeight) ann.tickHeight = a.tickHeight;
-                return ann;
-            }});
-            g.setAnnotations(anns);
-        }}
-
-        // Shadings (underlay callback)
-        if (config.shadings && config.shadings.length > 0) {{
-            var shadingCb = function(canvas, area, dygraph) {{
-                for (var s = 0; s < config.shadings.length; s++) {{
-                    var sh = config.shadings[s];
-                    canvas.fillStyle = sh.color;
-                    if (sh.axis === 'x') {{
-                        var from = config.format === 'date' ? new Date(sh.from).getTime() : sh.from;
-                        var to = config.format === 'date' ? new Date(sh.to).getTime() : sh.to;
-                        var xl = dygraph.toDomXCoord(from), xr = dygraph.toDomXCoord(to);
-                        canvas.fillRect(xl, area.y, xr - xl, area.h);
-                    }} else {{
-                        var yl = dygraph.toDomYCoord(sh.from), yr = dygraph.toDomYCoord(sh.to);
-                        canvas.fillRect(area.x, Math.min(yl,yr), area.w, Math.abs(yr-yl));
-                    }}
-                }}
-            }};
-            g.updateOptions({{underlayCallback: shadingCb}});
-        }}
-
-        // Events (vertical/horizontal lines)
-        if (config.events && config.events.length > 0) {{
-            var prevUl = g.getOption('underlayCallback');
-            var eventCb = function(canvas, area, dygraph) {{
-                if (prevUl) prevUl(canvas, area, dygraph);
-                for (var e = 0; e < config.events.length; e++) {{
-                    var ev = config.events[e];
-                    canvas.strokeStyle = ev.color || 'black';
-                    canvas.lineWidth = 1;
-                    if (ev.strokePattern) canvas.setLineDash(ev.strokePattern);
-                    canvas.beginPath();
-                    if (ev.axis === 'x') {{
-                        var pos = config.format === 'date' ? new Date(ev.pos).getTime() : ev.pos;
-                        var xp = dygraph.toDomXCoord(pos);
-                        canvas.moveTo(xp, area.y); canvas.lineTo(xp, area.y + area.h);
-                    }} else {{
-                        var yp = dygraph.toDomYCoord(ev.pos);
-                        canvas.moveTo(area.x, yp); canvas.lineTo(area.x + area.w, yp);
-                    }}
-                    canvas.stroke();
-                    canvas.setLineDash([]);
-                    if (ev.label) {{
-                        canvas.fillStyle = ev.color || 'black';
-                        canvas.font = '12px sans-serif';
-                        if (ev.axis === 'x') {{
-                            canvas.fillText(ev.label, xp + 4,
-                                ev.labelLoc === 'bottom' ? area.y + area.h - 4 : area.y + 14);
-                        }} else {{
-                            var llx = ev.labelLoc === 'right'
-                                ? area.x + area.w - canvas.measureText(ev.label).width - 4
-                                : area.x + 4;
-                            canvas.fillText(ev.label, llx, yp - 4);
-                        }}
-                    }}
-                }}
-            }};
-            g.updateOptions({{underlayCallback: eventCb}});
-        }}
-
-        // Custom CSS injection
-        if (config.css) {{
-            var styleId = 'dygraph-css-' + '{container_id}';
-            var existing = document.getElementById(styleId);
-            if (existing) existing.remove();
-            var style = document.createElement('style');
-            style.id = styleId;
-            style.textContent = config.css;
-            document.head.appendChild(style);
-        }}
-    }}
-
-    // Load dygraphs JS on demand, then render
-    if (typeof Dygraph === 'undefined') {{
-        var s = document.createElement('script');
-        s.src = '{_DYGRAPH_JS_CDN}';
-        s.onload = render;
-        document.head.appendChild(s);
-    }} else {{
-        render();
-    }}
-
-    return {{data:[], layout:{{}}}};
-}}"""
+    # Inline the (idempotent) renderer asset, then dispatch.
+    return (
+        "function(config, optsOverride) {\n"
+        + _DASH_RENDER_JS
+        + "\n"
+        + f"    window.dygraphsDash.render({setup_json}, config, optsOverride);\n"
+        + "    return {data: [], layout: {}};\n"
+        + "}"
+    )
 
 
 # ---------------------------------------------------------------------------

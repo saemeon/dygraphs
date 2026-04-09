@@ -33,7 +33,7 @@ Homepage = "https://github.com/saemeon/dygraphs"
 Repository = "https://github.com/saemeon/dygraphs"
 
 [dependency-groups]
-test = ["pytest", "pytest-cov", "selenium", "numpy", "pandas>=1.5.0", "dash>=2.0.0"]
+test = ["pytest", "pytest-cov", "selenium", "numpy", "pandas>=1.5.0", "dash>=2.0.0", "pillow"]
 doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mike"]
 dev = [
     "ruff",

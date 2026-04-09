@@ -145,25 +145,42 @@ class TestCSS:
 
 
 class TestCapture:
-    def test_dygraph_strategy_import_error(self) -> None:
-        """dygraph_strategy() raises ImportError if dash-capture not installed."""
-        # We can't easily mock this since dash-capture might be installed,
-        # so just test that the function exists and returns something
-        from dygraphs.dash.capture import dygraph_strategy
+    def test_dygraph_strategy_basic(self) -> None:
+        """dygraph_strategy() returns a CaptureStrategy with the shared JS."""
+        from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS, dygraph_strategy
 
         try:
             strategy = dygraph_strategy(hide_range_selector=True)
-            assert strategy.format == "png"
-            assert strategy.preprocess is not None
-            assert "toDataURL" in strategy.capture
         except ImportError:
             pytest.skip("dash-capture not installed")
+        assert strategy.format == "png"
+        # preprocess is None — hide/restore is internal to the shared IIFE
+        assert strategy.preprocess is None
+        assert MULTI_CANVAS_CAPTURE_JS in strategy.capture
+        assert "true, false)" in strategy.capture  # hide=true, debug=false
 
     def test_dygraph_strategy_no_hide(self) -> None:
         from dygraphs.dash.capture import dygraph_strategy
 
         try:
             strategy = dygraph_strategy(hide_range_selector=False)
-            assert strategy.preprocess is None
         except ImportError:
             pytest.skip("dash-capture not installed")
+        assert "false, false)" in strategy.capture  # hide=false, debug=false
+
+    def test_dygraph_strategy_debug(self) -> None:
+        from dygraphs.dash.capture import dygraph_strategy
+
+        try:
+            strategy = dygraph_strategy(debug=True)
+        except ImportError:
+            pytest.skip("dash-capture not installed")
+        assert "true, true)" in strategy.capture  # hide=true, debug=true
+
+    def test_modebar_uses_shared_js(self) -> None:
+        """component.py's __dyCap_ embeds the same shared JS constant."""
+        from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
+        from dygraphs.dash.component import _build_render_js
+
+        js = _build_render_js("g", "g-container", "g-chart", 320, modebar=True)
+        assert MULTI_CANVAS_CAPTURE_JS in js
