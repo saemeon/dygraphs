@@ -143,13 +143,13 @@ table groups by source file in `dygraphs-r/R/`.
 | `dyPlotter` | `.custom_plotter()` | `plotters.R` | ✅ (named `custom_plotter` to avoid clash with the constructor's `plotter=` kwarg) |
 | `dyDataHandler` | `.data_handler()` | `plotters.R` | ✅ |
 | `dySeriesData` | `.series_data()` | `series.R` | ✅ |
-| `dyDependency` | — | `dependency.R` | ❌ **missing** — see TODOs |
+| `dyDependency` | `.dependency()` | `dependency.R` | ✅ |
 
-**Function-level parity: 36 / 37 (97%).** The single gap is `dyDependency`,
-which lets users attach an arbitrary `htmltools::htmlDependency` (CSS + JS
-files) to a chart. Today, partial coverage exists via `.css()` (CSS only) and
-`.plugin()` (single JS file). A proper port would expose
-`.dependency(name, version, src, script=[...], stylesheet=[...])`.
+**Function-level parity: 37 / 37 (100%).** Every exported R `dy*` function
+has a Python equivalent. `.dependency()` takes the pieces of R's
+`htmltools::htmlDependency` directly (`name`, `version`, `src`, `script`,
+`stylesheet`), reads referenced files eagerly, and inlines them as
+`<script>` / `<style>` tags in `to_html()` output.
 
 ### Constructor parity gaps
 
@@ -222,21 +222,24 @@ the long-term record. Don't let either subsection grow unbounded.
 
 These are the only items that move us toward the stated north star.
 
-1. **Port `dyDependency`.** Add `Dygraph.dependency(name, version, src,
-   script=None, stylesheet=None)` mirroring `dygraphs-r/R/dependency.R`. The
-   R version takes an `htmltools::htmlDependency` object; in Python, take the
-   pieces directly. Should append to `self._plugins` or a new
-   `self._dependencies` list and emit `<script>`/`<link>` tags in `to_html()`.
-   Add a row to the parity table once shipped.
-2. **Add a `periodicity=` constructor override.** Python currently auto-detects
+#### Done (recent)
+- [x] **Port `dyDependency`.** `.dependency(name, version, src=None,
+  script=None, stylesheet=None)` takes the pieces of R's
+  `htmltools::htmlDependency` directly, reads the referenced files eagerly,
+  and inlines them as `<script>` / `<style>` tags before the main chart
+  script in `to_html()` output. Pushes function-level parity to 37/37.
+
+#### Next up
+1. **Add a `periodicity=` constructor override.** Python currently auto-detects
    from the pandas index with no manual override. Add the kwarg, default
    `None` (= auto), accept the same string values R does (`"yearly"`,
    `"quarterly"`, `"monthly"`, `"weekly"`, `"daily"`, `"hourly"`, `"minute"`,
    `"second"`, `"millisecond"`).
-3. **Audit `test_r_parity.py` coverage.** Confirm it has at least one test per
+2. **Audit `test_r_parity.py` coverage.** Confirm it has at least one test per
    row of the R↔Python mapping table. Anything missing is a parameter-parity
-   blind spot. Add tests for any uncovered method.
-4. **Verify constructor parameter renames are documented.** `main` → `title`
+   blind spot. Add tests for any uncovered method — including a
+   `.dependency()` round-trip against R's `dyDependency`.
+3. **Verify constructor parameter renames are documented.** `main` → `title`
    is the only one today; if any others sneak in during the audit, list them
    in the "Naming convention" subsection above.
 

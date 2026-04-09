@@ -243,6 +243,7 @@ class Dygraph:
         self._shadings: list[dict[str, Any]] = []
         self._events: list[dict[str, Any]] = []
         self._plugins: list[dict[str, Any]] = []
+        self._dependencies: list[dict[str, Any]] = []
         self._css: str | None = None
         self._point_shapes: dict[str, str] = {}
         self._group = group
@@ -2793,6 +2794,86 @@ class Dygraph:
             self._extra_js.append(js)
         return self
 
+    def dependency(
+        self,
+        name: str,
+        version: str = "1.0",
+        *,
+        src: str | Path | None = None,
+        script: str | list[str] | None = None,
+        stylesheet: str | list[str] | None = None,
+    ) -> Dygraph:
+        """Attach external JavaScript / CSS assets to the chart.
+
+        Mirrors R ``dyDependency``. In R, this takes an
+        ``htmltools::htmlDependency`` object; Python exposes the
+        constituent pieces directly.
+
+        Each referenced file is read eagerly (so the chart remains a
+        self-contained value) and inlined into ``to_html()`` output as
+        ``<script>`` / ``<link>`` tags before the main chart script.
+        ``name`` and ``version`` are stored for introspection but do not
+        affect rendering — they exist to match R's API shape.
+
+        Parameters
+        ----------
+        name : str
+            Dependency name (e.g. ``"Dygraph.Plugins.MyPlugin"``). Used
+            for bookkeeping; has no effect on how assets are loaded.
+        version : str, optional
+            Dependency version string. By default ``"1.0"``.
+        src : str | Path | None, optional
+            Directory that ``script`` / ``stylesheet`` paths are relative
+            to. If None, ``script`` / ``stylesheet`` are interpreted as
+            absolute or CWD-relative paths.
+        script : str | list[str] | None, optional
+            One or more JavaScript file paths, relative to ``src``.
+        stylesheet : str | list[str] | None, optional
+            One or more CSS file paths, relative to ``src``.
+
+        Examples
+        --------
+        >>> chart = Dygraph(df).dependency(
+        ...     "Dygraph.Plugins.MyPlugin",
+        ...     version="1.2",
+        ...     src="plugins",
+        ...     script="my-plugin.js",
+        ...     stylesheet="my-plugin.css",
+        ... )
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+        """
+        base = Path(src) if src is not None else None
+
+        def _resolve(paths: str | list[str] | None) -> list[Path]:
+            if paths is None:
+                return []
+            if isinstance(paths, str):
+                paths = [paths]
+            return [(base / p) if base is not None else Path(p) for p in paths]
+
+        scripts = _resolve(script)
+        stylesheets = _resolve(stylesheet)
+
+        script_sources = [p.read_text() for p in scripts]
+        stylesheet_sources = [p.read_text() for p in stylesheets]
+
+        self._dependencies.append(
+            {
+                "name": name,
+                "version": version,
+                "src": str(src) if src is not None else None,
+                "script": [str(p) for p in scripts],
+                "stylesheet": [str(p) for p in stylesheets],
+                "_script_sources": script_sources,
+                "_stylesheet_sources": stylesheet_sources,
+            }
+        )
+        return self
+
     def custom_plotter(self, js: str) -> Dygraph:
         """Set a custom plotter from raw JavaScript.
 
@@ -2920,6 +3001,13 @@ class Dygraph:
             x["css"] = self._css
         if self._extra_js:
             x["extraJs"] = list(dict.fromkeys(self._extra_js))
+        if self._dependencies:
+            # Drop the eagerly-read source fields — the dict form is the
+            # introspection payload (R's `dygraph$dependencies` equivalent).
+            x["dependencies"] = [
+                {k: v for k, v in d.items() if not k.startswith("_")}
+                for d in self._dependencies
+            ]
         return x
 
     def to_json(self, **kwargs: Any) -> str:
@@ -3089,6 +3177,13 @@ class Dygraph:
         if self._extra_js:
             for js_code in dict.fromkeys(self._extra_js):
                 extra_js_blocks += f"<script>{js_code}</script>\n"
+        # User-supplied dependencies (R: dyDependency). Emit stylesheets
+        # first (inline <style>) so scripts can reference their classes.
+        for dep in self._dependencies:
+            for css_source in dep["_stylesheet_sources"]:
+                extra_js_blocks += f"<style>{css_source}</style>\n"
+            for js_source in dep["_script_sources"]:
+                extra_js_blocks += f"<script>{js_source}</script>\n"
 
         # The rendering JS below mirrors R's inst/htmlwidgets/dygraphs.js
         # as closely as possible to ensure identical behavior.

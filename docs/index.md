@@ -2,7 +2,7 @@
 
 Python wrapper for the [dygraphs](https://dygraphs.com) JavaScript charting library.
 
-**Core port of the R [dygraphs](https://rstudio.github.io/dygraphs/) package** — 36 of 37 exported R `dy*` functions plus the `dygraph()` constructor are ported to a Pythonic builder API (the one gap is `dyDependency`). The R package (by RStudio/JJ Allaire) is the most mature dygraphs wrapper in any language; this package faithfully ports its API design, data model, and test coverage to Python. See the *R Function Mapping* table below.
+**Core port of the R [dygraphs](https://rstudio.github.io/dygraphs/) package** — all 37 exported R `dy*` functions plus the `dygraph()` constructor are ported to a Pythonic builder API. The R package (by RStudio/JJ Allaire) is the most mature dygraphs wrapper in any language; this package faithfully ports its API design, data model, and test coverage to Python. See the *R Function Mapping* table below.
 
 Framework-agnostic core with adapters for [Plotly Dash](https://dash.plotly.com/) and [Shiny for Python](https://shiny.posit.co/py/).
 
@@ -321,6 +321,11 @@ Every R `dy*()` function has a Python equivalent:
 | `dyShadow()` | `.shadow()` | — |
 | `dyFilledLine()` | `.filled_line()` | — |
 | `dyErrorFill()` | `.error_fill()` | — |
+| `dyMultiColumnGroup()` | `.multi_column_group()` | — |
+| `dyCandlestickGroup()` | `.candlestick_group()` | — |
+| `dyStackedBarGroup()` | `.stacked_bar_group()` | — |
+| `dyStackedLineGroup()` | `.stacked_line_group()` | — |
+| `dyStackedRibbonGroup()` | `.stacked_ribbon_group()` | — |
 | `dyUnzoom()` | `.unzoom()` | — |
 | `dyCrosshair()` | `.crosshair()` | — |
 | `dyRibbon()` | `.ribbon()` | — |
@@ -329,5 +334,6 @@ Every R `dy*()` function has a Python equivalent:
 | `dyDataHandler()` | `.data_handler()` | — |
 | `dySeriesData()` | `.series_data()` | — |
 | `dyPlugin()` | `.plugin()` | — |
+| `dyDependency()` | `.dependency()` | — |
 
 See the [API Reference](api.md) for full parameter documentation generated from docstrings.
