@@ -282,6 +282,40 @@ These are the only items that move us toward the stated north star.
   here in case it's actually a Python bug rather than a deliberate
   consolidation. Worth a short investigation when someone has time.
 
+### Tertiary track — Pythonic UX polish
+
+Small Python-side improvements that don't move the parity needle but
+make the package feel less rough to a Python user. Surfaced by an end-
+to-end UX review against R's `dygraphs` workflow.
+
+#### Done (recent)
+- [x] **R-style error-band positional list.** `.series(["lwr","fit","upr"])`
+  is now sugar for `.series(columns=["lwr","fit","upr"])`, mirroring R's
+  `dySeries(c("lwr","fit","upr"))`. Strings are explicitly excluded so
+  `.series("name")` still works. Caught a real R-parity gap masquerading
+  as a function-level tick.
+- [x] **Jupyter auto-display.** `_repr_html_` returns `to_html()` so
+  charts render inline when they're the last expression in a notebook
+  cell — same UX as `dygraph(...)` in RStudio's viewer. Plus an explicit
+  `.show()` for non-last-expression cases that uses `IPython.display.HTML`
+  when available and prints a hint otherwise.
+- [x] **`.css()` accepts raw CSS strings.** Previously it required a
+  file path; passing raw CSS crashed with `FileNotFoundError`. Now
+  detects raw strings via the presence of `{` (any string with no
+  braces is treated as a path, matching R). `Path` objects always read
+  from disk.
+
+#### Next up
+1. **Split `examples/gallery.py` (1329 lines)** into a docs gallery —
+   one chapter per plot family. Currently a single Python file with
+   ~30 examples; hard to navigate, hard to link to from the docs.
+2. **Document the `.group()` vs `group=` collision.** `Dygraph(df,
+   group="sync-name")` is the *sync-group* kwarg (mirrors R's
+   `dygraph(group=)`); `.group([...])` is the `dyGroup` port for
+   styling a set of series together. Same name, very different
+   behaviour. Either alias one of them or add a prominent warning to
+   both docstrings.
+
 ### Secondary track — Dash adapter cleanup
 
 Smaller infrastructure items in the Dash subpackage. Not parity-blocking, but

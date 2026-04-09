@@ -112,6 +112,71 @@ class TestPeriodicityOverride:
         assert '"scale": "yearly"' in html or '"scale":"yearly"' in html
 
 
+class TestJupyterDisplay:
+    """``_repr_html_`` and ``.show()`` for Jupyter / IPython integration."""
+
+    def test_repr_html_returns_full_html(self) -> None:
+        """Jupyter calls ``_repr_html_`` automatically when a chart is the
+        last expression in a cell — the result must be a complete page."""
+        d = Dygraph(_sample_df(), title="My Chart")
+        html = d._repr_html_()
+        assert isinstance(html, str)
+        assert "<!DOCTYPE html>" in html
+        assert "<title>My Chart</title>" in html
+
+    def test_repr_html_matches_to_html(self) -> None:
+        """``_repr_html_`` is just a thin alias for ``.to_html()``."""
+        d = Dygraph(_sample_df())
+        assert d._repr_html_() == d.to_html()
+
+    def test_show_without_ipython_prints_hint(self, capsys) -> None:
+        """When IPython is unavailable, ``.show()`` falls back gracefully."""
+        import sys
+
+        # Sabotage the import — leave existing IPython modules alone but
+        # make a *new* import attempt fail.
+        saved = sys.modules.get("IPython")
+        sys.modules["IPython"] = None  # type: ignore[assignment]
+        try:
+            result = Dygraph(_sample_df()).show()
+        finally:
+            if saved is not None:
+                sys.modules["IPython"] = saved
+            else:
+                sys.modules.pop("IPython", None)
+        captured = capsys.readouterr()
+        assert result is None
+        assert "IPython" in captured.out
+
+
+class TestCssRawString:
+    """``.css()`` accepts both file paths and raw CSS strings."""
+
+    def test_css_path_string(self, tmp_path) -> None:
+        """A path-like string with no braces is read as a file (R-compatible)."""
+        css_file = tmp_path / "style.css"
+        css_file.write_text(".x { color: red }")
+        d = Dygraph(_sample_df()).css(str(css_file))
+        assert d.to_dict()["css"] == ".x { color: red }"
+
+    def test_css_path_object(self, tmp_path) -> None:
+        """An explicit Path always reads from disk."""
+        css_file = tmp_path / "style.css"
+        css_file.write_text(".y { color: blue }")
+        d = Dygraph(_sample_df()).css(css_file)
+        assert d.to_dict()["css"] == ".y { color: blue }"
+
+    def test_css_raw_string(self) -> None:
+        """A string with a brace is treated as raw CSS — no file lookup."""
+        d = Dygraph(_sample_df()).css(".dygraph-title { color: tomato; }")
+        assert d.to_dict()["css"] == ".dygraph-title { color: tomato; }"
+
+    def test_css_raw_string_emitted_to_html(self) -> None:
+        """Raw CSS reaches the rendered HTML payload."""
+        html = Dygraph(_sample_df()).css(".my-cls { font-weight: bold }").to_html()
+        assert ".my-cls { font-weight: bold }" in html
+
+
 # ---------------------------------------------------------------------------
 # Data input formats
 # ---------------------------------------------------------------------------

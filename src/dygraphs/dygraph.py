@@ -1206,7 +1206,7 @@ class Dygraph:
 
     def series(
         self,
-        name: str | None = None,
+        name: str | list[str] | tuple[str, ...] | None = None,
         *,
         label: str | None = None,
         color: str | None = None,
@@ -1233,9 +1233,14 @@ class Dygraph:
 
         Parameters
         ----------
-        name : str | None, optional
+        name : str | list[str] | tuple[str, ...] | None, optional
             Series name (must match a column label). If None, the
             first unprocessed series is used. By default None.
+
+            **R-style error-band shortcut.** If a list/tuple of 2 or 3
+            column names is passed instead of a single string, it is
+            forwarded to ``columns=`` — mirrors R's
+            ``dySeries(c("low","mid","high"))``.
         label : str | None, optional
             Display label for the series. Uses *name* if not set.
             By default None.
@@ -1321,6 +1326,20 @@ class Dygraph:
         options : Global chart options.
         """
         labels = self._attrs["labels"]
+
+        # R-style sugar: .series(["low","mid","high"]) is equivalent to
+        # .series(columns=["low","mid","high"]). Mirrors R's
+        # ``dySeries(c("low","mid","high"))`` idiom for error bands. Strings
+        # are iterable, so we explicitly exclude them.
+        if isinstance(name, list | tuple) and not isinstance(name, str):
+            if columns is not None:
+                msg = (
+                    "cannot pass both a list as the first argument and "
+                    "columns=; use one or the other"
+                )
+                raise ValueError(msg)
+            columns = list(name)
+            name = None
 
         # Handle error bar columns (R-style: dySeries(dg, c("low","mid","hi")))
         if columns is not None:
@@ -2270,8 +2289,8 @@ class Dygraph:
 
     # ---- CSS (dyCSS) -------------------------------------------------
 
-    def css(self, path: str | Path) -> Dygraph:
-        """Apply a custom CSS file to the chart.
+    def css(self, css: str | Path) -> Dygraph:
+        """Apply custom CSS to the chart.
 
         Mirrors R ``dyCSS``. Styles are injected into the page and
         affect all dygraphs on the same page. See the `CSS
@@ -2280,19 +2299,35 @@ class Dygraph:
 
         Parameters
         ----------
-        path : str | Path
-            Path to a CSS file.
+        css : str | Path
+            Either a path to a CSS file (mirrors R's behavior) or a
+            raw CSS string. Raw strings are detected by the presence of
+            a ``{`` character; anything else is treated as a path. Pass
+            a :class:`pathlib.Path` to force the file-path interpretation.
 
         Examples
         --------
+        From a file (R-equivalent):
+
         >>> chart = Dygraph(df).css("custom-dygraph.css")
+
+        From a raw string (Python convenience):
+
+        >>> chart = Dygraph(df).css(".dygraph-title { color: red; }")
 
         Returns
         -------
         Dygraph
             Self, for chaining.
         """
-        self._css = Path(path).read_text()
+        if isinstance(css, Path):
+            self._css = css.read_text()
+        elif "{" in css:
+            # Raw CSS string — at least one rule body present.
+            self._css = css
+        else:
+            # Plain string with no braces: treat as a path (R-compatible).
+            self._css = Path(css).read_text()
         return self
 
     # ---- plotters (Plotters) -----------------------------------------
@@ -3605,6 +3640,41 @@ class Dygraph:
         """
         self._apply_declarative(**kwargs)
         return self
+
+    # ---- Jupyter / IPython display ------------------------------------
+
+    def _repr_html_(self) -> str:
+        """IPython rich-display hook — auto-renders in Jupyter notebooks.
+
+        Calling ``chart`` (or letting Jupyter implicitly display the last
+        cell expression) injects the standalone HTML returned by
+        :meth:`to_html`. The result is a complete chart, just like
+        running R's ``dygraph(...)`` in RStudio's viewer.
+
+        Notebook front-ends sandbox each output cell, so multiple charts
+        in the same notebook do not collide on element ids.
+        """
+        return self.to_html()
+
+    def show(self) -> Any:
+        """Display the chart in the current Jupyter / IPython environment.
+
+        Lets you write ``chart.show()`` explicitly when you don't want to
+        rely on Jupyter's last-expression auto-display (e.g. inside a
+        loop, or after a side-effecting line). Returns the IPython
+        display handle when IPython is available, otherwise prints a
+        short hint and returns ``None``.
+        """
+        try:
+            from IPython.display import HTML, display
+        except ImportError:
+            print(
+                "dygraphs.show() needs IPython to render in-place. "
+                "Use chart.to_html() to get the raw HTML, or call "
+                "Path('chart.html').write_text(chart.to_html())."
+            )
+            return None
+        return display(HTML(self.to_html()))
 
     # ---- copy --------------------------------------------------------
 

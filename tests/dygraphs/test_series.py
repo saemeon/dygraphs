@@ -62,3 +62,52 @@ class TestSeries:
             assert len(w) == 1
             assert "Unrecognised" in str(w[0].message)
         assert d.to_dict()["pointShape"]["mdeaths"] == "custom_shape"
+
+
+class TestSeriesRStyleErrorBands:
+    """``.series([...])`` is sugar for ``.series(columns=[...])``.
+
+    Mirrors R's ``dySeries(c("low","mid","high"))`` idiom — the most
+    natural way to declare a custom error band from three columns.
+    """
+
+    @staticmethod
+    def _band_df() -> pd.DataFrame:
+        idx = pd.date_range("2020-01-01", periods=4, freq="D")
+        return pd.DataFrame(
+            {"lwr": [1, 2, 3, 4], "fit": [2, 3, 4, 5], "upr": [3, 4, 5, 6]}, index=idx
+        )
+
+    def test_three_column_band_via_positional_list(self) -> None:
+        """``.series(["lwr","fit","upr"])`` enables custom bars."""
+        d = Dygraph(self._band_df()).series(["lwr", "fit", "upr"], label="band")
+        cfg = d.to_dict()
+        assert cfg["attrs"]["customBars"] is True
+        assert "band" in cfg["attrs"]["labels"]
+
+    def test_two_column_error_via_positional_list(self) -> None:
+        """``.series(["value","error"])`` enables symmetric error bars."""
+        idx = pd.date_range("2020-01-01", periods=3, freq="D")
+        df = pd.DataFrame({"y": [10, 20, 30], "err": [1, 2, 3]}, index=idx)
+        d = Dygraph(df).series(["y", "err"], label="signal")
+        cfg = d.to_dict()
+        assert cfg["attrs"]["errorBars"] is True
+        assert "signal" in cfg["attrs"]["labels"]
+
+    def test_tuple_also_works(self) -> None:
+        """A tuple is just as valid as a list — same Python idiom."""
+        d = Dygraph(self._band_df()).series(("lwr", "fit", "upr"), label="band")
+        assert d.to_dict()["attrs"]["customBars"] is True
+
+    def test_passing_both_list_and_columns_kwarg_raises(self) -> None:
+        """Belt-and-braces: refuse the ambiguous form rather than silently
+        picking one."""
+        with pytest.raises(ValueError, match="cannot pass both"):
+            Dygraph(self._band_df()).series(
+                ["lwr", "fit"], columns=["fit", "upr"], label="x"
+            )
+
+    def test_string_name_still_works_unchanged(self) -> None:
+        """Regression: passing a single string must NOT be misread as a list."""
+        d = Dygraph(self._band_df()).series("fit", color="red")
+        assert d.to_dict()["attrs"]["colors"][1] == "red"
