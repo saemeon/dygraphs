@@ -237,20 +237,17 @@ class TestPeriodicityEdgeCases:
         d = Dygraph(pd.DataFrame({"y": [1, 2, 3, 4, 5]}, index=idx))
         assert d.to_dict()["scale"] == "seconds"
 
-    def test_yearly_index_detected_as_yearly_or_quarterly(self) -> None:
-        """Yearly-spaced index lands in the high-period bucket.
+    def test_yearly_index_detected_as_yearly(self) -> None:
+        """Yearly-spaced index is classified as ``"yearly"``.
 
-        Note: depending on the pandas version's ``str(idx.freq)``
-        format, this is either caught by the freq-prefix path
-        (returning ``"yearly"``) or by the median-gap fallback
-        (which classifies 365 days as ``"quarterly"`` because
-        365 < 366). Either is acceptable — the chart still renders;
-        we lock in only the loose invariant. A tighter fix would
-        widen the median-gap quarterly→yearly boundary to 364 days.
+        Regression guard for a boundary bug: the old ``_detect_scale``
+        fallback had ``if seconds < 366 * 86400: return "quarterly"``,
+        which mis-classified yearly data (median gap ≈ 365 days) as
+        quarterly. Boundary widened to 180 days during task 1.
         """
         idx = pd.date_range("2000-01-01", periods=10, freq="YS")
         d = Dygraph(pd.DataFrame({"y": list(range(10))}, index=idx))
-        assert d.to_dict()["scale"] in {"yearly", "quarterly"}
+        assert d.to_dict()["scale"] == "yearly"
 
     def test_quarterly_index_detected_as_quarterly(self) -> None:
         idx = pd.date_range("2024-01-01", periods=8, freq="QS")

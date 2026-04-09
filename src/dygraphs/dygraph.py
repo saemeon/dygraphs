@@ -151,7 +151,10 @@ def _detect_scale(idx: Any) -> str:
         return "weekly"
     if seconds < 90 * 86400:
         return "monthly"
-    if seconds < 366 * 86400:
+    # Quarterly covers periods up to ~6 months. Anything coarser is
+    # unambiguously yearly. The old 366-day boundary mis-classified
+    # yearly-spaced data (median gap ≈ 365 days) as quarterly.
+    if seconds < 180 * 86400:
         return "quarterly"
     return "yearly"
 

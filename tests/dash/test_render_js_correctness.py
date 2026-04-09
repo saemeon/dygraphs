@@ -304,6 +304,97 @@ class TestNoHiddenGraphSink:
 
 
 # ---------------------------------------------------------------------------
+# Group sync wiring (locks in the JS invariants for cross-chart zoom/highlight)
+# ---------------------------------------------------------------------------
+
+
+class TestGroupSyncWiring:
+    """The group-sync JS path is the most complex piece of cross-chart
+    state we have: a global ``window.__dyGroups`` registry, a debounced
+    zoom broadcaster, and a highlight relay. End-to-end coverage needs
+    Selenium, but the individual pieces are stable string patterns in
+    the renderer source — assertable in microseconds. One check per
+    invariant; refactors of the group-sync code must preserve every
+    one of them or delete the corresponding assertion with a reason.
+    """
+
+    def test_global_group_registry_on_window(self) -> None:
+        """The registry is attached to ``window`` via ``global.__dyGroups``
+        so every chart on the page can see it across callback invocations."""
+        assert "global.__dyGroups" in ASSET
+        assert "ensureGroupRegistry" in ASSET
+
+    def test_group_registry_entry_keyed_by_graph_id(self) -> None:
+        """New charts push ``{id, el, instance}`` into the group's list.
+
+        ``id`` is the graphId the Python side generates per chart; the
+        broadcast loop uses it to skip the source chart so it doesn't
+        echo its own zoom event. Locks in the shape of the entry.
+        """
+        assert "groups[config.group].push" in ASSET
+        assert "id: setup.graphId" in ASSET
+        assert "instance: dygraph" in ASSET
+
+    def test_group_registry_dedupes_stale_entries_on_re_render(self) -> None:
+        """Before re-registering on a data update, any stale entry for the
+        same graphId must be filtered out — otherwise group sync would
+        accumulate dead peer references across destroy+recreate cycles."""
+        assert "groups[config.group].filter" in ASSET
+        assert "e.id !== setup.graphId" in ASSET
+
+    def test_zoom_broadcast_loop_skips_source_chart(self) -> None:
+        """The broadcast loop must early-return when the peer is the
+        source of the zoom event. Without this, each drag event produces
+        an infinite feedback loop."""
+        assert "groups[group].forEach" in ASSET
+        assert "peer.id === graphId" in ASSET
+
+    def test_zoom_broadcast_uses_update_options_date_window(self) -> None:
+        """Peer charts are notified via
+        ``peer.instance.updateOptions({dateWindow: dw})`` — the dygraphs
+        JS API for programmatic zoom. A refactor that accidentally
+        swaps this for ``peer.instance.resetZoom()`` or similar would
+        silently break cross-chart sync."""
+        assert "peer.instance.updateOptions({dateWindow: dw})" in ASSET
+
+    def test_zoom_broadcast_suppress_flag_breaks_feedback_loop(self) -> None:
+        """Before broadcasting to a peer, the peer's ``_suppressZoom``
+        flag is set so its own ``zoomCallback`` short-circuits on the
+        resulting dateWindow change. This is the feedback-loop breaker —
+        losing it produces an infinite zoom cascade across the group."""
+        assert "peer.el._suppressZoom = true" in ASSET
+        assert "container._suppressZoom" in ASSET
+
+    def test_zoom_broadcast_is_debounced(self) -> None:
+        """``setTimeout`` + ``clearTimeout`` on ``_zoomDebounce`` throttles
+        the broadcast to ~30ms. Without debouncing, drag events fire
+        per-pixel and saturate peers' update queues."""
+        assert "_zoomDebounce" in ASSET
+        assert "clearTimeout(container._zoomDebounce)" in ASSET
+
+    def test_highlight_sync_uses_set_and_clear_selection(self) -> None:
+        """Highlight (hover row) sync relays through
+        ``peer.instance.setSelection(row)`` on highlight and
+        ``peer.instance.clearSelection()`` on unhighlight — the dygraphs
+        JS API for programmatic hover-row control."""
+        assert "peer.instance.setSelection(row)" in ASSET
+        assert "peer.instance.clearSelection()" in ASSET
+
+    def test_highlight_sync_respects_suppress_flag(self) -> None:
+        """Mirrors the zoom-sync suppress flag: each peer sets
+        ``_suppressHighlight`` around the relay so the peer's own
+        callback doesn't echo back."""
+        assert "peer.el._suppressHighlight" in ASSET
+        assert "container._suppressHighlight" in ASSET
+
+    def test_attach_sync_early_returns_on_missing_group(self) -> None:
+        """``attachHighlightSync`` early-returns when ``config.group``
+        is falsy — charts without a group name must not pay the
+        relay cost."""
+        assert "if (!group) return;" in ASSET
+
+
+# ---------------------------------------------------------------------------
 # Asset / shim integration
 # ---------------------------------------------------------------------------
 
