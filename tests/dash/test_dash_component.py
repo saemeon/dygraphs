@@ -32,17 +32,26 @@ class TestDygraphToDash:
         assert isinstance(component, html.Div)
         assert component.id.startswith("dygraph-")
 
-    def test_to_dash_contains_store_and_graph(self) -> None:
-        from dash import Dash, dcc
+    def test_to_dash_contains_two_stores_and_no_hidden_graph(self) -> None:
+        """Layout = 2 dcc.Store (data + opts) + 1 html.Div container.
+
+        The hidden ``dcc.Graph`` sink that earlier versions used as a
+        clientside callback Output target has been removed; the
+        callback now writes back to the data store with
+        ``allow_duplicate=True`` and returns ``no_update`` from JS.
+        """
+        from dash import Dash, dcc, html
 
         app = Dash(__name__)
         dg = Dygraph(_df())
         component = dg.to_dash(app=app, component_id="x")
         children = component.children
-        store = [c for c in children if isinstance(c, dcc.Store)]
+        stores = [c for c in children if isinstance(c, dcc.Store)]
         graphs = [c for c in children if isinstance(c, dcc.Graph)]
-        assert len(store) == 2  # data store + opts store
-        assert len(graphs) == 1  # hidden graph
+        divs = [c for c in children if isinstance(c, html.Div)]
+        assert len(stores) == 2  # data store + opts store
+        assert len(graphs) == 0  # hidden graph dropped
+        assert len(divs) == 1  # container div
 
     def test_to_dash_height_int(self) -> None:
         from dash import Dash
@@ -176,4 +185,3 @@ class TestCapture:
         except ImportError:
             pytest.skip("dash-capture not installed")
         assert "true, true)" in strategy.capture  # hide=true, debug=true
-

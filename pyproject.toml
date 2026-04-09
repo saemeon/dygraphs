@@ -24,16 +24,20 @@ dependencies = []
 
 [project.optional-dependencies]
 pandas = ["pandas>=1.5.0"]
-dash = ["dash>=2.0.0"]
+# dash 2.9.0 is the minimum that ships allow_duplicate=True on Output
+# objects and the 'initial_duplicate' value for prevent_initial_call —
+# both are required by the clientside callback wiring in
+# src/dygraphs/dash/component.py.
+dash = ["dash>=2.9.0"]
 shiny = ["shiny>=0.6.0"]
-all = ["pandas>=1.5.0", "dash>=2.0.0", "shiny>=0.6.0"]
+all = ["pandas>=1.5.0", "dash>=2.9.0", "shiny>=0.6.0"]
 
 [project.urls]
 Homepage = "https://github.com/saemeon/dygraphs"
 Repository = "https://github.com/saemeon/dygraphs"
 
 [dependency-groups]
-test = ["pytest", "pytest-cov", "selenium", "numpy", "pandas>=1.5.0", "dash>=2.0.0", "pillow"]
+test = ["pytest", "pytest-cov", "selenium", "numpy", "pandas>=1.5.0", "dash>=2.9.0", "pillow"]
 doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mike"]
 dev = [
     "ruff",

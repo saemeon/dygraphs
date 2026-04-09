@@ -243,6 +243,67 @@ class TestJsMarkerSinglePass:
 
 
 # ---------------------------------------------------------------------------
+# Hidden dcc.Graph sink removal (Phase 3 — drop the dummy output)
+# ---------------------------------------------------------------------------
+
+
+_COMPONENT_PY = (
+    Path(__file__).parent.parent.parent / "src" / "dygraphs" / "dash" / "component.py"
+).read_text()
+
+
+class TestNoHiddenGraphSink:
+    """Lock in the always-no-update + allow_duplicate dummy-output pattern.
+
+    The earlier layout used a hidden ``dcc.Graph`` component as the
+    clientside callback's nominal Output target. That ghost component
+    has been removed: the callback now writes back to the data
+    ``dcc.Store`` itself with ``allow_duplicate=True`` and the JS
+    returns ``window.dash_clientside.no_update`` so the store isn't
+    actually mutated (no feedback loop). Requires ``dash>=2.9.0`` for
+    ``allow_duplicate`` and ``prevent_initial_call='initial_duplicate'``.
+    """
+
+    def test_shim_returns_no_update(self) -> None:
+        """The per-instance shim must end with ``return no_update``."""
+        from dygraphs.dash.component import _build_render_js
+
+        js = _build_render_js("g", "g-container", "g-chart", 320, modebar=True)
+        assert "window.dash_clientside.no_update" in js
+        # Old empty-figure return must not reappear.
+        assert "{data: [], layout: {}}" not in js
+        assert "{data:[],layout:{}}" not in js
+
+    def test_component_uses_allow_duplicate(self) -> None:
+        """The dygraph_to_dash callback wires allow_duplicate=True."""
+        assert "allow_duplicate=True" in _COMPONENT_PY
+
+    def test_component_uses_initial_duplicate_prevent(self) -> None:
+        """prevent_initial_call must be 'initial_duplicate' (Dash 2.9 feature)."""
+        assert 'prevent_initial_call="initial_duplicate"' in _COMPONENT_PY
+
+    def test_component_no_hidden_graph_id_var(self) -> None:
+        """The ``hidden_graph_id`` local must be gone — symptom of the old sink."""
+        assert "hidden_graph_id" not in _COMPONENT_PY
+        assert "hidden-graph" not in _COMPONENT_PY
+
+    def test_component_does_not_instantiate_dcc_graph(self) -> None:
+        """The dcc.Graph hidden sink instance must be gone from layouts."""
+        assert "dcc.Graph(" not in _COMPONENT_PY
+
+    def test_pyproject_pins_dash_2_9(self) -> None:
+        """``allow_duplicate`` requires dash>=2.9.0 — pin it in pyproject."""
+        pyproject = (Path(__file__).parent.parent.parent / "pyproject.toml").read_text()
+        # The dash extra and the test group both must require >=2.9.0.
+        # An older >=2.0.0 pin would let the runtime crash on the
+        # allow_duplicate keyword for users on the minimum version.
+        assert "dash>=2.0.0" not in pyproject, (
+            "dash>=2.0.0 is too old for allow_duplicate=True; must be >=2.9.0"
+        )
+        assert "dash>=2.9.0" in pyproject
+
+
+# ---------------------------------------------------------------------------
 # Asset / shim integration
 # ---------------------------------------------------------------------------
 
