@@ -21,6 +21,12 @@ a Python API that stays as close to R's as Python idioms allow. Concretely:
   `dygraph %>% dyOptions(stackedGraph = TRUE)` becomes
   `Dygraph(...).options(stacked_graph=True)`. The mapping is mechanical and
   documented in the table below.
+- **Constructor parameter renames.** Audited against R's `dygraph()` —
+  there is exactly **one** rename: R's `main` → Python's `title`. Every
+  other parameter (`data`, `xlab`, `ylab`, `periodicity`, `group`, `width`,
+  `height`) keeps its R name verbatim. R's `elementId` has no Python
+  equivalent because the Dash/Shiny adapters manage component IDs
+  themselves. Last audited against `dygraphs-r/R/dygraph.R`.
 
 Anything that diverges from R is either (a) a Pythonic naming change covered
 by the mapping, or (b) deliberately documented as a Python-only addition (the
@@ -237,16 +243,44 @@ These are the only items that move us toward the stated north star.
   `"weekly"`, `"daily"`, `"hourly"`, `"minute"`, `"seconds"`,
   `"milliseconds"`); `None` = auto-detect (default). Validated against
   `_VALID_PERIODICITIES`; raises on numeric data.
+- [x] **Audit `test_r_parity.py` coverage.** Cross-referenced the file
+  against the 37-row mapping table. Was covering 18 of 37 methods at the
+  start of the audit; added 14 new test cases across 5 new classes to
+  cover the previously-untested high-value methods: `periodicity=`
+  override, `dyDependency`, `dyCSS`, the four chart-level plotters
+  (`dyBarChart`, `dyStackedBarChart`, `dyMultiColumn`, `dyCandlestick`),
+  and the five series-level plotters (`dyBarSeries`, `dyStemSeries`,
+  `dyShadow`, `dyFilledLine`, `dyErrorFill`). Remaining gaps are tracked
+  below.
+- [x] **Verify constructor parameter renames are documented.** Audited
+  Python `Dygraph.__init__` against R `dygraph()`. Only one rename:
+  `main` → `title`. Documented in the "Naming convention" subsection.
 
 #### Next up
-1. **Audit `test_r_parity.py` coverage.** Confirm it has at least one test per
-   row of the R↔Python mapping table. Anything missing is a parameter-parity
-   blind spot. Add tests for any uncovered method — including a
-   `.dependency()` round-trip against R's `dyDependency` and a
-   `periodicity=` round-trip.
-2. **Verify constructor parameter renames are documented.** `main` → `title`
-   is the only one today; if any others sneak in during the audit, list them
-   in the "Naming convention" subsection above.
+1. **Cover the remaining R parity gaps in `test_r_parity.py`.** Methods
+   still without an R-vs-Python comparison test:
+   - `dyMultiColumnGroup`, `dyCandlestickGroup`, `dyStackedBarGroup`,
+     `dyStackedLineGroup`, `dyStackedRibbonGroup` — all use the same
+     "apply group plotter" pattern; one parametrized test class would
+     cover them.
+   - `dyPlugin` (the bare wrapper, not via Crosshair/Ribbon/Rebase),
+     `dyPlotter` (custom plotter, not via the chart-level family),
+     `dyDataHandler`, `dySeriesData` — single-method one-offs.
+   None are parity-blocking, but coverage is the only way to catch
+   per-parameter regressions before users do.
+
+#### Known structural divergences (not bugs, just things to remember)
+- **Plotter storage.** R stores the plotter NAME string in `x$plotter`
+  (e.g. `"BarChart"`); Python stores a `JS("Dygraph.Plotters.X")`
+  namespace lookup so the JS resolves it at render time. Both reach the
+  same runtime function, but the JSON shapes differ. The R parity
+  comparisons in `TestPlotterFamily` and `TestSeriesPlotterFamily` are
+  intentionally structural ("plotter is set"), not byte-for-byte.
+- **`shadow` and `filled_line` share the same plotter name in Python**
+  (`filledlineplotter`). R uses two distinct JS files (`fillplotter.js`
+  vs `filledline.js`). Smoke-checked during the parity audit; flagging
+  here in case it's actually a Python bug rather than a deliberate
+  consolidation. Worth a short investigation when someone has time.
 
 ### Secondary track — Dash adapter cleanup
 

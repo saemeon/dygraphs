@@ -1525,6 +1525,250 @@ class TestUnzoomPlugin:
 
 
 # ---------------------------------------------------------------------------
+# Constructor-level features (periodicity= override)
+# ---------------------------------------------------------------------------
+
+
+class TestPeriodicityOverride:
+    """``dygraph(..., periodicity=)`` constructor override.
+
+    R takes an ``xts::periodicity`` list with a ``$scale`` field; Python
+    accepts the scale string directly. Compare the resulting ``x$scale``.
+    """
+
+    def test_periodicity_monthly_override(self) -> None:
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts, periodicity=list(scale="monthly", label="month"))
+            cat(toJSON(strip_js(dg$x$scale), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_2col(), periodicity="monthly").to_dict()["scale"]
+        assert r == "monthly"
+        assert py == "monthly"
+
+    def test_periodicity_default_is_autodetected_daily(self) -> None:
+        """Without an override, daily-spaced data lands on ``"daily"`` on both sides."""
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts)
+            cat(toJSON(strip_js(dg$x$scale), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_2col()).to_dict()["scale"]
+        assert r == "daily"
+        assert py == "daily"
+
+
+# ---------------------------------------------------------------------------
+# dyCSS — file → x$css string
+# ---------------------------------------------------------------------------
+
+
+class TestDyCSS:
+    def test_css_file_inlined_into_config(self, tmp_path) -> None:
+        css_file = tmp_path / "chart.css"
+        css_file.write_text(".dygraph-title { color: red; }")
+        # Use raw string for the R path so backslashes survive on Windows-ish
+        # paths and quotes inside the path are unlikely.
+        r_path = str(css_file).replace("\\", "/")
+        r = _run_r(f"""
+            {_R_TS_1COL}
+            dg <- dygraph(ts) %>% dyCSS("{r_path}")
+            cat(toJSON(strip_js(dg$x$css), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_1col()).css(css_file).to_dict()["css"]
+        # Both should contain the rule contents (R may or may not strip the
+        # trailing newline depending on readLines behaviour).
+        assert ".dygraph-title" in r
+        assert ".dygraph-title" in py
+
+
+# ---------------------------------------------------------------------------
+# dyDependency — manual external asset attachment
+# ---------------------------------------------------------------------------
+
+
+class TestDyDependency:
+    """Compare R ``dyDependency(htmlDependency(...))`` with Python ``.dependency()``.
+
+    R stores the htmlDependency object on ``x$dependencies``; Python stores
+    a normalised dict with the same fields (``name``, ``version``, ``src``,
+    ``script``, ``stylesheet``). The comparison is structural: both sides
+    must report the same dependency name, version, and script file
+    basename.
+    """
+
+    def test_dependency_name_and_version_round_trip(self, tmp_path) -> None:
+        js_file = tmp_path / "myplugin.js"
+        js_file.write_text("window.__myPlugin = 1;")
+        r_dir = str(tmp_path).replace("\\", "/")
+        r = _run_r(f"""
+            {_R_TS_1COL}
+            dep <- htmltools::htmlDependency(
+                "MyPlugin", "1.5",
+                src = "{r_dir}",
+                script = "myplugin.js",
+                all_files = FALSE
+            )
+            dg <- dygraph(ts) %>% dyDependency(dep)
+            cat(toJSON(strip_js(list(
+                name = dg$dependencies[[1]]$name,
+                version = dg$dependencies[[1]]$version,
+                script = dg$dependencies[[1]]$script
+            )), auto_unbox=TRUE))
+        """)
+        py_deps = (
+            Dygraph(_py_df_1col())
+            .dependency("MyPlugin", version="1.5", src=tmp_path, script="myplugin.js")
+            .to_dict()["dependencies"]
+        )
+        assert r["name"] == "MyPlugin"
+        assert r["version"] == "1.5"
+        assert r["script"] == "myplugin.js"
+        assert py_deps[0]["name"] == "MyPlugin"
+        assert py_deps[0]["version"] == "1.5"
+        # Python stores fully-qualified paths; R stores just the basename
+        # relative to src. Compare basenames for parity.
+        import os
+
+        assert os.path.basename(py_deps[0]["script"][0]) == "myplugin.js"
+
+
+# ---------------------------------------------------------------------------
+# Plotter family (dyBarChart / dyStackedBarChart / dyMultiColumn / dyCandlestick)
+# ---------------------------------------------------------------------------
+
+
+class TestPlotterFamily:
+    """Verify each ``dyX`` plotter family member emits a plotter on both sides.
+
+    Note: R stores the plotter NAME (e.g. ``"BarChart"``) in ``x$plotter``,
+    while Python stores a ``Dygraph.Plotters.X`` namespace lookup as a JS
+    expression (so the JS resolves it at render time). Both reach the same
+    runtime function. The comparison here is structural — both sides must
+    have a non-empty ``attrs.plotter`` (R) / ``attrs.plotter`` (Py).
+    """
+
+    def test_bar_chart_single_series(self) -> None:
+        r = _run_r(f"""
+            {_R_TS_1COL}
+            dg <- dygraph(ts) %>% dyBarChart()
+            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_1col()).bar_chart().to_dict()["attrs"].get("plotter")
+        # R emits a name string; Python emits a JS namespace lookup.
+        assert r and "BarChart" in str(r)
+        assert py is not None
+        assert "BarChart" in str(py)
+
+    def test_bar_chart_multi_series_falls_back_to_multi_column(self) -> None:
+        """R: dyBarChart() switches to MultiColumn when n>1. Python does too."""
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts) %>% dyBarChart()
+            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_2col()).bar_chart().to_dict()["attrs"].get("plotter")
+        assert "MultiColumn" in str(r)
+        assert "MultiColumn" in str(py)
+
+    def test_stacked_bar_chart(self) -> None:
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts) %>% dyStackedBarChart()
+            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+        """)
+        py = (
+            Dygraph(_py_df_2col()).stacked_bar_chart().to_dict()["attrs"].get("plotter")
+        )
+        assert "StackedBarChart" in str(r)
+        assert "StackedBarChart" in str(py)
+
+    def test_multi_column(self) -> None:
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts) %>% dyMultiColumn()
+            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+        """)
+        py = Dygraph(_py_df_2col()).multi_column().to_dict()["attrs"].get("plotter")
+        assert "MultiColumn" in str(r)
+        assert "MultiColumn" in str(py)
+
+    def test_candlestick(self) -> None:
+        # Candlestick wants OHLC columns
+        r = _run_r("""
+            data <- data.frame(Date=as.Date("2020-01-01") + 0:4,
+                               Open=c(1,2,3,4,5), High=c(2,3,4,5,6),
+                               Low=c(0.5,1.5,2.5,3.5,4.5), Close=c(1.5,2.5,3.5,4.5,5.5))
+            ts <- xts(data[,c("Open","High","Low","Close")], order.by=data$Date)
+            dg <- dygraph(ts) %>% dyCandlestick()
+            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+        """)
+        ohlc = pd.DataFrame(
+            {
+                "Open": [1, 2, 3, 4, 5],
+                "High": [2, 3, 4, 5, 6],
+                "Low": [0.5, 1.5, 2.5, 3.5, 4.5],
+                "Close": [1.5, 2.5, 3.5, 4.5, 5.5],
+            },
+            index=_DATES,
+        )
+        py = Dygraph(ohlc).candlestick().to_dict()["attrs"].get("plotter")
+        assert "Candlestick" in str(r)
+        assert "Candlestick" in str(py)
+
+
+# ---------------------------------------------------------------------------
+# Series-level plotter family (dyBarSeries / dyStemSeries / dyShadow /
+# dyFilledLine / dyErrorFill)
+# ---------------------------------------------------------------------------
+
+
+class TestSeriesPlotterFamily:
+    """Each series-level plotter sets ``attrs$series$<name>$plotter``.
+
+    R inlines the plotter JS source as the value; Python stores a short
+    name reference and injects the JS source separately via ``extraJs``.
+    The comparison is structural: assert the named series has a plotter
+    set on both sides.
+    """
+
+    def _r_series_plotter_present(self, dy_func: str, series: str) -> bool:
+        r = _run_r(f"""
+            {_R_TS_2COL}
+            dg <- dygraph(ts) %>% {dy_func}("{series}")
+            has <- !is.null(dg$x$attrs$series[["{series}"]]$plotter)
+            cat(toJSON(has, auto_unbox=TRUE))
+        """)
+        return bool(r)
+
+    def _py_series_plotter_present(self, method_name: str, series: str) -> bool:
+        df = _py_df_2col()
+        dg = getattr(Dygraph(df), method_name)(series)
+        series_attrs = dg.to_dict()["attrs"].get("series", {})
+        return "plotter" in series_attrs.get(series, {})
+
+    def test_bar_series(self) -> None:
+        assert self._r_series_plotter_present("dyBarSeries", "a")
+        assert self._py_series_plotter_present("bar_series", "a")
+
+    def test_stem_series(self) -> None:
+        assert self._r_series_plotter_present("dyStemSeries", "a")
+        assert self._py_series_plotter_present("stem_series", "a")
+
+    def test_shadow(self) -> None:
+        assert self._r_series_plotter_present("dyShadow", "a")
+        assert self._py_series_plotter_present("shadow", "a")
+
+    def test_filled_line(self) -> None:
+        assert self._r_series_plotter_present("dyFilledLine", "a")
+        assert self._py_series_plotter_present("filled_line", "a")
+
+    def test_error_fill(self) -> None:
+        assert self._r_series_plotter_present("dyErrorFill", "a")
+        assert self._py_series_plotter_present("error_fill", "a")
+
+
+# ---------------------------------------------------------------------------
 # Strict full-JSON diff
 # ---------------------------------------------------------------------------
 
