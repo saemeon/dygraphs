@@ -201,6 +201,48 @@ class TestJsMarkerSlice:
 
 
 # ---------------------------------------------------------------------------
+# processJsMarkers is called exactly once per render (single-pass invariant)
+# ---------------------------------------------------------------------------
+
+
+class TestJsMarkerSinglePass:
+    """The renderer must walk the option tree exactly once per render.
+
+    The previous layout called ``processJsMarkers(opts)`` twice — once
+    after parsing ``config.attrs`` and once again after merging
+    ``optsOverride`` — which double-walked every base attr. The current
+    layout merges first and walks the merged result exactly once. Lock
+    this in so a future "let's process attrs early for safety" patch
+    doesn't silently regress to two walks.
+    """
+
+    def test_processjsmarkers_called_once_on_opts(self) -> None:
+        # Count call sites that operate on the merged ``opts`` object.
+        # The function definition uses ``processJsMarkers(obj)`` and the
+        # recursive descent uses ``processJsMarkers(val)``, so neither
+        # matches this literal.
+        assert ASSET.count("processJsMarkers(opts)") == 1, (
+            "processJsMarkers(opts) must be called exactly once per render — "
+            "the previous double-walk layout has regressed"
+        )
+
+    def test_processjsmarkers_call_follows_object_assign(self) -> None:
+        """The single walk must come *after* the override merge.
+
+        If it ran before ``Object.assign(opts, optsOverride)``, any
+        marker strings inside the override would slip through unevaluated.
+        """
+        merge_idx = ASSET.find("Object.assign(opts, optsOverride)")
+        walk_idx = ASSET.find("processJsMarkers(opts)")
+        assert merge_idx != -1, "override merge call missing from renderer"
+        assert walk_idx != -1, "processJsMarkers(opts) call missing from renderer"
+        assert walk_idx > merge_idx, (
+            "processJsMarkers(opts) must run after Object.assign(opts, optsOverride) "
+            "or override markers will not be evaluated"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Asset / shim integration
 # ---------------------------------------------------------------------------
 
