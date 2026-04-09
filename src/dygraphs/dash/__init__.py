@@ -7,5 +7,12 @@ from __future__ import annotations
 
 from dygraphs.dash.capture import dygraph_strategy
 from dygraphs.dash.component import dygraph_to_dash, stacked_bar
+from dygraphs.dash.outputs import data, opts
 
-__all__ = ["dygraph_to_dash", "dygraph_strategy", "stacked_bar"]
+__all__ = [
+    "data",
+    "dygraph_strategy",
+    "dygraph_to_dash",
+    "opts",
+    "stacked_bar",
+]

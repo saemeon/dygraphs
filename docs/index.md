@@ -2,7 +2,7 @@
 
 Python wrapper for the [dygraphs](https://dygraphs.com) JavaScript charting library.
 
-**Core port of the R [dygraphs](https://rstudio.github.io/dygraphs/) package** — all 44 exported R functions ported to a Pythonic builder API. The R package (by RStudio/JJ Allaire) is the most mature dygraphs wrapper in any language; this package faithfully ports its API design, data model, and test coverage to Python.
+**Core port of the R [dygraphs](https://rstudio.github.io/dygraphs/) package** — 36 of 37 exported R `dy*` functions plus the `dygraph()` constructor are ported to a Pythonic builder API (the one gap is `dyDependency`). The R package (by RStudio/JJ Allaire) is the most mature dygraphs wrapper in any language; this package faithfully ports its API design, data model, and test coverage to Python. See the *R Function Mapping* table below.
 
 Framework-agnostic core with adapters for [Plotly Dash](https://dash.plotly.com/) and [Shiny for Python](https://shiny.posit.co/py/).
 
@@ -199,15 +199,67 @@ chart_c = stacked_bar(app, "c", csv_data, title="Stacked Bar", group="sync")
 app.layout = html.Div([chart_a, chart_b, chart_c])
 ```
 
-## Dynamic Updates (Dash)
+## Updating data from Dash callbacks
 
-Charts expose `dcc.Store` components:
+dygraphs charts in Dash follow the **R `htmlwidgets` model**: every config
+update destroys the existing dygraph instance and creates a new one from
+scratch. There is exactly one update path, so there's no class of "did I
+forget to invalidate X?" bugs to chase.
+
+Each chart created with `dygraph_to_dash` (or `Dygraph.to_dash`) is backed
+by two `dcc.Store` components:
+
+| Store id          | What lives there       | When to write              |
+|-------------------|------------------------|----------------------------|
+| `{cid}-store`     | Canonical config       | Pushing fresh data + attrs |
+| `{cid}-opts`      | Runtime opts override  | Toggling display options   |
+
+Use the `data` and `opts` helpers from `dygraphs.dash` to target them in
+callbacks without hand-building the magic-id strings:
 
 ```python
-Output("{id}-store", "data")    # update chart data
-Output("{id}-opts", "data")     # update options at runtime
-Input("{id}-xrange", "data")    # read current date window
+from dash import Input
+from dygraphs import Dygraph
+from dygraphs.dash import data, opts
+
+# Pushing a fresh config (data + attrs) → full destroy+recreate
+@app.callback(data("my-chart"), Input("refresh", "n_clicks"))
+def refresh(_n):
+    return Dygraph(new_df).to_dict()
+
+# Pushing runtime overrides → merged on top of the existing config
+@app.callback(opts("my-chart"), Input("toggle", "value"))
+def toggle(v):
+    return {"strokeWidth": 3 if v else 1}
 ```
+
+Under the hood, `data("my-chart")` returns `Output("my-chart-store", "data")`
+and `opts("my-chart")` returns `Output("my-chart-opts", "data")`.
+
+### Preserving zoom across updates
+
+Because every config update is a full destroy+recreate, the user's current
+zoom range is **discarded** by default — same as R's `dygraph(...)` with
+`retainDateWindow = FALSE`. To carry the zoom forward across updates, set
+`retain_date_window=True` on the chart options:
+
+```python
+chart = (
+    Dygraph(df, title="Live data")
+    .options(retain_date_window=True)
+    .range_selector(height=30)
+    .to_dash(app=app, component_id="my-chart")
+)
+```
+
+The renderer reads the previous instance's `xAxisRange()` before
+destroying it and writes it back into the new instance's `dateWindow`.
+
+### Group sync still works
+
+Charts that share a `group=` name continue to sync zoom, pan, and highlight
+across updates — the JS group registry is keyed by chart id, not by dygraph
+instance, so a destroy+recreate transparently re-registers under the same id.
 
 ## Modebar
 

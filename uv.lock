@@ -443,8 +443,8 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "dash", marker = "extra == 'all'", specifier = ">=2.0.0" },
-    { name = "dash", marker = "extra == 'dash'", specifier = ">=2.0.0" },
+    { name = "dash", marker = "extra == 'all'", specifier = ">=2.9.0" },
+    { name = "dash", marker = "extra == 'dash'", specifier = ">=2.9.0" },
     { name = "pandas", marker = "extra == 'all'", specifier = ">=1.5.0" },
     { name = "pandas", marker = "extra == 'pandas'", specifier = ">=1.5.0" },
     { name = "shiny", marker = "extra == 'all'", specifier = ">=0.6.0" },
@@ -454,7 +454,7 @@ provides-extras = ["pandas", "dash", "shiny", "all"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "dash", specifier = ">=2.0.0" },
+    { name = "dash", specifier = ">=2.9.0" },
     { name = "mike" },
     { name = "mkdocs" },
     { name = "mkdocs-material" },
@@ -476,7 +476,7 @@ doc = [
     { name = "mkdocstrings", extras = ["python"] },
 ]
 test = [
-    { name = "dash", specifier = ">=2.0.0" },
+    { name = "dash", specifier = ">=2.9.0" },
     { name = "numpy" },
     { name = "pandas", specifier = ">=1.5.0" },
     { name = "pillow" },

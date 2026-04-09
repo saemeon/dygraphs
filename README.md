@@ -153,13 +153,32 @@ app.layout = html.Div([chart_a, chart_b, chart_c])
 
 ## Dynamic Updates (Dash)
 
-Charts expose `dcc.Store` components:
+Each chart created with `dygraph_to_dash` (or `Dygraph.to_dash`) is backed by
+two `dcc.Store` components: a canonical config store and a runtime opts store.
+Use the `data` and `opts` helpers from `dygraphs.dash` to target them in
+callbacks without hand-building the magic-id strings:
 
 ```python
-Output("{id}-store", "data")    # update chart data
-Output("{id}-opts", "data")     # update options at runtime
-Input("{id}-xrange", "data")    # read current date window
+from dash import Input
+from dygraphs import Dygraph
+from dygraphs.dash import data, opts
+
+# Pushing a fresh config (data + attrs) → full destroy+recreate
+@app.callback(data("my-chart"), Input("refresh", "n_clicks"))
+def refresh(_n):
+    return Dygraph(new_df).to_dict()
+
+# Pushing runtime overrides → merged on top of the existing config
+@app.callback(opts("my-chart"), Input("toggle", "value"))
+def toggle(v):
+    return {"strokeWidth": 3 if v else 1}
 ```
+
+Under the hood, `data("my-chart")` returns `Output("my-chart-store", "data")`
+and `opts("my-chart")` returns `Output("my-chart-opts", "data")`. The chart is
+always destroyed and recreated on every config update (R `htmlwidgets` model);
+pass `retain_date_window=True` to `.options()` if you need the user's zoom
+preserved across updates.
 
 ## Capture (dash-capture)
 

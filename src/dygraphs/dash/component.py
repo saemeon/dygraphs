@@ -1,7 +1,13 @@
 """Dash integration — render a Dygraph builder into Dash components.
 
-Uses the proven pattern: dcc.Store for data + dcc.Graph (hidden) as
-clientside callback output + JS that loads dygraphs on demand.
+Pattern: ``dcc.Store`` for data + a clientside callback whose dummy
+output target is the same store with ``allow_duplicate=True``. The JS
+returns ``window.dash_clientside.no_update`` so the store isn't
+actually mutated and there's no feedback loop. (Earlier versions of
+this module used a hidden ``dcc.Graph`` as the dummy output sink;
+that's been removed — see the "Drop hidden ``dcc.Graph`` sink" entry
+in CLAUDE.md.) Requires ``dash>=2.9.0`` for ``allow_duplicate=True``
+and ``prevent_initial_call='initial_duplicate'``.
 
 The renderer JS itself lives in ``src/dygraphs/assets/dash_render.js``
 — a real JavaScript file, lintable, syntax-highlightable. This module
@@ -125,13 +131,17 @@ def _build_render_js(
         }
     )
 
-    # Inline the (idempotent) renderer asset, then dispatch.
+    # Inline the (idempotent) renderer asset, then dispatch. The
+    # callback's nominal Output is the data store with
+    # allow_duplicate=True; returning dash_clientside.no_update means
+    # the store is not actually mutated and there's no feedback loop
+    # (the same store is also one of this callback's Inputs).
     return (
         "function(config, optsOverride) {\n"
         + _DASH_RENDER_JS
         + "\n"
         + f"    window.dygraphsDash.render({setup_json}, config, optsOverride);\n"
-        + "    return {data: [], layout: {}};\n"
+        + "    return window.dash_clientside.no_update;\n"
         + "}"
     )
 
@@ -175,7 +185,6 @@ def dygraph_to_dash(
     opts_store_id = f"{cid}-opts"
     container_id = f"{cid}-container"
     chart_div_id = f"{cid}-chart"
-    hidden_graph_id = f"{cid}-hidden-graph"
 
     height_px = int(height.replace("px", "")) if isinstance(height, str) else height
 
@@ -187,7 +196,6 @@ def dygraph_to_dash(
         [
             dcc.Store(id=store_id, data=serialised_config),
             dcc.Store(id=opts_store_id, data=None),
-            dcc.Graph(id=hidden_graph_id, style={"display": "none"}),
             html.Div(id=container_id, style={"width": width}),
         ],
         id=cid,
@@ -197,11 +205,16 @@ def dygraph_to_dash(
         js = _build_render_js(
             cid, container_id, chart_div_id, height_px, modebar=modebar
         )
+        # Dummy output: same data store with allow_duplicate=True. The
+        # JS returns dash_clientside.no_update so the store isn't
+        # actually mutated. Requires dash>=2.9.0 for allow_duplicate
+        # and the 'initial_duplicate' prevent_initial_call mode.
         app.clientside_callback(
             js,
-            Output(hidden_graph_id, "figure"),
+            Output(store_id, "data", allow_duplicate=True),
             Input(store_id, "data"),
             Input(opts_store_id, "data"),
+            prevent_initial_call="initial_duplicate",
         )
 
     return component
@@ -250,7 +263,6 @@ def stacked_bar(
 
     store_id = graph_id
     container_id = f"{graph_id}-container"
-    hidden_graph_id = f"{graph_id}-hidden-graph"
 
     colors_json = json.dumps(colors or [])
     title_str = json.dumps(title)
@@ -485,19 +497,21 @@ def stacked_bar(
         }}
 
         render();
-        return {{data:[],layout:{{}}}};
+        return window.dash_clientside.no_update;
     }}"""
 
+    # Same dummy-output trick as dygraph_to_dash: target the data store
+    # itself with allow_duplicate=True and return no_update from JS.
     app.clientside_callback(
         js,
-        Output(hidden_graph_id, "figure"),
+        Output(store_id, "data", allow_duplicate=True),
         Input(store_id, "data"),
+        prevent_initial_call="initial_duplicate",
     )
 
     return html.Div(
         [
             dcc.Store(id=store_id, data=initial_data),
-            dcc.Graph(id=hidden_graph_id, style={"display": "none"}),
             html.Div(id=container_id),
         ]
     )

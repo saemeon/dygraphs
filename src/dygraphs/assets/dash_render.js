@@ -411,15 +411,17 @@
 
             var rows = transposeData(config.data, config.format);
 
-            // Build options, processing __JS__ markers
+            // Build options, then process __JS__ markers in a single pass.
+            // Merge first, walk once: this avoids double-walking the base
+            // config.attrs that the previous two-call layout incurred, and
+            // it leaves a single, easy-to-audit eval site for the marker
+            // protocol. Any new option source must be merged into `opts`
+            // *before* this call.
             var opts = JSON.parse(JSON.stringify(config.attrs));
-            processJsMarkers(opts);
-
-            // Merge runtime override
             if (optsOverride && typeof optsOverride === 'object') {
                 Object.assign(opts, optsOverride);
-                processJsMarkers(opts);
             }
+            processJsMarkers(opts);
 
             // Group registry: drop any stale entry for this container
             // (we re-register after creating the dygraph below).
