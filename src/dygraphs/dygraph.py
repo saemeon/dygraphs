@@ -186,7 +186,13 @@ class Dygraph:
         ``dygraph(..., periodicity=...)``. Only valid for date-formatted
         data — passing it with numeric data raises ``ValueError``.
     group
-        Synchronisation group name (x-axis zoom is synced across group).
+        Cross-chart synchronisation group name (a string). Charts that
+        share the same name auto-sync their x-axis zoom, pan, and
+        highlight. Mirrors R's ``dygraph(group=)``. Equivalent to
+        :meth:`sync_group`. **Not the same as** the :meth:`group` builder
+        method, which takes a *list of column names* and mirrors R's
+        ``dyGroup()`` to style a set of series together. The collision is
+        intentional — both names mirror the R API exactly.
     width, height
         Chart dimensions in pixels (``None`` = auto).
 
@@ -1461,6 +1467,46 @@ class Dygraph:
 
     # ---- group (dyGroup) ---------------------------------------------
 
+    def sync_group(self, name: str | None) -> Dygraph:
+        """Set the cross-chart synchronisation group name.
+
+        Charts that share the same ``sync_group`` name automatically sync
+        their x-axis zoom, pan, and highlight. This is the same value
+        accepted by the constructor's ``group=`` kwarg, exposed as a
+        builder method for discoverability and method-chain consistency.
+
+        Mirrors R's ``dygraph(group=)``. **Not to be confused with**
+        :meth:`group`, which styles a list of series together within a
+        single chart (R's ``dyGroup()``).
+
+        Parameters
+        ----------
+        name : str | None
+            Synchronisation group identifier. Pass ``None`` to clear.
+
+        Examples
+        --------
+        Two charts that auto-sync x-axis zoom:
+
+        >>> a = Dygraph(df1).sync_group("weather")
+        >>> b = Dygraph(df2).sync_group("weather")
+
+        Equivalent to passing ``group=`` to the constructor:
+
+        >>> a = Dygraph(df1, group="weather")  # same effect
+
+        Returns
+        -------
+        Dygraph
+            Self, for chaining.
+
+        See Also
+        --------
+        group : Style a list of series together (the unrelated `dyGroup`).
+        """
+        self._group = name
+        return self
+
     def group(
         self,
         names: list[str],
@@ -1489,6 +1535,19 @@ class Dygraph:
         Note: ``dyGroup`` turns off ``stackedGraph`` in R because
         stacking calculates cumulatives over all series, not just a
         subset.
+
+        .. warning::
+            **Not to be confused with the constructor kwarg ``group=``.**
+            The two features share the name but do completely different
+            things:
+
+            - **This method (``.group([names], ...)``)** styles a *list of
+              series* together within a single chart. Takes a list of
+              column names. Mirrors R's ``dyGroup()``.
+            - **Constructor kwarg ``Dygraph(df, group="...")``** (a.k.a.
+              :meth:`sync_group`) synchronises zoom, pan, and highlight
+              across *multiple charts* that share the same group name.
+              Takes a string. Mirrors R's ``dygraph(group=)``.
 
         Parameters
         ----------
@@ -1540,6 +1599,7 @@ class Dygraph:
         See Also
         --------
         series : Configure a single series.
+        sync_group : Set the cross-chart sync name (the unrelated `group=` kwarg).
         """
         if len(names) == 1:
             return self.series(

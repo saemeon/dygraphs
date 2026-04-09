@@ -316,14 +316,16 @@ to-end UX review against R's `dygraphs` workflow.
   functions returning `(title, charts)` tuples; the package
   `__init__.py` walks them in order. Output is **byte-identical** to
   the old gallery (verified at 13.4 MB).
+- [x] **Disambiguate `.group()` vs `group=`.** Both `Dygraph` features
+  are real R ports (`dyGroup` and `dygraph(group=)`) and the names
+  can't be changed without breaking parity. Added prominent warning
+  blocks to the constructor's `group` parameter description and to
+  the `.group()` method's docstring, plus a new `.sync_group(name)`
+  builder alias that exposes the constructor kwarg's behaviour
+  through autocomplete (Python-only convenience, no R analogue).
 
 #### Next up
-1. **Document the `.group()` vs `group=` collision.** `Dygraph(df,
-   group="sync-name")` is the *sync-group* kwarg (mirrors R's
-   `dygraph(group=)`); `.group([...])` is the `dyGroup` port for
-   styling a set of series together. Same name, very different
-   behaviour. Either alias one of them or add a prominent warning to
-   both docstrings.
+*(no items pending — all UX polish items shipped)*
 
 ### Secondary track — Dash adapter cleanup
 

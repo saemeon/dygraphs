@@ -177,6 +177,26 @@ class TestCssRawString:
         assert ".my-cls { font-weight: bold }" in html
 
 
+class TestSyncGroupAlias:
+    """``.sync_group(name)`` is a builder alias for the constructor's
+    ``group=`` kwarg — exposes the cross-chart sync feature through
+    autocomplete and disambiguates from the unrelated ``.group([names])``
+    method (which is the ``dyGroup`` port)."""
+
+    def test_sync_group_method_sets_group(self) -> None:
+        d = Dygraph(_sample_df()).sync_group("foo")
+        assert d.to_dict()["group"] == "foo"
+
+    def test_sync_group_equivalent_to_constructor_kwarg(self) -> None:
+        a = Dygraph(_sample_df(), group="bar").to_dict()["group"]
+        b = Dygraph(_sample_df()).sync_group("bar").to_dict()["group"]
+        assert a == b == "bar"
+
+    def test_sync_group_none_clears(self) -> None:
+        d = Dygraph(_sample_df(), group="x").sync_group(None)
+        assert d.to_dict()["group"] is None
+
+
 # ---------------------------------------------------------------------------
 # Data input formats
 # ---------------------------------------------------------------------------
