@@ -38,7 +38,13 @@ Repository = "https://github.com/saemeon/dygraphs"
 
 [dependency-groups]
 test = ["pytest", "pytest-cov", "selenium", "numpy", "pandas>=1.5.0", "dash>=2.9.0", "pillow"]
-doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mike"]
+doc = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mike",
+    "mkdocs-gallery>=0.10.4",
+]
 dev = [
     "ruff",
     "prek",

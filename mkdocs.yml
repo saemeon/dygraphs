@@ -10,6 +10,7 @@ copyright: "Copyright &copy; 2026 Simon Niederberger"
 
 nav:
   - Home: "index.md"
+  - Gallery: "generated/gallery"
   - API Reference: "api.md"
 
 theme:
@@ -63,6 +64,16 @@ markdown_extensions:
 
 plugins:
   - search
+  - gallery:
+      conf_script: docs/gallery_conf.py
+      examples_dirs:
+        - docs/examples
+      gallery_dirs:
+        - docs/generated/gallery
+      filename_pattern: "/plot_"
+      ignore_pattern: "/__init__\\.py"
+      plot_gallery: true
+      capture_repr: []
   - mkdocstrings:
       handlers:
         python:

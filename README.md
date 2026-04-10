@@ -6,6 +6,8 @@ Python wrapper for the [dygraphs](https://dygraphs.com) JavaScript charting libr
 
 Framework-agnostic core with adapters for [Plotly Dash](https://dash.plotly.com/) and [Shiny for Python](https://shiny.posit.co/py/).
 
+**Example gallery:** https://saemeon.github.io/dygraphs/generated/gallery — runnable Python scripts with rendered charts, plus a [live-data Dash example](examples/dash_data_update.py) demonstrating the `data()` / `opts()` callback-update pattern.
+
 ## Features
 
 - **Two API styles**: builder chaining (`Dygraph(df).options(...).series(...)`) and declarative (`Dygraph(df, options=Options(...), series=[Series(...)])`) — both produce identical output
