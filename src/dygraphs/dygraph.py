@@ -3182,7 +3182,6 @@ class Dygraph:
 
     def to_dash(
         self,
-        app: Any = None,
         *,
         component_id: str | None = None,
         height: str | int = "400px",
@@ -3193,9 +3192,6 @@ class Dygraph:
 
         Parameters
         ----------
-        app
-            Dash app instance. If provided, clientside callbacks are
-            auto-registered.
         component_id
             Unique DOM id prefix. Auto-generated if omitted.
         height, width
@@ -3207,7 +3203,7 @@ class Dygraph:
         --------
         >>> from dash import Dash
         >>> app = Dash(__name__)
-        >>> component = Dygraph(df).to_dash(app=app)
+        >>> component = Dygraph(df).to_dash()
 
         Returns
         -------
@@ -3218,7 +3214,6 @@ class Dygraph:
 
         return dygraph_to_dash(
             self,
-            app=app,
             component_id=component_id,
             height=height,
             width=width,

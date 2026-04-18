@@ -31,7 +31,7 @@ def data(component_id: str) -> Output:
 
         from dygraphs.dash import data
 
-        @app.callback(data("my-chart"), Input("refresh", "n_clicks"))
+        @dash.callback(data("my-chart"), Input("refresh", "n_clicks"))
         def refresh(_n):
             return Dygraph(new_df).to_dict()
 
@@ -60,7 +60,7 @@ def opts(component_id: str) -> Output:
 
         from dygraphs.dash import opts
 
-        @app.callback(opts("my-chart"), Input("toggle", "value"))
+        @dash.callback(opts("my-chart"), Input("toggle", "value"))
         def toggle(v):
             return {"strokeWidth": 3 if v else 1}
 

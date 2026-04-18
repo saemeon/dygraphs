@@ -206,9 +206,7 @@ def dygraph_strategy(
         app = Dash(__name__)
 
         chart = Dygraph(df, title="Sales").range_selector()
-        chart_component = chart.to_dash(
-            app=app, component_id="sales", height="320px"
-        )
+        chart_component = chart.to_dash(component_id="sales", height="320px")
 
         app.layout = html.Div([
             chart_component,

@@ -49,7 +49,6 @@ _DASH_RENDER_JS = (
 ).read_text()
 
 if TYPE_CHECKING:
-    from dash import Dash
     from dash.development.base_component import Component
 
     from dygraphs.dygraph import Dygraph
@@ -155,7 +154,6 @@ def dygraph_to_dash(
     dg: Dygraph,
     *,
     component_id: str | None = None,
-    app: Dash | None = None,
     height: str | int = "400px",
     width: str = "100%",
     modebar: bool = True,
@@ -168,8 +166,6 @@ def dygraph_to_dash(
         Configured Dygraph builder instance.
     component_id
         Unique DOM id prefix. Auto-generated if omitted.
-    app
-        Dash app to register clientside callbacks on.
     height
         Chart height in pixels or CSS string.
     width
@@ -177,7 +173,7 @@ def dygraph_to_dash(
     modebar
         Show Plotly-style overlay buttons (capture, reset zoom).
     """
-    from dash import dcc, html
+    from dash import clientside_callback, dcc, html
     from dash.dependencies import Input, Output
 
     cid = component_id or f"dygraph-{uuid.uuid4().hex[:8]}"
@@ -201,21 +197,18 @@ def dygraph_to_dash(
         id=cid,
     )
 
-    if app is not None:
-        js = _build_render_js(
-            cid, container_id, chart_div_id, height_px, modebar=modebar
-        )
-        # Dummy output: same data store with allow_duplicate=True. The
-        # JS returns dash_clientside.no_update so the store isn't
-        # actually mutated. Requires dash>=2.9.0 for allow_duplicate
-        # and the 'initial_duplicate' prevent_initial_call mode.
-        app.clientside_callback(
-            js,
-            Output(store_id, "data", allow_duplicate=True),
-            Input(store_id, "data"),
-            Input(opts_store_id, "data"),
-            prevent_initial_call="initial_duplicate",
-        )
+    js = _build_render_js(cid, container_id, chart_div_id, height_px, modebar=modebar)
+    # Dummy output: same data store with allow_duplicate=True. The
+    # JS returns dash_clientside.no_update so the store isn't
+    # actually mutated. Requires dash>=2.9.0 for allow_duplicate
+    # and the 'initial_duplicate' prevent_initial_call mode.
+    clientside_callback(
+        js,
+        Output(store_id, "data", allow_duplicate=True),
+        Input(store_id, "data"),
+        Input(opts_store_id, "data"),
+        prevent_initial_call="initial_duplicate",
+    )
 
     return component
 
@@ -226,7 +219,6 @@ def dygraph_to_dash(
 
 
 def stacked_bar(
-    app: Dash,
     graph_id: str,
     initial_data: str = "",
     *,
@@ -240,8 +232,6 @@ def stacked_bar(
 
     Parameters
     ----------
-    app
-        Dash app instance.
     graph_id
         Unique component ID prefix.
     initial_data
@@ -258,7 +248,7 @@ def stacked_bar(
         Synchronisation group name. Charts sharing the same group name
         will sync their x-axis zoom/pan.
     """
-    from dash import dcc, html
+    from dash import clientside_callback, dcc, html
     from dash.dependencies import Input, Output
 
     store_id = graph_id
@@ -502,7 +492,7 @@ def stacked_bar(
 
     # Same dummy-output trick as dygraph_to_dash: target the data store
     # itself with allow_duplicate=True and return no_update from JS.
-    app.clientside_callback(
+    clientside_callback(
         js,
         Output(store_id, "data", allow_duplicate=True),
         Input(store_id, "data"),
