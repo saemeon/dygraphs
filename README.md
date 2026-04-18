@@ -86,7 +86,7 @@ chart = Dygraph(
 ```python
 from dash import Dash, html
 app = Dash(__name__)
-app.layout = html.Div([chart.to_dash(app=app)])
+app.layout = html.Div([chart.to_dash()])
 ```
 
 ### Render in Shiny
@@ -161,9 +161,9 @@ Charts with the same `group` name automatically sync zoom, pan, and highlight:
 ```python
 from dygraphs import Dygraph, stacked_bar
 
-chart_a = Dygraph(df1, group="sync").range_selector().to_dash(app, component_id="a")
-chart_b = Dygraph(df2, group="sync").range_selector().to_dash(app, component_id="b")
-chart_c = stacked_bar(app, "c", csv_data, title="Stacked Bar", group="sync")
+chart_a = Dygraph(df1, group="sync").range_selector().to_dash(component_id="a")
+chart_b = Dygraph(df2, group="sync").range_selector().to_dash(component_id="b")
+chart_c = stacked_bar("c", csv_data, title="Stacked Bar", group="sync")
 
 app.layout = html.Div([chart_a, chart_b, chart_c])
 ```
@@ -221,12 +221,12 @@ from dygraphs import Dygraph
 from dygraphs.dash import data, opts
 
 # Pushing a fresh config (data + attrs) → full destroy+recreate
-@app.callback(data("my-chart"), Input("refresh", "n_clicks"))
+@dash.callback(data("my-chart"), Input("refresh", "n_clicks"))
 def refresh(_n):
     return Dygraph(new_df).to_dict()
 
 # Pushing runtime overrides → merged on top of the existing config
-@app.callback(opts("my-chart"), Input("toggle", "value"))
+@dash.callback(opts("my-chart"), Input("toggle", "value"))
 def toggle(v):
     return {"strokeWidth": 3 if v else 1}
 ```
@@ -277,7 +277,7 @@ capture_element(app, "btn", "chart-container", "img-store",
 | `.update(...)` | — | Modify config post-construction |
 | `.copy()` | — | Deep copy for forking variants |
 | `.show()` | — | Render in Jupyter via `IPython.display` |
-| `.to_dash(app)` | — | Dash component |
+| `.to_dash()` | — | Dash component |
 | `.to_shiny(id)` | — | Shiny component |
 | `.to_html()` | — | Standalone HTML page |
 | `.to_dict()` | — | Plain dict (framework-agnostic) |

@@ -84,7 +84,7 @@ chart = Dygraph(
 ```python
 from dash import Dash, html
 app = Dash(__name__)
-app.layout = html.Div([chart.to_dash(app=app)])
+app.layout = html.Div([chart.to_dash()])
 ```
 
 ### Render in Shiny
@@ -160,7 +160,7 @@ chart = (
     .roller(roll_period=7)
     .crosshair(direction="vertical")
     .unzoom()
-    .to_dash(app=app)
+    .to_dash()
 )
 ```
 
@@ -210,9 +210,9 @@ Charts with the same `group` name automatically sync zoom, pan, and highlight:
 ```python
 from dygraphs import Dygraph, stacked_bar
 
-chart_a = Dygraph(df1, group="sync").range_selector().to_dash(app, component_id="a")
-chart_b = Dygraph(df2, group="sync").range_selector().to_dash(app, component_id="b")
-chart_c = stacked_bar(app, "c", csv_data, title="Stacked Bar", group="sync")
+chart_a = Dygraph(df1, group="sync").range_selector().to_dash(component_id="a")
+chart_b = Dygraph(df2, group="sync").range_selector().to_dash(component_id="b")
+chart_c = stacked_bar("c", csv_data, title="Stacked Bar", group="sync")
 
 app.layout = html.Div([chart_a, chart_b, chart_c])
 ```
@@ -266,7 +266,7 @@ chart = (
     Dygraph(df, title="Live data")
     .options(retain_date_window=True)
     .range_selector(height=30)
-    .to_dash(app=app, component_id="my-chart")
+    .to_dash(component_id="my-chart")
 )
 ```
 
