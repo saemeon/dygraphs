@@ -216,6 +216,7 @@ Use the `data` and `opts` helpers from `dygraphs.dash` to target them in
 callbacks without hand-building the magic-id strings:
 
 ```python
+import dash
 from dash import Input
 from dygraphs import Dygraph
 from dygraphs.dash import data, opts
