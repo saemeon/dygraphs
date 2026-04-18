@@ -98,7 +98,7 @@ chart1 = (
     .crosshair(direction="vertical")
     .unzoom()
 )
-chart1_component = chart1.to_dash(app=app, component_id="chart-1", height="320px")
+chart1_component = chart1.to_dash(component_id="chart-1", height="320px")
 
 # ---------------------------------------------------------------------------
 # Chart 2: Multi-series with secondary axis
@@ -116,7 +116,7 @@ chart2 = (
     .legend(show="always")
     .range_selector(height=30)
 )
-chart2_component = chart2.to_dash(app=app, component_id="chart-2", height="320px")
+chart2_component = chart2.to_dash(component_id="chart-2", height="320px")
 
 # ---------------------------------------------------------------------------
 # Chart 3: Step plot with annotations
@@ -136,14 +136,13 @@ chart3 = (
     .annotation("2024-01-10", "!", tooltip="Outage start", series="Status")
     .annotation("2024-01-15", "R", tooltip="Recovered", series="Status")
 )
-chart3_component = chart3.to_dash(app=app, component_id="chart-3", height="250px")
+chart3_component = chart3.to_dash(component_id="chart-3", height="250px")
 
 # ---------------------------------------------------------------------------
 # Chart 4: Stacked bar chart with range selector
 # ---------------------------------------------------------------------------
 
 chart4_component = stacked_bar(
-    app,
     "chart-4",
     initial_data=make_contributions_csv(0),
     colors=["#00d4aa", "#7eb8f7", "#f4a261", "#34d399", "#f76e8a"],
@@ -175,7 +174,7 @@ chart5 = Dygraph(
     ],
     events=[Event(x="2024-02-14", label="Maintenance", color="#888")],
 )
-chart5_component = chart5.to_dash(app=app, component_id="chart-5", height="280px")
+chart5_component = chart5.to_dash(component_id="chart-5", height="280px")
 
 # ---------------------------------------------------------------------------
 # Chart 6: Numpy array input + copy/fork
@@ -188,7 +187,7 @@ base_chart = Dygraph(
 
 chart6 = base_chart.copy()
 chart6._attrs["title"] = "Numpy Input + Copy"  # fork variant
-chart6_component = chart6.to_dash(app=app, component_id="chart-6", height="200px")
+chart6_component = chart6.to_dash(component_id="chart-6", height="200px")
 
 # ---------------------------------------------------------------------------
 # Chart 7: Error bars with columns= (R-style dySeries(c("low","mid","high")))
@@ -212,7 +211,7 @@ chart7 = (
     .legend(show="always")
     .range_selector(height=20)
 )
-chart7_component = chart7.to_dash(app=app, component_id="chart-7", height="280px")
+chart7_component = chart7.to_dash(component_id="chart-7", height="280px")
 
 # ---------------------------------------------------------------------------
 # Chart 8: Rebase plugin — compare series from different baselines
@@ -228,7 +227,7 @@ chart8 = (
     .legend(show="always")
     .rebase(value=100)
 )
-chart8_component = chart8.to_dash(app=app, component_id="chart-8", height="250px")
+chart8_component = chart8.to_dash(component_id="chart-8", height="250px")
 
 # ---------------------------------------------------------------------------
 # Chart 9: Ribbon plugin — background colour bands
@@ -245,7 +244,7 @@ chart9 = (
         palette=["rgba(200,255,200,0.3)", "rgba(255,200,200,0.3)"],
     )
 )
-chart9_component = chart9.to_dash(app=app, component_id="chart-9", height="250px")
+chart9_component = chart9.to_dash(component_id="chart-9", height="250px")
 
 # ---------------------------------------------------------------------------
 # Chart 10: Series group with shared styling
@@ -265,7 +264,7 @@ chart10 = (
     .series("Baseline", stroke_pattern="dashed", color="#999")
     .legend(show="always")
 )
-chart10_component = chart10.to_dash(app=app, component_id="chart-10", height="280px")
+chart10_component = chart10.to_dash(component_id="chart-10", height="280px")
 
 # ---------------------------------------------------------------------------
 # Chart 11: Bar chart + multi-column
@@ -279,7 +278,7 @@ chart11 = (
     .options(colors=["#e74c3c", "#3498db", "#2ecc71"])
     .legend(show="always")
 )
-chart11_component = chart11.to_dash(app=app, component_id="chart-11", height="280px")
+chart11_component = chart11.to_dash(component_id="chart-11", height="280px")
 
 # ---------------------------------------------------------------------------
 # Chart 12: Candlestick
@@ -299,7 +298,7 @@ df12 = pd.DataFrame(
 )
 
 chart12 = Dygraph(df12, title="Candlestick Chart").candlestick().legend(show="always")
-chart12_component = chart12.to_dash(app=app, component_id="chart-12", height="280px")
+chart12_component = chart12.to_dash(component_id="chart-12", height="280px")
 
 # ---------------------------------------------------------------------------
 # Chart 13: Point shapes
@@ -315,7 +314,7 @@ chart13 = (
     .series("Square", point_shape="square", color="#2ecc71")
     .legend(show="always")
 )
-chart13_component = chart13.to_dash(app=app, component_id="chart-13", height="250px")
+chart13_component = chart13.to_dash(component_id="chart-13", height="250px")
 
 # ---------------------------------------------------------------------------
 # Chart 14: Stem plot
@@ -332,7 +331,7 @@ chart14 = (
     .options(stem_plot=True, colors=["#e67e22"])
     .legend(show="always")
 )
-chart14_component = chart14.to_dash(app=app, component_id="chart-14", height="250px")
+chart14_component = chart14.to_dash(component_id="chart-14", height="250px")
 
 # ---------------------------------------------------------------------------
 # Chart 15: Logscale
@@ -349,7 +348,7 @@ chart15 = (
     .options(colors=["#8e44ad"], stroke_width=2)
     .legend(show="always")
 )
-chart15_component = chart15.to_dash(app=app, component_id="chart-15", height="250px")
+chart15_component = chart15.to_dash(component_id="chart-15", height="250px")
 
 # ---------------------------------------------------------------------------
 # Dropdown to change trend

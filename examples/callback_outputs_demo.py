@@ -59,7 +59,7 @@ initial_chart = (
     .options(stroke_width=2, colors=["#00d4aa"])
     .legend(show="always")
 )
-chart_component = initial_chart.to_dash(app=app, component_id="chart", height="280px")
+chart_component = initial_chart.to_dash(component_id="chart", height="280px")
 
 # Layout — note IDs we'll target as Outputs
 TREND_OPTS = [

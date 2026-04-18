@@ -44,7 +44,7 @@ chart = (
     .legend(show="always")
     .range_selector(height=30)
 )
-chart_component = chart.to_dash(app=app, component_id="sensors", height="320px")
+chart_component = chart.to_dash(component_id="sensors", height="320px")
 
 # The chart's canvas container is f"{component_id}-container".
 ELEMENT_ID = "sensors-container"
