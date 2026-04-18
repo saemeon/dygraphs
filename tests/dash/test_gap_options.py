@@ -107,9 +107,9 @@ class TestDynamicStores:
         """The opts store should be in the component for runtime updates."""
         from dash import Dash, dcc
 
-        app = Dash(__name__)
+        Dash(__name__)
         d = Dygraph(_df())
-        component = d.to_dash(app=app, component_id="dyn")
+        component = d.to_dash(component_id="dyn")
         stores = [c for c in component.children if isinstance(c, dcc.Store)]
         store_ids = [s.id for s in stores]
         assert "dyn-opts" in store_ids
@@ -119,7 +119,7 @@ class TestDynamicStores:
         """Users should be able to target stores by convention: {id}-store, {id}-opts."""
         from dash import Dash
 
-        app = Dash(__name__)
+        Dash(__name__)
         d = Dygraph(_df())
-        d.to_dash(app=app, component_id="my-chart")
+        d.to_dash(component_id="my-chart")
         # If we got here without error, the stores and callbacks are registered

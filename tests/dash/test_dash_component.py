@@ -17,18 +17,18 @@ class TestDygraphToDash:
     def test_to_dash_returns_div(self) -> None:
         from dash import Dash, html
 
-        app = Dash(__name__)
+        Dash(__name__)
         dg = Dygraph(_df(), title="Test")
-        component = dg.to_dash(app=app, component_id="tc")
+        component = dg.to_dash(component_id="tc")
         assert isinstance(component, html.Div)
         assert component.id == "tc"
 
     def test_to_dash_auto_id(self) -> None:
         from dash import Dash, html
 
-        app = Dash(__name__)
+        Dash(__name__)
         dg = Dygraph(_df())
-        component = dg.to_dash(app=app)
+        component = dg.to_dash()
         assert isinstance(component, html.Div)
         assert component.id.startswith("dygraph-")
 
@@ -42,9 +42,9 @@ class TestDygraphToDash:
         """
         from dash import Dash, dcc, html
 
-        app = Dash(__name__)
+        Dash(__name__)
         dg = Dygraph(_df())
-        component = dg.to_dash(app=app, component_id="x")
+        component = dg.to_dash(component_id="x")
         children = component.children
         stores = [c for c in children if isinstance(c, dcc.Store)]
         graphs = [c for c in children if isinstance(c, dcc.Graph)]
@@ -56,17 +56,17 @@ class TestDygraphToDash:
     def test_to_dash_height_int(self) -> None:
         from dash import Dash
 
-        app = Dash(__name__)
+        Dash(__name__)
         dg = Dygraph(_df())
-        component = dg.to_dash(app=app, component_id="h", height=500)
+        component = dg.to_dash(component_id="h", height=500)
         assert isinstance(component, object)  # just verify no error
 
     def test_to_dash_no_modebar(self) -> None:
         from dash import Dash
 
-        app = Dash(__name__)
+        Dash(__name__)
         dg = Dygraph(_df())
-        component = dg.to_dash(app=app, component_id="nm", modebar=False)
+        component = dg.to_dash(component_id="nm", modebar=False)
         assert component is not None
 
     def test_to_dash_without_app(self) -> None:
@@ -91,9 +91,9 @@ class TestStackedBar:
     def test_stacked_bar_returns_div(self) -> None:
         from dash import Dash, html
 
-        app = Dash(__name__)
+        Dash(__name__)
         component = __import__("dygraphs").stacked_bar(
-            app, "sb", initial_data="Date,A,B\n2024-01-01,1,2\n2024-01-02,3,4"
+            "sb", initial_data="Date,A,B\n2024-01-01,1,2\n2024-01-02,3,4"
         )
         assert isinstance(component, html.Div)
 

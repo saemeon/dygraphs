@@ -33,13 +33,13 @@ def synced_app_url():
         Dygraph(df1, title="Chart A", group="test-sync")
         .options(animated_zooms=False)
         .range_selector(height=20)
-        .to_dash(app=app, component_id="chart-a", height=200)
+        .to_dash(component_id="chart-a", height=200)
     )
     chart_b = (
         Dygraph(df2, title="Chart B", group="test-sync")
         .options(animated_zooms=False)
         .range_selector(height=20)
-        .to_dash(app=app, component_id="chart-b", height=200)
+        .to_dash(component_id="chart-b", height=200)
     )
 
     np.random.seed(42)
@@ -53,7 +53,6 @@ def synced_app_url():
     ).to_csv(index=False)
 
     chart_c = stacked_bar(
-        app,
         "chart-c",
         initial_data=bar_csv,
         colors=["#00d4aa", "#7eb8f7"],
