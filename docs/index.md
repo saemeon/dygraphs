@@ -236,17 +236,18 @@ Use the `data` and `opts` helpers from `dygraphs.dash` to target them in
 callbacks without hand-building the magic-id strings:
 
 ```python
+import dash
 from dash import Input
 from dygraphs import Dygraph
 from dygraphs.dash import data, opts
 
 # Pushing a fresh config (data + attrs) → full destroy+recreate
-@app.callback(data("my-chart"), Input("refresh", "n_clicks"))
+@dash.callback(data("my-chart"), Input("refresh", "n_clicks"))
 def refresh(_n):
     return Dygraph(new_df).to_dict()
 
 # Pushing runtime overrides → merged on top of the existing config
-@app.callback(opts("my-chart"), Input("toggle", "value"))
+@dash.callback(opts("my-chart"), Input("toggle", "value"))
 def toggle(v):
     return {"strokeWidth": 3 if v else 1}
 ```

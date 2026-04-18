@@ -28,9 +28,9 @@ as an observable Output target.
 
 from __future__ import annotations
 
-import dash
 import numpy as np
 import pandas as pd
+import dash
 from dash import Input, Output, dash_table, dcc, html
 
 from dygraphs import Dygraph
@@ -149,7 +149,7 @@ app.layout = html.Div(
 # ---------------------------------------------------------------------------
 
 
-@app.callback(
+@dash.callback(
     # 1. Chart data store — drives the dygraph re-render
     Output("chart-store", "data"),
     # 2. Chart options store — legend show/hide

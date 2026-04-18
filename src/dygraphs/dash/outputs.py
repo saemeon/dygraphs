@@ -29,6 +29,8 @@ def data(component_id: str) -> Output:
     Use this in serverside or clientside callbacks to push a fresh
     config (data + attrs) into the chart::
 
+        import dash
+        from dash import Input
         from dygraphs.dash import data
 
         @dash.callback(data("my-chart"), Input("refresh", "n_clicks"))
@@ -58,6 +60,8 @@ def opts(component_id: str) -> Output:
     it to push runtime overrides (line widths, colors, axis labels, …)
     without retransmitting the data payload::
 
+        import dash
+        from dash import Input
         from dygraphs.dash import opts
 
         @dash.callback(opts("my-chart"), Input("toggle", "value"))
