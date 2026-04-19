@@ -151,7 +151,7 @@ app.layout = html.Div(
 
 @dash.callback(
     # 1. Chart data store — drives the dygraph re-render
-    Output("chart-store", "data"),
+    Output("chart", "data"),
     # 2. Chart options store — legend show/hide
     Output("chart-opts", "data"),
     # 3. Status banner text

@@ -6,13 +6,11 @@ Install with: ``pip install dygraphs[dash]``
 from __future__ import annotations
 
 from dygraphs.dash.capture import dygraph_strategy
-from dygraphs.dash.component import dygraph_to_dash, stacked_bar
-from dygraphs.dash.outputs import data, opts
+from dygraphs.dash.component import DyGraph, dygraph_to_dash, stacked_bar
 
 __all__ = [
-    "data",
+    "DyGraph",
     "dygraph_strategy",
     "dygraph_to_dash",
-    "opts",
     "stacked_bar",
 ]

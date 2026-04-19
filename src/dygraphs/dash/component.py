@@ -15,6 +15,7 @@ loads it at import time and emits a tiny per-instance shim that
 dispatches to ``window.dygraphsDash.render(setup, config, opts)``.
 
 Includes:
+- DyGraph            — component-style wrapper (``DyGraph(figure=dg, id=...)``)
 - dygraph_to_dash() — render a Dygraph builder into Dash layout
 - stacked_bar()     — canvas stacked bar with interactive range selector
 
@@ -177,10 +178,13 @@ def dygraph_to_dash(
     from dash.dependencies import Input, Output
 
     cid = component_id or f"dygraph-{uuid.uuid4().hex[:8]}"
-    store_id = f"{cid}-store"
+    # The data store gets the user-facing id so that callbacks can
+    # target it directly:  Output("my-chart", "data")
+    store_id = cid
     opts_store_id = f"{cid}-opts"
     container_id = f"{cid}-container"
     chart_div_id = f"{cid}-chart"
+    wrap_id = f"{cid}-wrap"
 
     height_px = int(height.replace("px", "")) if isinstance(height, str) else height
 
@@ -194,7 +198,7 @@ def dygraph_to_dash(
             dcc.Store(id=opts_store_id, data=None),
             html.Div(id=container_id, style={"width": width}),
         ],
-        id=cid,
+        id=wrap_id,
     )
 
     js = _build_render_js(cid, container_id, chart_div_id, height_px, modebar=modebar)
@@ -211,6 +215,81 @@ def dygraph_to_dash(
     )
 
     return component
+
+
+# ---------------------------------------------------------------------------
+# DyGraph — component-style wrapper
+# ---------------------------------------------------------------------------
+
+
+class DyGraph:
+    """Dash component wrapper for a dygraphs chart.
+
+    Drop-in alternative to :func:`dygraph_to_dash` that feels like
+    ``dcc.Graph``::
+
+        from dygraphs.dash import DyGraph
+
+        app.layout = html.Div([
+            DyGraph(figure=dg, id="chart"),
+        ])
+
+    Accepts the same parameters as :func:`dygraph_to_dash` but as a
+    constructor call with ``figure`` and ``id`` instead of ``dg`` and
+    ``component_id``.
+
+    Parameters
+    ----------
+    figure : Dygraph
+        Configured Dygraph builder instance.
+    id : str | None
+        Unique DOM id prefix. Auto-generated if omitted.
+    height : str | int
+        Chart height in pixels or CSS string.
+    width : str
+        CSS width for the container.
+    modebar : bool
+        Show overlay buttons (capture, reset zoom).
+    """
+
+    def __init__(
+        self,
+        figure: Dygraph,
+        id: str | None = None,  # noqa: A002
+        height: str | int = "400px",
+        width: str = "100%",
+        modebar: bool = True,
+    ) -> None:
+        self._cid = id or f"dygraph-{uuid.uuid4().hex[:8]}"
+        self._component = dygraph_to_dash(
+            figure,
+            component_id=self._cid,
+            height=height,
+            width=width,
+            modebar=modebar,
+        )
+        # Expose the data store id — the user-facing identity of the
+        # chart.  Output("my-chart", "data") targets this store.
+        self.id = self._cid
+
+    # Make DyGraph behave as a Dash component in layouts by delegating
+    # to the underlying html.Div. Dash's layout renderer calls
+    # to_plotly_json() to serialise the component tree.
+    def to_plotly_json(self) -> dict:
+        """Serialise as a Dash component (delegated to the inner Div)."""
+        return self._component.to_plotly_json()
+
+    # Allow Dash to iterate children during layout validation.
+    @property
+    def children(self):  # noqa: ANN201
+        return self._component.children
+
+    @children.setter
+    def children(self, value) -> None:  # noqa: ANN001
+        self._component.children = value
+
+    def __repr__(self) -> str:
+        return f"DyGraph(id={self.id!r})"
 
 
 # ---------------------------------------------------------------------------
