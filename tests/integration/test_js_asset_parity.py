@@ -45,6 +45,14 @@ _R_INST = _find_r_inst()
 
 _PY_ASSETS = _R_BASE / "src" / "dygraphs" / "assets"
 
+# Plotter/plugin files whose content intentionally diverges from R.
+# See CLAUDE.md "Done (recent)" entry "Fix shadow() / filled_line() plotter
+# name collision": Python renamed the inner function in fillplotter.js from
+# ``filledlineplotter`` to ``fillplotter`` to avoid global-symbol collision
+# with filledline.js when both are injected into the same page. R doesn't
+# have this bug because it inlines plotter source into each series.
+_INTENTIONAL_DIVERGENCES: set[str] = {"fillplotter.js"}
+
 pytestmark = pytest.mark.skipif(
     _R_INST is None, reason="R dygraphs reference (dygraphs-r/inst/) not found"
 )
@@ -92,6 +100,8 @@ class TestPlotterParity:
         ids=[p[0] for p in _get_pairs("plotters")],
     )
     def test_plotter_matches(self, name: str, r_path: Path, py_path: Path) -> None:
+        if name in _INTENTIONAL_DIVERGENCES:
+            pytest.skip(f"{name} intentionally diverges from R (see _INTENTIONAL_DIVERGENCES)")
         r_code = _normalise_ws(r_path.read_text())
         py_code = _normalise_ws(py_path.read_text())
         assert r_code == py_code, (

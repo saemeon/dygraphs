@@ -341,10 +341,10 @@ def stacked_bar(
     group_json = json.dumps(group)
 
     js = f"""function(csvData) {{
-        function render() {{
-            var container = document.getElementById('{container_id}');
-            if (!container) return;
+        var container = document.getElementById('{container_id}');
+        if (!container) return window.dash_clientside.no_update;
 
+        function render() {{
             var lines = csvData.trim().split('\\n');
             var series = lines[0].split(',').slice(1);
             var n = series.length;

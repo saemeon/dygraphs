@@ -1641,18 +1641,19 @@ class TestDyDependency:
 class TestPlotterFamily:
     """Verify each ``dyX`` plotter family member emits a plotter on both sides.
 
-    Note: R stores the plotter NAME (e.g. ``"BarChart"``) in ``x$plotter``,
-    while Python stores a ``Dygraph.Plotters.X`` namespace lookup as a JS
-    expression (so the JS resolves it at render time). Both reach the same
-    runtime function. The comparison here is structural — both sides must
-    have a non-empty ``attrs.plotter`` (R) / ``attrs.plotter`` (Py).
+    Note: R stores the plotter NAME (e.g. ``"BarChart"``) at ``dg$x$plotter``
+    (top-level of ``x``), while Python stores a ``Dygraph.Plotters.X``
+    namespace lookup as a JS expression at ``attrs.plotter`` (so the JS
+    resolves it at render time). Both reach the same runtime function. The
+    comparison here is structural — both sides must have a non-empty plotter
+    reference.
     """
 
     def test_bar_chart_single_series(self) -> None:
         r = _run_r(f"""
             {_R_TS_1COL}
             dg <- dygraph(ts) %>% dyBarChart()
-            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+            cat(toJSON(strip_js(dg$x$plotter), auto_unbox=TRUE))
         """)
         py = Dygraph(_py_df_1col()).bar_chart().to_dict()["attrs"].get("plotter")
         # R emits a name string; Python emits a JS namespace lookup.
@@ -1665,7 +1666,7 @@ class TestPlotterFamily:
         r = _run_r(f"""
             {_R_TS_2COL}
             dg <- dygraph(ts) %>% dyBarChart()
-            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+            cat(toJSON(strip_js(dg$x$plotter), auto_unbox=TRUE))
         """)
         py = Dygraph(_py_df_2col()).bar_chart().to_dict()["attrs"].get("plotter")
         assert "MultiColumn" in str(r)
@@ -1675,7 +1676,7 @@ class TestPlotterFamily:
         r = _run_r(f"""
             {_R_TS_2COL}
             dg <- dygraph(ts) %>% dyStackedBarChart()
-            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+            cat(toJSON(strip_js(dg$x$plotter), auto_unbox=TRUE))
         """)
         py = (
             Dygraph(_py_df_2col()).stacked_bar_chart().to_dict()["attrs"].get("plotter")
@@ -1687,7 +1688,7 @@ class TestPlotterFamily:
         r = _run_r(f"""
             {_R_TS_2COL}
             dg <- dygraph(ts) %>% dyMultiColumn()
-            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+            cat(toJSON(strip_js(dg$x$plotter), auto_unbox=TRUE))
         """)
         py = Dygraph(_py_df_2col()).multi_column().to_dict()["attrs"].get("plotter")
         assert "MultiColumn" in str(r)
@@ -1701,7 +1702,7 @@ class TestPlotterFamily:
                                Low=c(0.5,1.5,2.5,3.5,4.5), Close=c(1.5,2.5,3.5,4.5,5.5))
             ts <- xts(data[,c("Open","High","Low","Close")], order.by=data$Date)
             dg <- dygraph(ts) %>% dyCandlestick()
-            cat(toJSON(strip_js(dg$x$attrs$plotter), auto_unbox=TRUE))
+            cat(toJSON(strip_js(dg$x$plotter), auto_unbox=TRUE))
         """)
         ohlc = pd.DataFrame(
             {
@@ -1976,7 +1977,7 @@ class TestDySeriesData:
 
 # Known structural differences between R and Python that are intentional:
 _STRICT_SKIP_TOP = {
-    "scale",  # R emits "daily"/"monthly", Python doesn't (unused by JS)
+    "scale",  # both sides emit "daily"/"monthly" etc.; value is unused by JS
     "fixedtz",  # R-only xts metadata
     "tzone",  # R-only xts metadata
 }
@@ -2052,6 +2053,7 @@ class TestStrictJsonDiff:
         py_norm = _deep_normalise(py_data)
         for key in _STRICT_SKIP_TOP:
             r_norm.pop(key, None)
+            py_norm.pop(key, None)
         for key in _STRICT_SKIP_ATTRS:
             r_norm.get("attrs", {}).pop(key, None)
             py_norm.get("attrs", {}).pop(key, None)
