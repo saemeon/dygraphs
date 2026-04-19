@@ -21,7 +21,8 @@ class TestDygraphToDash:
         dg = Dygraph(_df(), title="Test")
         component = dg.to_dash(component_id="tc")
         assert isinstance(component, html.Div)
-        assert component.id == "tc"
+        # Wrapper div gets a derived id; the data store owns "tc"
+        assert component.id == "tc-wrap"
 
     def test_to_dash_auto_id(self) -> None:
         from dash import Dash, html
