@@ -224,36 +224,32 @@ update destroys the existing dygraph instance and creates a new one from
 scratch. There is exactly one update path, so there's no class of "did I
 forget to invalidate X?" bugs to chase.
 
-Each chart created with `dygraph_to_dash` (or `Dygraph.to_dash`) is backed
-by two `dcc.Store` components:
+Each chart created with `DyGraph` (or `dygraph_to_dash` / `Dygraph.to_dash`)
+is backed by two `dcc.Store` components:
 
 | Store id          | What lives there       | When to write              |
 |-------------------|------------------------|----------------------------|
-| `{cid}-store`     | Canonical config       | Pushing fresh data + attrs |
-| `{cid}-opts`      | Runtime opts override  | Toggling display options   |
+| `{id}`            | Canonical config       | Pushing fresh data + attrs |
+| `{id}-opts`       | Runtime opts override  | Toggling display options   |
 
-Use the `data` and `opts` helpers from `dygraphs.dash` to target them in
-callbacks without hand-building the magic-id strings:
+The data store shares the chart's `id`, so you can target it directly
+with standard Dash `Output` — no helpers needed:
 
 ```python
 import dash
-from dash import Input
+from dash import Input, Output
 from dygraphs import Dygraph
-from dygraphs.dash import data, opts
 
 # Pushing a fresh config (data + attrs) → full destroy+recreate
-@dash.callback(data("my-chart"), Input("refresh", "n_clicks"))
+@dash.callback(Output("my-chart", "data"), Input("refresh", "n_clicks"))
 def refresh(_n):
     return Dygraph(new_df).to_dict()
 
 # Pushing runtime overrides → merged on top of the existing config
-@dash.callback(opts("my-chart"), Input("toggle", "value"))
+@dash.callback(Output("my-chart-opts", "data"), Input("toggle", "value"))
 def toggle(v):
     return {"strokeWidth": 3 if v else 1}
 ```
-
-Under the hood, `data("my-chart")` returns `Output("my-chart-store", "data")`
-and `opts("my-chart")` returns `Output("my-chart-opts", "data")`.
 
 ### Preserving zoom across updates
 
