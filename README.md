@@ -210,33 +210,29 @@ chart = (
 
 ## Dynamic Updates (Dash)
 
-Each chart created with `dygraph_to_dash` (or `Dygraph.to_dash`) is backed by
-two `dcc.Store` components: a canonical config store and a runtime opts store.
-Use the `data` and `opts` helpers from `dygraphs.dash` to target them in
-callbacks without hand-building the magic-id strings:
+Each chart created with `DyGraph` (or `dygraph_to_dash` / `Dygraph.to_dash`)
+is backed by two `dcc.Store` components. The data store shares the chart's
+`id`, so you can target it directly with standard Dash `Output`:
 
 ```python
 import dash
-from dash import Input
+from dash import Input, Output
 from dygraphs import Dygraph
-from dygraphs.dash import data, opts
 
 # Pushing a fresh config (data + attrs) → full destroy+recreate
-@dash.callback(data("my-chart"), Input("refresh", "n_clicks"))
+@dash.callback(Output("my-chart", "data"), Input("refresh", "n_clicks"))
 def refresh(_n):
     return Dygraph(new_df).to_dict()
 
 # Pushing runtime overrides → merged on top of the existing config
-@dash.callback(opts("my-chart"), Input("toggle", "value"))
+@dash.callback(Output("my-chart-opts", "data"), Input("toggle", "value"))
 def toggle(v):
     return {"strokeWidth": 3 if v else 1}
 ```
 
-Under the hood, `data("my-chart")` returns `Output("my-chart-store", "data")`
-and `opts("my-chart")` returns `Output("my-chart-opts", "data")`. The chart is
-always destroyed and recreated on every config update (R `htmlwidgets` model);
-pass `retain_date_window=True` to `.options()` if you need the user's zoom
-preserved across updates.
+The chart is always destroyed and recreated on every config update (R
+`htmlwidgets` model); pass `retain_date_window=True` to `.options()` if you
+need the user's zoom preserved across updates.
 
 ## Capture (dash-capture)
 
