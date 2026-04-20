@@ -224,29 +224,63 @@ update destroys the existing dygraph instance and creates a new one from
 scratch. There is exactly one update path, so there's no class of "did I
 forget to invalidate X?" bugs to chase.
 
-Each chart created with `DyGraph` (or `dygraph_to_dash` / `Dygraph.to_dash`)
-is backed by two `dcc.Store` components:
+### What a `DygraphChart` actually is
 
-| Store id          | What lives there       | When to write              |
-|-------------------|------------------------|----------------------------|
-| `{id}`            | Canonical config       | Pushing fresh data + attrs |
-| `{id}-opts`       | Runtime opts override  | Toggling display options   |
+The abstraction is deliberately thin and worth stating honestly — no
+magic outside what [`dash-wrap`](https://github.com/saemeon/dash-wrap)
+documents.
 
-The data store shares the chart's `id`, so you can target it directly
-with standard Dash `Output` — no helpers needed:
+A `DygraphChart` is a plain `html.Div` containing three sibling
+components:
+
+| Component | Purpose |
+| --- | --- |
+| `dcc.Store(id={id})` | Primary store — canonical config; the chart's *identity*. |
+| `dcc.Store(id={id}-opts)` | Opts store — runtime overrides (e.g. `strokeWidth`). |
+| `html.Div(id={id}-container)` | Container where the dygraphs JS renders its DOM. |
+
+`DygraphChart` subclasses `dash_wrap.ComponentWrapper` with the
+primary store as the *inner* component. Two small pieces of
+machinery make `Output(chart, "data")` resolve to the primary store:
+
+- `_set_random_id` is overridden on the wrapper to return the inner
+  store's id. Dash's dependency wiring calls this when it sees a
+  component (not a string) passed to `Output` / `Input` / `State`.
+- `__class__` is a property that returns the inner store's class,
+  so `isinstance(chart, dcc.Store)` is `True`. The C-level
+  `type(chart)` is still `DygraphChart`, which is what Dash's
+  serialiser uses to emit the DOM (a normal `<div>`).
+
+A per-instance clientside callback, registered at construction,
+listens to both stores and calls `window.dygraphsDash.render(setup,
+config, opts)`. The renderer JS itself lives in
+`src/dygraphs/assets/dash_render.js` (real `.js` file, lintable).
+
+### Writing callbacks
+
+There are two data surfaces — pick whichever one you want to update.
+Both the component-reference form and the string-id form work; they're
+equivalent to Dash's dependency wiring.
+
+| Surface | Write for | Output expression |
+| --- | --- | --- |
+| Primary store | Fresh data + attrs (destroy+recreate) | `Output(chart, "data")` or `Output(chart.cid, "data")` |
+| Opts store | Runtime overrides (merged on top) | `Output(chart.opts, "data")` or `Output(f"{chart.cid}-opts", "data")` |
 
 ```python
 import dash
 from dash import Input, Output
-from dygraphs import Dygraph
+from dygraphs import Dygraph, DygraphChart
 
-# Pushing a fresh config (data + attrs) → full destroy+recreate
-@dash.callback(Output("my-chart", "data"), Input("refresh", "n_clicks"))
+chart = DygraphChart(figure=Dygraph(df), id="my-chart")
+
+# Fresh config → full destroy+recreate
+@dash.callback(Output(chart, "data"), Input("refresh", "n_clicks"))
 def refresh(_n):
     return Dygraph(new_df).to_dict()
 
-# Pushing runtime overrides → merged on top of the existing config
-@dash.callback(Output("my-chart-opts", "data"), Input("toggle", "value"))
+# Runtime overrides → merged on top of the existing config
+@dash.callback(Output(chart.opts, "data"), Input("toggle", "value"))
 def toggle(v):
     return {"strokeWidth": 3 if v else 1}
 ```
