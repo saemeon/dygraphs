@@ -11,7 +11,7 @@ Install extras for framework support::
 Framework-specific entry points live under their subpackages — import
 them directly so Pylance / pyright can see the real signatures::
 
-    from dygraphs.dash import DygraphChart, stacked_bar, dygraph_strategy
+    from dygraphs.dash import DygraphChart, StackedBarChart, dygraph_strategy
     from dygraphs.shiny import dygraph_ui, render_dygraph
 """
 
@@ -32,7 +32,7 @@ from dygraphs.declarative import (
     Shading,
 )
 from dygraphs.dygraph import Dygraph
-from dygraphs.utils import JS, make_custom_bar_data, make_error_bar_data
+from dygraphs.utils import JS
 
 try:
     from dygraphs._version import __version__
@@ -57,8 +57,5 @@ __all__ = [
     "Roller",
     "Series",
     "Shading",
-    # Utilities
-    "make_custom_bar_data",
-    "make_error_bar_data",
     "__version__",
 ]

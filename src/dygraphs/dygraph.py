@@ -3165,12 +3165,13 @@ class Dygraph:
             ]
         return x
 
-    def to_json(self, **kwargs: Any) -> str:
+    def _to_json(self, **kwargs: Any) -> str:
         """Serialise to JSON, handling ``JS`` objects as raw strings.
 
-        Examples
-        --------
-        >>> json_str = Dygraph(df).to_json(indent=2)
+        Private helper used by :meth:`to_html`. External users who need
+        a JSON string should call ``json.dumps(dg.to_js())`` directly
+        (emits ``__JS__:code:__JS__`` markers) or build their own encoder
+        on top of :meth:`to_dict` if they need the raw ``JS`` objects.
         """
 
         def _default(obj: Any) -> Any:
@@ -3250,7 +3251,7 @@ class Dygraph:
         """
         height_css = f"{height}px" if isinstance(height, int) else height
         page_title = title or self._attrs.get("title", "dygraphs chart")
-        config_json = self.to_json()
+        config_json = self._to_json()
 
         # Force inline mode when plotters/plugins are used — they depend on
         # internal APIs (DygraphCanvasRenderer, Dygraph.Plotters) that the CDN
@@ -3722,6 +3723,84 @@ class Dygraph:
         >>> variant = base.copy().series("temp", color="red")
         """
         return copy.deepcopy(self)
+
+    # ---- data-shape helpers (class methods) --------------------------
+
+    @classmethod
+    def error_bar_data(
+        cls,
+        x: list[Any],
+        y: list[float],
+        error: list[float],
+        *,
+        labels: tuple[str, str, str] = ("x", "value", "error"),
+    ) -> dict[str, list[Any]]:
+        """Build a data dict with symmetric error bars.
+
+        Pass the result to ``Dygraph(data, options={"error_bars": True})``.
+        Dygraphs expects ``[x, value, error]`` format when
+        ``errorBars=True``.
+
+        Parameters
+        ----------
+        x
+            X-axis values (dates or numbers).
+        y
+            Y-axis values.
+        error
+            Error values (± around y).
+        labels : tuple[str, str, str], optional
+            Column labels ``(x_label, y_label, error_label)``.
+            By default ``("x", "value", "error")``.
+
+        Returns
+        -------
+        dict[str, list[Any]]
+            Data dict suitable for ``Dygraph()``.
+
+        Examples
+        --------
+        >>> data = Dygraph.error_bar_data(x=[1, 2, 3], y=[10, 20, 30], error=[1, 2, 3])
+        >>> chart = Dygraph(data, options={"error_bars": True})
+        """
+        return {labels[0]: x, labels[1]: y, labels[2]: error}
+
+    @classmethod
+    def custom_bar_data(
+        cls,
+        x: list[Any],
+        low: list[float],
+        mid: list[float],
+        high: list[float],
+        *,
+        labels: tuple[str, str, str, str] = ("x", "low", "mid", "high"),
+    ) -> dict[str, list[Any]]:
+        """Build a data dict with custom (asymmetric) bars.
+
+        Pass the result to ``Dygraph(data, options={"custom_bars": True})``.
+
+        Parameters
+        ----------
+        x
+            X-axis values.
+        low, mid, high
+            Low, middle, and high values for each point.
+        labels : tuple[str, str, str, str], optional
+            Column labels. By default ``("x", "low", "mid", "high")``.
+
+        Returns
+        -------
+        dict[str, list[Any]]
+            Data dict suitable for ``Dygraph()``.
+
+        Examples
+        --------
+        >>> data = Dygraph.custom_bar_data(
+        ...     x=[1, 2, 3], low=[8, 18, 25], mid=[10, 20, 30], high=[12, 22, 35]
+        ... )
+        >>> chart = Dygraph(data, options={"custom_bars": True})
+        """
+        return {labels[0]: x, labels[1]: low, labels[2]: mid, labels[3]: high}
 
     # ---- from_csv (class method) -------------------------------------
 

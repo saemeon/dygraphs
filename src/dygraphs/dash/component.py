@@ -29,9 +29,10 @@ spoofed so ``isinstance(chart, dcc.Store)`` is ``True``.
 
 Public surface:
 
-- :class:`DygraphChart` — the class-based Dash entry.
-- :func:`stacked_bar` — canvas-based stacked bar chart with range
-  selector. Unrelated to :class:`DygraphChart` (different renderer).
+- :class:`DygraphChart` — the class-based Dash entry (dygraphs JS).
+- :class:`StackedBarChart` — canvas-based stacked bar chart with a
+  range selector. Sibling of :class:`DygraphChart` with the same
+  construction pattern, but a different renderer (no dygraphs.js).
 
 Charts sharing the same ``group`` name automatically sync zoom, pan,
 and highlight via a global JS group registry.
@@ -314,67 +315,73 @@ class DygraphChart(ComponentWrapper):
         )
 
     @property
-    def cid(self) -> str:
+    def chart_id(self) -> str:
         """The chart id — equals the inner ``dcc.Store``'s ``id``.
 
-        Named ``cid`` rather than ``id`` so it can't collide with
-        Dash's layout-validation walk, which reads ``.id`` on every
-        component to detect duplicates. (A proxied ``id`` would make
+        Exposed under ``chart_id`` rather than ``id`` because Dash's
+        layout validation reads ``.id`` on every component to detect
+        duplicates. Proxying ``id`` to the inner store would make
         the outer wrapper and the inner store look like duplicates
-        even though only the inner is rendered with an id.)
+        even though only the inner is rendered with an id.
+
+        Use this when you need the id as a string — for example to
+        construct sibling ids (``f"{chart.chart_id}-download"``) or
+        pass to :class:`dash.Output` alongside derived ids. For the
+        direct callback wire-up, ``Output(chart, "data")`` works just
+        as well (dash-wrap resolves it to the store's id).
         """
         return self._cid
 
+    def __getattr__(self, name: str) -> Any:
+        """Proxy to dash-wrap's default handler, with one friendly error.
+
+        Users coming from ``dcc.Graph`` habitually reach for
+        ``chart.id``. The wrapper deliberately has no ``id``
+        attribute (to avoid Dash's duplicate-id validation tripping
+        against the inner store), so the default lookup would raise
+        a generic ``AttributeError``. Intercept that one case with a
+        message that points to :attr:`chart_id`.
+        """
+        if name == "id":
+            raise AttributeError(
+                "DygraphChart has no 'id' attribute — use '.chart_id' "
+                "to read the chart's id. The outer wrapper stays "
+                "id-less to avoid Dash's duplicate-id validation; the "
+                "real id lives on the inner dcc.Store and is what "
+                "Output(chart, ...) resolves to."
+            )
+        return super().__getattr__(name)
+
 
 # ---------------------------------------------------------------------------
-# stacked_bar — canvas stacked bar with range selector
+# StackedBarChart — canvas stacked bar with range selector
 # ---------------------------------------------------------------------------
 
 
-def stacked_bar(
+def _build_stacked_bar_js(
     graph_id: str,
-    initial_data: str = "",
+    container_id: str,
     *,
-    colors: list[str] | None = None,
-    height: int = 300,
-    title: str = "",
-    selector_height: int = 40,
-    group: str | None = None,
-) -> Component:
-    """Create a canvas-based stacked bar chart with interactive range selector.
+    colors: list[str] | None,
+    height: int,
+    title: str,
+    selector_height: int,
+    group: str | None,
+) -> str:
+    """Build the clientside callback body for one stacked-bar instance.
 
-    Parameters
-    ----------
-    graph_id
-        Unique component ID prefix.
-    initial_data
-        CSV string with Date column + value columns.
-    colors
-        Color palette for the series.
-    height
-        Chart height in pixels.
-    title
-        Chart title.
-    selector_height
-        Range selector height in pixels.
-    group
-        Synchronisation group name. Charts sharing the same group name
-        will sync their x-axis zoom/pan.
+    Kept as a separate helper so :class:`StackedBarChart.__init__` stays
+    readable. The JS draws directly on a ``<canvas>`` — this chart type
+    doesn't use dygraphs.js at all (different renderer, different
+    semantics from :class:`DygraphChart`).
     """
-    from dash import clientside_callback, dcc, html
-    from dash.dependencies import Input, Output
-
-    store_id = graph_id
-    container_id = f"{graph_id}-container"
-
     colors_json = json.dumps(colors or [])
     title_str = json.dumps(title)
     mt = 40 if title else 12
     sh = selector_height
-
     group_json = json.dumps(group)
 
-    js = f"""function(csvData) {{
+    return f"""function(csvData) {{
         var container = document.getElementById('{container_id}');
         if (!container) return window.dash_clientside.no_update;
 
@@ -603,18 +610,121 @@ def stacked_bar(
         return window.dash_clientside.no_update;
     }}"""
 
-    # Same dummy-output trick as DygraphChart: target the data store
-    # itself with allow_duplicate=True and return no_update from JS.
-    clientside_callback(
-        js,
-        Output(store_id, "data", allow_duplicate=True),
-        Input(store_id, "data"),
-        prevent_initial_call="initial_duplicate",
-    )
 
-    return html.Div(
-        [
-            dcc.Store(id=store_id, data=initial_data),
-            html.Div(id=container_id),
-        ]
-    )
+class StackedBarChart(ComponentWrapper):
+    """Canvas-based stacked bar chart with interactive range selector.
+
+    Sibling of :class:`DygraphChart` — same class-based construction
+    pattern, same dash-wrap identity mechanics — but a completely
+    different renderer: this one draws directly on a ``<canvas>`` and
+    does not use dygraphs.js at all. The trade-off is interactivity
+    scope: built-in pan / zoom via a range selector, but no group
+    sync with highlights the way :class:`DygraphChart` has.
+
+    Layout — two siblings inside an ``html.Div``:
+
+    - ``dcc.Store(id={id}, data=initial_data_csv)`` — the chart's
+      identity. Push a fresh CSV string via ``Output(chart, "data")``.
+    - ``html.Div(id={id}-container)`` — the container where the
+      canvas is drawn.
+
+    Parameters
+    ----------
+    id : str | None
+        User-facing DOM id. Assigned to the data store; container gets
+        ``{id}-container``. Auto-generated if omitted.
+    initial_data : str
+        Initial CSV data. Must start with a ``Date,...`` header row.
+        Empty string renders nothing until a callback pushes data.
+    colors : list[str] | None
+        Hex / CSS colors, one per non-date column. Falls back to a
+        built-in palette when omitted.
+    height : int
+        Main chart height in pixels.
+    title : str
+        Chart title, drawn on the canvas above the plot.
+    selector_height : int
+        Height of the range-selector strip at the bottom.
+    group : str | None
+        Sync group name. Charts sharing the same name coordinate their
+        x-axis window via the ``window.__dyGroups`` registry — same
+        mechanism used by :class:`DygraphChart`.
+
+    Examples
+    --------
+    ::
+
+        from dygraphs.dash import StackedBarChart
+
+        chart = StackedBarChart(
+            id="bars",
+            initial_data="Date,A,B\\n2024-01-01,1,2\\n2024-01-02,3,4",
+            title="Stacked demo",
+        )
+
+        @callback(Output(chart, "data"), Input("refresh", "n_clicks"))
+        def refresh(_n):
+            return updated_csv_string
+    """
+
+    def __init__(
+        self,
+        id: str | None = None,  # noqa: A002
+        *,
+        initial_data: str = "",
+        colors: list[str] | None = None,
+        height: int = 300,
+        title: str = "",
+        selector_height: int = 40,
+        group: str | None = None,
+    ) -> None:
+        from dash import clientside_callback, html
+        from dash.dependencies import Input, Output
+
+        cid = id or f"stacked-bar-{uuid.uuid4().hex[:8]}"
+        container_id = f"{cid}-container"
+
+        store = dcc.Store(id=cid, data=initial_data)
+        container = html.Div(id=container_id)
+
+        # Proxy ``data`` so ``Output(chart, "data")`` targets the inner
+        # store. See DygraphChart for why we don't proxy ``id``.
+        super().__init__(
+            store,
+            proxy_props=["data"],
+            children=[store, container],
+        )
+        self._cid = cid
+
+        # Per-instance clientside callback. Same dummy-output +
+        # allow_duplicate idiom as DygraphChart.
+        js = _build_stacked_bar_js(
+            cid,
+            container_id,
+            colors=colors,
+            height=height,
+            title=title,
+            selector_height=selector_height,
+            group=group,
+        )
+        clientside_callback(
+            js,
+            Output(cid, "data", allow_duplicate=True),
+            Input(cid, "data"),
+            prevent_initial_call="initial_duplicate",
+        )
+
+    @property
+    def chart_id(self) -> str:
+        """The chart id — equals the inner ``dcc.Store``'s ``id``."""
+        return self._cid
+
+    def __getattr__(self, name: str) -> Any:
+        """Friendly error for ``.id`` access; see :class:`DygraphChart`."""
+        if name == "id":
+            raise AttributeError(
+                "StackedBarChart has no 'id' attribute — use "
+                "'.chart_id' to read the chart's id. The outer wrapper "
+                "stays id-less to avoid Dash's duplicate-id validation."
+            )
+        return super().__getattr__(name)
