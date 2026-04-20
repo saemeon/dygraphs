@@ -196,7 +196,7 @@ The Dash integration (`src/dygraphs/dash/`) follows the R dygraphs / htmlwidgets
   - `dcc.Store(id={id})` — primary, carries the serialised config. Its id equals the user-supplied id (the chart's *identity*).
   - `dcc.Store(id={id}-opts)` — runtime option overrides. Exposed via `chart.opts` (property) or string id.
   - `html.Div(id={id}-container)` — the DOM container where dygraphs' JS renders.
-  The outer `html.Div` has no id (dash-wrap convention, prevents `DuplicateIdError`). `chart.cid` exposes the inner store's id; `.id` is deliberately NOT proxied because Dash's layout validation walks `.id` to detect duplicates.
+  The outer `html.Div` has no id (dash-wrap convention, prevents `DuplicateIdError`). `chart.chart_id` exposes the inner store's id; `.id` is deliberately NOT proxied because Dash's layout validation walks `.id` to detect duplicates.
 - **`dash_render.js`** — the clientside renderer, extracted to a real `.js` file (lintable, syntax-highlightable). Defines `window.dygraphsDash.render(setup, config, optsOverride)`. Read once at Python import time, inlined into each chart's clientside callback with an IIFE guard so only the first chart initialises the renderer. Early-returns on `!config` so `DygraphChart(None, id=...)` (empty placeholder) is a no-op until real data is pushed.
 - **Always destroy + recreate** — on every data update, the existing dygraph instance is destroyed and a new one is created from scratch (same as R's `renderValue`). This eliminates the "did I forget to invalidate X" class of bugs from the old in-place `updateOptions` path. Zoom can optionally be preserved via `retain_date_window=True` (default `False`, matching R).
 - **Clientside callback** — standard Dash pattern. Dummy output targets the primary store with `allow_duplicate=True`; the JS returns `dash_clientside.no_update`, so the store isn't mutated and there's no feedback loop. Registered once per chart at construction. Requires `dash>=2.9.0`.
@@ -401,34 +401,50 @@ worth doing while the renderer is fresh in someone's head.
   resolves to the store via dash-wrap's `_set_random_id` override;
   `isinstance(chart, dcc.Store)` is `True` via the `__class__`
   property. Opts store accessed via `chart.opts` (property returning
-  the sibling `dcc.Store`) or by string id `f"{chart.cid}-opts"`. The
+  the sibling `dcc.Store`) or by string id `f"{chart.chart_id}-opts"`. The
   outer div has no id (dash-wrap convention; prevents
-  `DuplicateIdError`). `dygraph_to_dash()` kept as a thin functional
-  alias that returns a `DygraphChart`. `register_proxy_defaults(
+  `DuplicateIdError`). `register_proxy_defaults(
   dcc.Store, ("data",))` is called once at module import so third
   parties can also `wrap(dcc.Store(...))` cleanly. Naming decision:
   stayed with `DygraphChart` (not `Graph`) because the `dcc.Graph`
   analogy cracks at the callback boundary — users write
   `Output(chart, "data")`, not `"figure"`. Better to name the thing
   for what it is. No backwards-compat alias kept; hard cut. Also:
-  `.cid` property (not `.id`) exposes the inner store's id — Dash's
+  `.chart_id` property (not `.id`) exposes the inner store's id — Dash's
   layout validation walks `.id` to detect duplicates, and proxying
   `id` would trip it against the inner store. Users write
-  `f"{chart.cid}-opts"` or just use `chart.opts`.
+  `f"{chart.chart_id}-opts"` or just use `chart.opts`.
 - [x] **`figure=None` empty placeholder.** `DygraphChart(None,
-  id="my-chart")` produces a valid layout with the primary store
-  holding `data=None`; the clientside renderer has an existing
+  id="my-chart")` produces a valid layout with the store holding
+  `data=None`; the clientside renderer has an existing
   `if (!config) return;` guard, so the chart is a no-op until a
   callback pushes real data. Use case: build an app where the first
   config arrives via callback.
-- [x] **Centralise `processJsMarkers`.** Was called twice in the old
-  renderer (once on the base `attrs`, once after merging the opts
-  override). Consolidated into a single pass on the merged `opts`
-  dict in `render()`. One easy-to-audit eval site. Pinned by
+- [x] **Centralise `processJsMarkers`.** Called exactly once per
+  render on the parsed `opts` dict in `render()`. One easy-to-audit
+  eval site. Pinned by
   `test_render_js_correctness.py::TestJsMarkerSinglePass`.
+- [x] **Dropped the opts-override store.** Earlier designs had a
+  second sibling `dcc.Store(id=f"{id}-opts")` alongside the primary
+  store; users could `Output(chart.opts, "data")` with a dict like
+  `{"strokeWidth": 3}` that was `Object.assign`'d on top of the base
+  config's `attrs` on render — a cheap-cosmetic-updates channel. Removed
+  for 1.0 in favour of R's single-write-surface model: every change
+  (data, attrs, styling) flows through the primary store. The design
+  is preserved in "Decisions deferred / opts store" below in case the
+  destroy+recreate cost becomes a real pain point for someone.
 - [x] **Migrated all examples/docs from `@app.callback` to `@dash.callback`.**
   Uses `import dash` + `dash.callback(...)` / `dash.Dash(...)` style
   consistently (no explicit imports of `callback` or `Dash`).
+- [x] **Dropped `.to_dash()`, `.to_shiny()`, and `dygraph_to_dash()`.**
+  `Dygraph` is now strictly framework-agnostic — same convention as
+  `plotly.graph_objects.Figure` and R's htmlwidget (R doesn't have
+  `dg %>% toShiny()`; it uses `dygraphOutput(id)` + `renderDygraph({...})`
+  as separate functions). Single Dash entry point is
+  `DygraphChart(figure=dg, id=...)`; Shiny stays on `dygraph_ui(id)` +
+  `render_dygraph(session, id, dg)`. `.to_html()` remains because it's a
+  self-contained render, not a framework wrapper — analogous to R's
+  htmlwidget auto-print / `plotly.Figure.to_html`.
 
 #### Next up
 
@@ -449,6 +465,58 @@ worth doing while the renderer is fresh in someone's head.
   adding browser tests would be belt-and-suspenders.
 - **Group sync stress tests** — multi-chart zoom propagation works in the
   demo. No automated coverage. Add when a regression actually happens.
+- **Opts-override store** — preserved for possible future reintroduction.
+  Purpose: a cheap cosmetic-update channel that merges a dict of
+  option overrides on top of the current config without a full
+  destroy+recreate. Removed for 1.0 (R has no equivalent, and the
+  two-channel "which store do I write to" distinction added more
+  cognitive load than it bought for typical chart sizes). Re-add if
+  real users hit perf walls on large datasets with frequent stroke
+  / color tweaks driven by sliders etc. Implementation sketch —
+  everything that needs to come back:
+
+  1. **Extra sibling in `DygraphChart.__init__`.** Alongside the
+     primary `dcc.Store(id=cid, ...)` and `html.Div(id=f"{cid}-container")`,
+     add `opts_store = dcc.Store(id=f"{cid}-opts", data=None)` and
+     include it in `children=[...]`. Store a reference on the wrapper
+     for the `chart.opts` property (`object.__setattr__` or the
+     normal path — dash-wrap's `__setattr__` routes non-proxy names
+     through `super()`).
+
+  2. **`chart.opts` property** on `DygraphChart` returning the
+     sibling `dcc.Store`. Users write `Output(chart.opts, "data")`
+     in callbacks, or the equivalent `Output(f"{chart.chart_id}-opts",
+     "data")` string-id form. Not proxied (no need for identity
+     aliasing; it's a separate Dash component with its own id).
+
+  3. **Second `Input` on the per-chart clientside callback.** Add
+     `Input(opts_store.id, "data")` alongside the existing
+     `Input(cid, "data")`. Both stores drive the same dummy-output
+     callback so the renderer fires when either changes.
+
+  4. **Pass `optsOverride` through the shim.** `_build_render_js`'s
+     wrapper becomes `function(config, optsOverride) { ...;
+     window.dygraphsDash.render({setup_json}, config, optsOverride);
+     ... }`.
+
+  5. **Merge in `dash_render.js`.** After the `var opts = JSON.parse(
+     JSON.stringify(config.attrs));` line, add
+     `if (optsOverride && typeof optsOverride === 'object') {
+     Object.assign(opts, optsOverride); }` BEFORE the
+     `processJsMarkers(opts)` call (so override markers also get
+     evaluated). Update the renderer's top docstring to mention the
+     third parameter; restore the `TestJsMarkerSinglePass::
+     test_processjsmarkers_call_follows_object_assign` assertion.
+
+  6. **Docs surface.** Re-add the "two write channels" table to
+     `docs/index.md` with the `Output(chart.opts, "data")` example
+     — emphasise when it's worth the extra mental load (large
+     datasets + slider-driven tweaks) vs. when the single-channel
+     primary-store write is fine.
+
+  Total change: ~25 lines of Python + ~5 lines of JS + a doc block.
+  The design is straightforward; the reason it's out is simplicity
+  of the 1.0 public surface, not implementation difficulty.
 
 #### Rationale (Dash architecture)
 The R dygraphs package uses htmlwidgets, which provides: a real `.js` asset
