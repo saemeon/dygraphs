@@ -1,22 +1,17 @@
 /* dygraphs Dash adapter — clientside renderer.
  *
- * Single entry point: window.dygraphsDash.render(setup, config, optsOverride).
+ * Single entry point: window.dygraphsDash.render(setup, config).
  *
  *   setup = {
  *       containerId, chartDivId, graphId, height, modebar,
  *       cdnCssUrl, cdnJsUrl, modebarCss, modebarHtml,
  *       captureJs   // raw JS source for the multi-canvas merge IIFE
  *   }
- *   config       = serialised dygraph config from the data dcc.Store
- *   optsOverride = optional opts dict from the per-chart opts dcc.Store
+ *   config = serialised dygraph config from the chart's dcc.Store
  *
  * The IIFE wrapper guards against double-init: if the asset is inlined
  * by multiple Dash clientside callbacks (one per chart), only the first
  * one populates window.dygraphsDash; subsequent inlines are no-ops.
- *
- * Behaviour is intentionally byte-for-byte equivalent to the previous
- * Python f-string template in dygraphs/dash/component.py — this commit
- * is an extraction, not a rewrite.
  */
 (function (global) {
     if (global.dygraphsDash) return;
@@ -399,7 +394,7 @@
     // Main entry point
     // ---------------------------------------------------------------------
 
-    function render(setup, config, optsOverride) {
+    function render(setup, config) {
         if (!config) return;
 
         loadCssOnce(setup.cdnCssUrl);
@@ -411,16 +406,10 @@
 
             var rows = transposeData(config.data, config.format);
 
-            // Build options, then process __JS__ markers in a single pass.
-            // Merge first, walk once: this avoids double-walking the base
-            // config.attrs that the previous two-call layout incurred, and
-            // it leaves a single, easy-to-audit eval site for the marker
-            // protocol. Any new option source must be merged into `opts`
-            // *before* this call.
+            // Clone attrs so the processJsMarkers eval walk doesn't mutate
+            // the cached config. Single pass, single easy-to-audit eval
+            // site for the marker protocol.
             var opts = JSON.parse(JSON.stringify(config.attrs));
-            if (optsOverride && typeof optsOverride === 'object') {
-                Object.assign(opts, optsOverride);
-            }
             processJsMarkers(opts);
 
             // Group registry: drop any stale entry for this container

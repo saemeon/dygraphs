@@ -15,9 +15,6 @@ from dygraphs.utils import (
 from dygraphs.utils import (
     DYGRAPH_JS_CDN as _DYGRAPH_JS_CDN,
 )
-from dygraphs.utils import (
-    serialise_js,
-)
 
 if TYPE_CHECKING:
     from dygraphs.dygraph import Dygraph
@@ -267,5 +264,5 @@ async def render_dygraph(
     dg
         Configured ``Dygraph`` builder instance.
     """
-    config = serialise_js(dg.to_dict())
+    config = dg.to_js()
     await session.send_custom_message(f"dygraphs_{element_id}", config)

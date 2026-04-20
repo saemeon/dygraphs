@@ -3116,6 +3116,14 @@ class Dygraph:
         This is the JSON payload that gets sent to the browser, equivalent
         to the ``x`` list in R's ``htmlwidgets::createWidget``.
 
+        Contains raw ``JS(code)`` objects for things like the default
+        interaction model — safe for :meth:`to_html` (inlines into a
+        ``<script>`` block), NOT safe for Dash callback returns (Dash's
+        prop validator only accepts dash components, strings, dicts,
+        numbers, ``None``, and lists of those). Use :meth:`to_js` for
+        Dash callbacks — it substitutes ``"__JS__:code:__JS__"`` string
+        markers that the clientside renderer evaluates.
+
         Examples
         --------
         >>> config = Dygraph(df).options(fill_graph=True).to_dict()
@@ -3178,77 +3186,41 @@ class Dygraph:
         raw = json.dumps(self.to_dict(), default=_default, **kwargs)
         return unwrap_js_markers(raw)
 
-    # ---- Dash integration --------------------------------------------
+    def to_js(self) -> dict[str, Any]:
+        """Dict ready to ship to a JavaScript consumer (Dash, Shiny, websocket).
 
-    def to_dash(
-        self,
-        *,
-        component_id: str | None = None,
-        height: str | int = "400px",
-        width: str = "100%",
-        modebar: bool = True,
-    ) -> Any:
-        """Render into a Dash component tree.
+        Equivalent to :meth:`to_dict` but with any embedded ``JS(code)``
+        objects replaced by ``"__JS__:code:__JS__"`` string markers
+        that survive JSON validation. The clientside renderer
+        (``dash_render.js``) walks the tree at render time and
+        ``eval``\\ s the markers back to real JavaScript. Use this for
+        callback returns targeting a ``DygraphChart``'s data store::
 
-        Parameters
-        ----------
-        component_id
-            Unique DOM id prefix. Auto-generated if omitted.
-        height, width
-            CSS dimensions for the chart container.
-        modebar
-            Show overlay buttons (capture, reset zoom).
+            @callback(Output(chart, "data"), Input("btn", "n_clicks"))
+            def refresh(_n):
+                return Dygraph(new_df).to_js()
 
-        Examples
-        --------
-        >>> from dash import Dash
-        >>> app = Dash(__name__)
-        >>> component = Dygraph(df).to_dash()
-
-        Returns
-        -------
-        dash.html.Div
-            Component ready to place in a Dash layout.
+        :meth:`to_dict` keeps the raw ``JS`` objects for consumers
+        that inline the JS source directly (for example
+        :meth:`to_html`, which writes the config straight into a
+        ``<script>`` block).
         """
-        from dygraphs.dash.component import dygraph_to_dash
+        from dygraphs.utils import serialise_js
 
-        return dygraph_to_dash(
-            self,
-            component_id=component_id,
-            height=height,
-            width=width,
-            modebar=modebar,
-        )
+        return serialise_js(self.to_dict())
 
-    def to_shiny(
-        self,
-        element_id: str,
-        *,
-        height: str = "400px",
-        width: str = "100%",
-    ) -> Any:
-        """Create Shiny UI components for this chart.
-
-        Returns a ``TagList`` to include in your Shiny app's UI.
-        Use ``render_dygraph(session, element_id, dg)`` in a reactive
-        effect to send/update data.
-
-        Requires ``dygraphs[shiny]``.
-
-        Parameters
-        ----------
-        element_id
-            Unique DOM id for the chart container.
-        height, width
-            CSS dimensions.
-
-        Examples
-        --------
-        >>> ui = Dygraph(df).to_shiny("my-chart")
-        """
-        from dygraphs.shiny.component import dygraph_ui
-
-        return dygraph_ui(element_id, height=height, width=width)
+    # ---- Framework integration --------------------------------------
+    #
+    # A ``Dygraph`` is framework-agnostic (mirrors plotly.Figure / R
+    # htmlwidget). To render inside a framework, pass the builder to
+    # the framework-specific wrapper:
+    #
+    # * Dash  : ``DygraphChart(figure=dg, id=...)``
+    #           (``from dygraphs.dash import DygraphChart``)
+    # * Shiny : ``dygraph_ui(element_id, ...)`` in UI,
+    #           ``render_dygraph(session, element_id, dg)`` in server
+    #           (``from dygraphs.shiny import dygraph_ui, render_dygraph``)
+    # * HTML  : ``dg.to_html(...)`` — self-contained page, no framework.
 
     # ---- to_html (standalone export) ---------------------------------
 

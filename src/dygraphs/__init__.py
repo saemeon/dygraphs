@@ -37,15 +37,8 @@ except ModuleNotFoundError:  # pragma: no cover – editable install before firs
 # ---------------------------------------------------------------------------
 # Lazy Dash imports — only available when dygraphs[dash] is installed.
 # These are top-level convenience re-exports so users can write:
-#   from dygraphs import dygraph_to_dash
+#   from dygraphs import DygraphChart
 # ---------------------------------------------------------------------------
-
-
-def dygraph_to_dash(*args, **kwargs):  # type: ignore[no-untyped-def]  # noqa: ANN002, ANN003
-    """Render a Dygraph into Dash components. Requires ``dygraphs[dash]``."""
-    from dygraphs.dash import dygraph_to_dash as _fn
-
-    return _fn(*args, **kwargs)
 
 
 def stacked_bar(*args, **kwargs):  # type: ignore[no-untyped-def]  # noqa: ANN002, ANN003
@@ -102,7 +95,6 @@ __all__ = [
     "make_error_bar_data",
     # Dash (lazy)
     "dygraph_strategy",
-    "dygraph_to_dash",
     "stacked_bar",
     "__version__",
 ]

@@ -24,7 +24,7 @@ the multi-canvas merge.
 
 See Also
 --------
-dygraphs.dash.dygraph_to_dash : Render a Dygraph as a Dash component.
+dygraphs.dash.DygraphChart : Render a Dygraph as a Dash component.
 """
 
 from __future__ import annotations
@@ -148,7 +148,7 @@ def dygraph_strategy(
     The returned strategy composites every visible ``<canvas>`` inside
     the target element onto a single white-backed canvas and returns a
     base64 data-URI. It is designed for charts produced by
-    :func:`dygraphs.dash.dygraph_to_dash`.
+    :class:`dygraphs.dash.DygraphChart`.
 
     The capture JS is :data:`MULTI_CANVAS_CAPTURE_JS` — the same code
     invoked by the chart modebar's camera-icon download — so the two
@@ -202,11 +202,12 @@ def dygraph_strategy(
         from dash_capture import capture_element
 
         from dygraphs import Dygraph, dygraph_strategy
+        from dygraphs.dash import DygraphChart
 
         app = Dash(__name__)
 
         chart = Dygraph(df, title="Sales").range_selector()
-        chart_component = chart.to_dash(component_id="sales", height="320px")
+        chart_component = DygraphChart(figure=chart, id="sales", height="320px")
 
         app.layout = html.Div([
             chart_component,
@@ -219,8 +220,8 @@ def dygraph_strategy(
         ])
 
     The element id passed to ``capture_element`` is
-    ``f"{component_id}-container"`` — the inner ``<div>`` that holds
-    the chart canvases (see :func:`dygraphs.dash.dygraph_to_dash`).
+    ``f"{id}-container"`` — the inner ``<div>`` that holds
+    the chart canvases (see :class:`dygraphs.dash.DygraphChart`).
     """
     try:
         from dash_capture.strategies import CaptureStrategy  # noqa: I001  # type: ignore[unresolved-import]

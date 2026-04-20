@@ -3,15 +3,14 @@
 Architecture (intentionally transparent — no magic, see "How it works"
 in docs/index.md):
 
-- Each chart is three sibling components inside an outer ``html.Div``:
-  a primary ``dcc.Store`` (carries the serialised config; its id is
-  the chart's user-facing id), a secondary opts ``dcc.Store`` (runtime
-  overrides; id ``{id}-opts``), and a chart container ``html.Div``
+- Each chart is two sibling components inside an outer ``html.Div``:
+  a ``dcc.Store`` (carries the serialised config; its id is the
+  chart's user-facing id), and a chart container ``html.Div``
   (id ``{id}-container``) where the dygraphs JS renders its DOM.
-- A per-instance clientside callback listens to both stores and calls
-  ``window.dygraphsDash.render(setup, config, opts)``. Its dummy
-  output targets the data store itself with ``allow_duplicate=True``
-  and returns ``dash_clientside.no_update`` — standard Dash idiom for
+- A per-instance clientside callback listens to the store and calls
+  ``window.dygraphsDash.render(setup, config)``. Its dummy output
+  targets the store itself with ``allow_duplicate=True`` and returns
+  ``dash_clientside.no_update`` — standard Dash idiom for
   "side-effectful clientside callback with no store mutation."
   Requires ``dash>=2.9.0`` for ``allow_duplicate=True`` and
   ``prevent_initial_call='initial_duplicate'``.
@@ -22,19 +21,15 @@ in docs/index.md):
   idempotent).
 
 The :class:`DygraphChart` class is a ``dash_wrap.ComponentWrapper`` over
-the primary ``dcc.Store`` — the chart's *identity* is the Store, so
+the ``dcc.Store`` — the chart's *identity* is the Store, so
 ``Output(chart, "data")`` in a callback resolves to the Store's id.
 The wrapper's two mechanisms (both from dash-wrap, both documented):
 ``_set_random_id`` returns the inner Store's id, and ``__class__`` is
-spoofed so ``isinstance(chart, dcc.Store)`` is ``True``. The opts
-Store is a sibling, not proxied — access it via ``chart.opts`` or by
-its string id ``f"{chart.cid}-opts"``.
+spoofed so ``isinstance(chart, dcc.Store)`` is ``True``.
 
 Public surface:
 
-- :class:`DygraphChart` — the preferred class-based entry.
-- :func:`dygraph_to_dash` — functional alias used by
-  :meth:`Dygraph.to_dash`; returns a :class:`DygraphChart`.
+- :class:`DygraphChart` — the class-based Dash entry.
 - :func:`stacked_bar` — canvas-based stacked bar chart with range
   selector. Unrelated to :class:`DygraphChart` (different renderer).
 
@@ -50,7 +45,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from dash import dcc
-from dash.dcc.Store import Store
 from dash_wrap import ComponentWrapper, register_proxy_defaults
 
 from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
@@ -59,9 +53,6 @@ from dygraphs.utils import (
 )
 from dygraphs.utils import (
     DYGRAPH_JS_CDN as _DYGRAPH_JS_CDN,
-)
-from dygraphs.utils import (
-    serialise_js,
 )
 
 # Read the renderer asset once at import time. It's an IIFE that
@@ -130,9 +121,9 @@ def _build_render_js(
     """Build the clientside callback shim for one chart instance.
 
     Inlines :data:`_DASH_RENDER_JS` (idempotent) and dispatches to
-    ``window.dygraphsDash.render(setup, config, optsOverride)``. The
-    full renderer logic lives in ``src/dygraphs/assets/dash_render.js``;
-    this function only assembles the per-instance ``setup`` payload.
+    ``window.dygraphsDash.render(setup, config)``. The full renderer
+    logic lives in ``src/dygraphs/assets/dash_render.js``; this
+    function only assembles the per-instance ``setup`` payload.
     """
     js_id = _safe_js_id(graph_id)
     modebar_html = ""
@@ -165,10 +156,10 @@ def _build_render_js(
     # the store is not actually mutated and there's no feedback loop
     # (the same store is also one of this callback's Inputs).
     return (
-        "function(config, optsOverride) {\n"
+        "function(config) {\n"
         + _DASH_RENDER_JS
         + "\n"
-        + f"    window.dygraphsDash.render({setup_json}, config, optsOverride);\n"
+        + f"    window.dygraphsDash.render({setup_json}, config);\n"
         + "    return window.dash_clientside.no_update;\n"
         + "}"
     )
@@ -192,21 +183,19 @@ class DygraphChart(ComponentWrapper):
         ])
 
     **What it actually is.** A ``DygraphChart`` is an ``html.Div`` that
-    contains three siblings:
+    contains two siblings:
 
-    - ``dcc.Store(id=id, data=<serialised config>)`` — the *primary*
+    - ``dcc.Store(id=id, data=<serialised config>)`` — the chart
       store. The chart's identity in the callback registry. Its id
       equals the user-supplied ``id``.
-    - ``dcc.Store(id=f"{id}-opts", data=None)`` — runtime option
-      overrides (e.g. ``{"strokeWidth": 3}``).
     - ``html.Div(id=f"{id}-container")`` — the container where
       dygraphs renders its JS-driven DOM.
 
     The class inherits from :class:`dash_wrap.ComponentWrapper` with
-    the primary Store as the *inner* component, so the callback
-    registry resolves ``Output(chart, ...)`` to the Store's id. Two
-    small pieces of machinery make that work — both shipped by
-    dash-wrap, both documented in its README, no magic beyond that:
+    the Store as the *inner* component, so the callback registry
+    resolves ``Output(chart, ...)`` to the Store's id. Two small pieces
+    of machinery make that work — both shipped by dash-wrap, both
+    documented in its README, no magic beyond that:
 
     - ``_set_random_id`` is overridden on the wrapper to return the
       inner Store's id. Dash's dependency wiring calls this when it
@@ -217,16 +206,19 @@ class DygraphChart(ComponentWrapper):
       what Dash's serialiser uses to emit the DOM (a normal
       ``<div>``).
 
-    The opts Store is NOT proxied — it's a plain sibling with its own
-    id. Access it via :attr:`opts` (returns the component) or by its
-    string id ``f"{chart.cid}-opts"``. Both are equivalent to Dash's
-    dependency wiring.
-
     A per-instance clientside callback is registered at construction.
-    It listens to both stores (data + opts) and dispatches to
-    ``window.dygraphsDash.render(setup, config, opts)``. The callback
-    body inlines ``dash_render.js`` (IIFE-guarded, idempotent) and a
-    tiny per-chart ``setup`` payload built by :func:`_build_render_js`.
+    It listens to the store and dispatches to
+    ``window.dygraphsDash.render(setup, config)``. The callback body
+    inlines ``dash_render.js`` (IIFE-guarded, idempotent) and a tiny
+    per-chart ``setup`` payload built by :func:`_build_render_js`.
+
+    Any change to chart options — stroke width, colors, legend — is
+    pushed through the same primary store as a fresh config (full
+    destroy+recreate, matching R's ``renderDygraph`` model). There's
+    no separate "options override" channel; one write path, one
+    mental model. See CLAUDE.md "Decisions deferred / opts store" if
+    you hit a performance wall and want to reintroduce a cheaper
+    cosmetic-updates channel.
 
     Parameters
     ----------
@@ -249,30 +241,22 @@ class DygraphChart(ComponentWrapper):
     modebar : bool
         Show the Plotly-style hover overlay (capture + reset-zoom).
 
-    Attributes
-    ----------
-    opts : dcc.Store
-        The sibling opts store component. Equivalent to looking up
-        ``f"{chart.cid}-opts"`` in the layout.
-
     Examples
     --------
-    Updating the chart's data::
+    Updating the chart's data — including restyles — via ``to_js``,
+    which returns a Dash-safe dict (see :meth:`Dygraph.to_js`)::
 
         @callback(Output(chart, "data"), Input("btn", "n_clicks"))
         def refresh(n):
-            return Dygraph(df * n).to_dict()
+            return Dygraph(df * n).to_js()
 
-    Updating runtime options via the opts store — two equivalent
-    callback surfaces, pick whichever reads better::
-
-        @callback(Output(chart.opts, "data"), Input("thick", "n_clicks"))
+        @callback(Output(chart, "data"), Input("thick", "n_clicks"))
         def thick(n):
-            return {"strokeWidth": 3 if n else 1}
-
-        @callback(Output(f"{chart.cid}-opts", "data"), Input("thick", "n_clicks"))
-        def thick(n):
-            return {"strokeWidth": 3 if n else 1}
+            return (
+                Dygraph(df)
+                .options(stroke_width=3 if n else 1)
+                .to_js()
+            )
     """
 
     def __init__(
@@ -288,16 +272,12 @@ class DygraphChart(ComponentWrapper):
 
         cid = id or f"dygraph-{uuid.uuid4().hex[:8]}"
         height_px = int(height.replace("px", "")) if isinstance(height, str) else height
-        # figure=None → store holds None; dash_render.js line 403
-        # (``if (!config) return;``) makes the callback a no-op until
+        # figure=None → store holds None; dash_render.js's
+        # ``if (!config) return;`` makes the callback a no-op until
         # a real config is pushed.
-        serialised_config = (
-            serialise_js(figure.to_dict()) if figure is not None else None
-        )
+        serialised_config = figure.to_js() if figure is not None else None
 
         store = dcc.Store(id=cid, data=serialised_config)
-        opts_id = f"{cid}-opts"
-        opts_store = dcc.Store(id=opts_id, data=None)
         container_id = f"{cid}-container"
         container = html.Div(id=container_id, style={"width": width})
 
@@ -313,12 +293,11 @@ class DygraphChart(ComponentWrapper):
         super().__init__(
             store,
             proxy_props=["data"],
-            children=[store, opts_store, container],
+            children=[store, container],
         )
-        # Python-side-only attributes (not Dash props, not serialised
+        # Python-side-only attribute (not a Dash prop, not serialised
         # into the DOM). dash-wrap's __setattr__ routes non-proxy
         # names through super() to html.Div / object.
-        self._opts_store: Store = opts_store
         self._cid = cid
 
         # Per-instance clientside callback. Dummy output targets the
@@ -331,19 +310,8 @@ class DygraphChart(ComponentWrapper):
             js,
             Output(cid, "data", allow_duplicate=True),
             Input(cid, "data"),
-            Input(opts_id, "data"),
             prevent_initial_call="initial_duplicate",
         )
-
-    @property
-    def opts(self) -> dcc.Store:
-        """The sibling opts ``dcc.Store`` component.
-
-        Equivalent to addressing the store by its string id:
-        ``Output(chart.opts, "data")`` ≡
-        ``Output(f"{chart.cid}-opts", "data")``.
-        """
-        return self._opts_store
 
     @property
     def cid(self) -> str:
@@ -356,49 +324,6 @@ class DygraphChart(ComponentWrapper):
         even though only the inner is rendered with an id.)
         """
         return self._cid
-
-
-# ---------------------------------------------------------------------------
-# dygraph_to_dash — functional alias for Dygraph.to_dash()
-# ---------------------------------------------------------------------------
-
-
-def dygraph_to_dash(
-    dg: Dygraph | None,
-    *,
-    component_id: str | None = None,
-    height: str | int = "400px",
-    width: str = "100%",
-    modebar: bool = True,
-) -> Component:
-    """Convert a ``Dygraph`` builder into a Dash component tree.
-
-    Thin functional wrapper around :class:`DygraphChart`, kept as a
-    stable entry point for :meth:`Dygraph.to_dash` and for users who
-    prefer function-call style over constructor-call style. The
-    returned object IS a :class:`DygraphChart`.
-
-    Parameters
-    ----------
-    dg
-        Configured Dygraph builder instance, or ``None`` for an empty
-        placeholder (see :class:`DygraphChart`).
-    component_id
-        User-facing DOM id. Auto-generated if omitted.
-    height
-        Chart height in pixels or CSS string.
-    width
-        CSS width for the container.
-    modebar
-        Show Plotly-style overlay buttons (capture, reset zoom).
-    """
-    return DygraphChart(
-        figure=dg,
-        id=component_id,
-        height=height,
-        width=width,
-        modebar=modebar,
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -678,7 +603,7 @@ def stacked_bar(
         return window.dash_clientside.no_update;
     }}"""
 
-    # Same dummy-output trick as dygraph_to_dash: target the data store
+    # Same dummy-output trick as DygraphChart: target the data store
     # itself with allow_duplicate=True and return no_update from JS.
     clientside_callback(
         js,
