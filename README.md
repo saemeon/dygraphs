@@ -210,22 +210,31 @@ chart = (
 
 ## Dynamic Updates (Dash)
 
-Each chart created with `DyGraph` (or `dygraph_to_dash` / `Dygraph.to_dash`)
-is backed by two `dcc.Store` components. The data store shares the chart's
-`id`, so you can target it directly with standard Dash `Output`:
+Each chart created with `DygraphChart` (or `dygraph_to_dash` /
+`Dygraph.to_dash`) is an `html.Div` wrapping three siblings: a primary
+`dcc.Store` (id = the chart's `id`), an opts `dcc.Store` (id =
+`{id}-opts`), and a container `html.Div` (id = `{id}-container`) where
+the JS renders. The wrapper uses [dash-wrap](https://github.com/saemeon/dash-wrap)
+so `Output(chart, "data")` resolves to the primary store — no
+identity magic beyond what dash-wrap documents.
 
 ```python
 import dash
 from dash import Input, Output
-from dygraphs import Dygraph
+from dygraphs import Dygraph, DygraphChart
 
-# Pushing a fresh config (data + attrs) → full destroy+recreate
-@dash.callback(Output("my-chart", "data"), Input("refresh", "n_clicks"))
+chart = DygraphChart(figure=Dygraph(df), id="my-chart")
+
+# Pushing a fresh config (data + attrs) → full destroy+recreate.
+# Output(chart, ...) and Output("my-chart", ...) are equivalent.
+@dash.callback(Output(chart, "data"), Input("refresh", "n_clicks"))
 def refresh(_n):
     return Dygraph(new_df).to_dict()
 
-# Pushing runtime overrides → merged on top of the existing config
-@dash.callback(Output("my-chart-opts", "data"), Input("toggle", "value"))
+# Pushing runtime overrides → merged on top of the existing config.
+# chart.opts returns the sibling dcc.Store; Output(f"{chart.cid}-opts",
+# "data") via string id would be equivalent.
+@dash.callback(Output(chart.opts, "data"), Input("toggle", "value"))
 def toggle(v):
     return {"strokeWidth": 3 if v else 1}
 ```
@@ -233,6 +242,16 @@ def toggle(v):
 The chart is always destroyed and recreated on every config update (R
 `htmlwidgets` model); pass `retain_date_window=True` to `.options()` if you
 need the user's zoom preserved across updates.
+
+Need an empty placeholder in the initial layout (e.g. when the first
+config arrives only via a callback)? Pass `figure=None`:
+
+```python
+chart = DygraphChart(None, id="my-chart")  # renders nothing until pushed
+```
+
+The primary store holds `data=None`; the clientside renderer is a no-op
+on falsy config. Callbacks wire up normally.
 
 ## Capture (dash-capture)
 
