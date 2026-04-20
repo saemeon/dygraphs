@@ -74,7 +74,7 @@ def DygraphChart(*args, **kwargs):  # type: ignore[no-untyped-def]  # noqa: ANN0
     Thin re-export of :class:`dygraphs.dash.DygraphChart` — a callable
     here (not a class) so this module stays importable without Dash.
     """
-    from dygraphs.dash import DygraphChart as _cls
+    from dygraphs.dash import DygraphChart as _cls  # noqa: N814 N813
 
     return _cls(*args, **kwargs)
 
