@@ -165,64 +165,231 @@ def _detect_scale(idx: Any) -> str:
 
 
 class Dygraph:
-    """Builder for a dygraphs chart.
+    """Builder for a dygraphs chart — framework-agnostic config object.
 
-    Mirrors the R ``dygraph()`` constructor and its family of ``dy*()`` pipe
-    functions, expressed as chained method calls.
+    Port of the R ``dygraph()`` constructor and the full family of
+    ``dy*()`` pipe functions (``dyOptions``, ``dySeries``, ``dyAxis`` …),
+    expressed as chained method calls. Produces a plain dict via
+    :meth:`to_dict` / :meth:`to_js`, standalone HTML via :meth:`to_html`,
+    or plugs into :class:`dygraphs.dash.DygraphChart` (Dash) and
+    :func:`dygraphs.shiny.dygraph_ui` / :func:`~dygraphs.shiny.render_dygraph`
+    (Shiny) for interactive rendering.
+
+    Two equivalent construction styles are supported and can be mixed:
+
+    - **Builder (chained methods)** — mirrors R's pipe idiom, the most
+      common style. All configuration happens via methods like
+      :meth:`options`, :meth:`series`, :meth:`axis`, :meth:`legend` after
+      construction.
+    - **Declarative (keyword dataclasses)** — the same configuration can
+      be passed to ``Dygraph(...)`` directly via the declarative
+      parameters below. Each accepts either a dataclass instance
+      (``Options(fill_graph=True)``) or a plain ``dict`` with the same
+      keys (``{"fill_graph": True}``). Useful when loading config from
+      YAML / JSON, or when users prefer a single constructor call over
+      method chaining.
 
     Parameters
     ----------
-    data
-        A pandas DataFrame, Series, dict of lists, or 2-D list.  For
-        DataFrames the index is used as the x-axis; for dicts the first key
-        is x.
-    title
-        Chart title (``main`` in R).
-    xlab, ylab
-        Axis labels.
-    periodicity
+    data : pd.DataFrame | pd.Series | dict[str, list] | list[list] | np.ndarray | str
+        Chart data. Accepted shapes:
+
+        - ``pd.DataFrame`` — index is the x-axis (``DatetimeIndex`` →
+          date axis, otherwise numeric); columns are the series.
+        - ``pd.Series`` — promoted to a single-column DataFrame.
+        - ``dict`` — first key is x-axis, remaining keys are series.
+        - ``list[list]`` — row-oriented; first column is x-axis.
+        - ``np.ndarray`` — 1-D treated as a single series, 2-D as rows.
+        - ``str`` — parsed as CSV. First column becomes the x-axis.
+
+        Mixed timezone / naive datetime indexes are normalised to ISO
+        strings on output.
+    title : str | None, optional
+        Chart title (``main`` in R). Rendered above the plot.
+        By default None.
+    xlab : str | None, optional
+        X-axis label. By default None (inferred from the data: index
+        name if named, else ``"Date"`` for date axes / ``"x"`` otherwise).
+    ylab : str | None, optional
+        Y-axis label. By default None.
+    periodicity : {"yearly", "quarterly", "monthly", "weekly", \
+"daily", "hourly", "minute", "seconds", "milliseconds"} | None, optional
         Manually override the auto-detected periodicity of date data.
-        One of ``"yearly"``, ``"quarterly"``, ``"monthly"``, ``"weekly"``,
-        ``"daily"``, ``"hourly"``, ``"minute"``, ``"seconds"``,
-        ``"milliseconds"``. By default ``None``, in which case the scale
-        is inferred from the pandas index. Mirrors R's
-        ``dygraph(..., periodicity=...)``. Only valid for date-formatted
-        data — passing it with numeric data raises ``ValueError``.
-    group
-        Cross-chart synchronisation group name (a string). Charts that
-        share the same name auto-sync their x-axis zoom, pan, and
-        highlight. Mirrors R's ``dygraph(group=)``. Equivalent to
-        :meth:`sync_group`. **Not the same as** the :meth:`group` builder
-        method, which takes a *list of column names* and mirrors R's
-        ``dyGroup()`` to style a set of series together. The collision is
-        intentional — both names mirror the R API exactly.
-    width, height
-        Chart dimensions in pixels (``None`` = auto).
+        Only valid for date-formatted data — passing it with numeric
+        data raises :class:`ValueError`. Mirrors R's
+        ``dygraph(..., periodicity=...)``. By default None, in which
+        case the scale is inferred from the pandas index spacing.
+    group : str | None, optional
+        Cross-chart synchronisation group name. Charts that share the
+        same name auto-sync their x-axis zoom, pan, and highlight.
+        Mirrors R's ``dygraph(group=)``. Equivalent to the chainable
+        :meth:`sync_group` alias. **Not the same as** the :meth:`group`
+        builder method, which takes a *list of column names* and mirrors
+        R's ``dyGroup()`` to style a set of series together — the name
+        collision is intentional, both mirror the R API verbatim.
+        By default None (no group — chart is standalone).
+    width : int | None, optional
+        Chart width in pixels. By default None (auto — fills container).
+    height : int | None, optional
+        Chart height in pixels. By default None (auto).
+
+    Other Parameters
+    ----------------
+    options : :class:`~dygraphs.Options` | dict | None, optional
+        Global dygraph options (``dyOptions`` in R). Field names match
+        the builder method :meth:`options` — e.g.
+        ``Options(fill_graph=True, stroke_width=2)`` or
+        ``{"fill_graph": True, "stroke_width": 2}``. Sets things like
+        stacking, fill, stroke style, colour palette, rolling period,
+        etc. Full field list: :class:`dygraphs.declarative.Options`.
+        By default None.
+    axes : dict[str, :class:`~dygraphs.Axis`] | list[:class:`~dygraphs.Axis`] | None, optional
+        Per-axis configuration (``dyAxis`` in R). Accepts a dict keyed
+        by axis name (``"x"``, ``"y"``, ``"y2"``) or a list of
+        :class:`~dygraphs.Axis` / dicts (each must include ``name``).
+        Configures label text, value range, tick formatting, log scale,
+        grid, etc. Full field list: :class:`dygraphs.declarative.Axis`.
+        By default None.
+    series : list[:class:`~dygraphs.Series` | dict] | None, optional
+        Per-series display options (``dySeries`` in R). Each entry
+        configures one series by name — colour, stroke width, axis
+        assignment, step plot, etc. Full field list:
+        :class:`dygraphs.declarative.Series`. By default None.
+    legend : :class:`~dygraphs.Legend` | dict | None, optional
+        Legend configuration (``dyLegend`` in R): show mode
+        (``"auto"`` / ``"always"`` / ``"follow"`` / ``"never"``), width,
+        label layout, follow-cursor offsets. Full field list:
+        :class:`dygraphs.declarative.Legend`. By default None.
+    highlight : :class:`~dygraphs.Highlight` | dict | None, optional
+        Hover-highlight behaviour (``dyHighlight`` in R): circle size,
+        highlight-series-opts, hide-on-mouseout. By default None.
+    annotations : list[:class:`~dygraphs.Annotation` | dict] | None, optional
+        List of annotations (``dyAnnotation`` in R). Each points at an
+        x-value with short text, tooltip, colour, and optional click
+        handlers. By default None.
+    shadings : list[:class:`~dygraphs.Shading` | dict] | None, optional
+        List of shaded regions (``dyShading`` in R). Each has ``from_``
+        and ``to`` bounds on the x- or y-axis, plus a fill colour. By
+        default None.
+    events : list[:class:`~dygraphs.Event` | dict] | None, optional
+        List of vertical event lines (``dyEvent`` in R). Each pins a
+        labelled line at an x-value. By default None.
+    limits : list[:class:`~dygraphs.Limit` | dict] | None, optional
+        List of horizontal limit lines (``dyLimit`` in R). By default None.
+    range_selector : :class:`~dygraphs.RangeSelector` | dict | None, optional
+        Range-selector configuration (``dyRangeSelector`` in R):
+        height, initial ``date_window``, fill/stroke colours,
+        ``keep_mouse_zoom``, ``retain_date_window``. See
+        :class:`dygraphs.declarative.RangeSelector`. By default None
+        (no range selector).
+    roller : :class:`~dygraphs.Roller` | dict | None, optional
+        Rolling-average widget (``dyRoller`` in R): show widget,
+        initial roll period. By default None.
+    callbacks : :class:`~dygraphs.Callbacks` | dict | None, optional
+        JavaScript event callbacks (``dyCallbacks`` in R): click,
+        zoom, highlight, draw, point-click handlers. Values are raw
+        JS source strings (wrapped in :class:`~dygraphs.JS` for type
+        clarity, but plain strings also work). By default None.
+    plotter : str | None, optional
+        Chart-level plotter shortcut — one of ``"bar_chart"``,
+        ``"stacked_bar_chart"``, ``"multi_column"``, ``"candlestick"``.
+        Equivalent to calling the matching builder method (e.g.
+        :meth:`bar_chart`) after construction. By default None
+        (default line plotter).
+
+    Raises
+    ------
+    ValueError
+        If ``periodicity`` is given for numeric (non-date) data,
+        if ``periodicity`` is not one of the accepted values, or if
+        ``data`` has an unsupported shape (e.g. empty CSV, < 2 columns).
 
     Examples
     --------
-    From a pandas DataFrame:
+    From a pandas DataFrame (builder style):
 
     >>> import pandas as pd
     >>> df = pd.DataFrame(
     ...     {"temp": [10, 12, 11], "rain": [5, 3, 7]},
     ...     index=pd.date_range("2024-01-01", periods=3),
     ... )
-    >>> chart = Dygraph(df, title="Weather")
+    >>> chart = (
+    ...     Dygraph(df, title="Weather")
+    ...     .options(fill_graph=True, stroke_width=2)
+    ...     .series("temp", color="red")
+    ...     .axis("y", label="°C")
+    ...     .range_selector(height=30)
+    ... )
 
-    From a plain dict:
+    The same chart in declarative form:
 
-    >>> chart = Dygraph({"x": [1, 2, 3], "y": [10, 20, 30]})
-
-    Using the declarative API:
-
-    >>> from dygraphs import Options, Series
+    >>> from dygraphs import Options, Series, Axis, RangeSelector
     >>> chart = Dygraph(
     ...     df,
     ...     title="Weather",
-    ...     options=Options(fill_graph=True),
+    ...     options=Options(fill_graph=True, stroke_width=2),
     ...     series=[Series("temp", color="red")],
+    ...     axes={"y": Axis(name="y", label="°C")},
+    ...     range_selector=RangeSelector(height=30),
     ... )
+
+    Declarative accepts plain dicts too — mix freely:
+
+    >>> chart = Dygraph(
+    ...     df,
+    ...     options={"fill_graph": True},
+    ...     series=[Series("temp", color="red"), {"name": "rain", "axis": "y2"}],
+    ... )
+
+    From a CSV string:
+
+    >>> chart = Dygraph("Date,A,B\\n2024-01-01,1,2\\n2024-01-02,3,4")
+
+    Synchronise two charts on the x-axis:
+
+    >>> a = Dygraph(df1, group="weather").range_selector()
+    >>> b = Dygraph(df2, group="weather").range_selector()
+
+    Render to different targets:
+
+    >>> html = chart.to_html()        # standalone HTML page
+    >>> config = chart.to_dict()      # raw Python dict (introspection)
+    >>> payload = chart.to_js()       # JSON-safe dict (Dash / Shiny)
+
+    Notes
+    -----
+    ``Dygraph`` is intentionally framework-agnostic — same pattern as
+    :class:`plotly.graph_objects.Figure` and R's htmlwidgets. To render
+    in Dash, wrap with :class:`dygraphs.dash.DygraphChart`. To render in
+    Shiny, use :func:`dygraphs.shiny.dygraph_ui` in the UI and
+    :func:`dygraphs.shiny.render_dygraph` in the server. For standalone
+    rendering (reports, emails, iframes), :meth:`to_html` returns a
+    complete HTML page.
+
+    See Also
+    --------
+    options : Set global dygraph options (``dyOptions``).
+    series : Configure a single series by name (``dySeries``).
+    axis : Configure an axis (``dyAxis``).
+    legend : Configure the legend (``dyLegend``).
+    highlight : Configure hover highlighting (``dyHighlight``).
+    annotation : Add a single annotation (``dyAnnotation``).
+    shading : Add a shaded region (``dyShading``).
+    event : Add a vertical event line (``dyEvent``).
+    limit : Add a horizontal limit line (``dyLimit``).
+    range_selector : Add the bottom range-selector widget.
+    roller : Add the rolling-average widget.
+    callbacks : Attach JS event callbacks (``dyCallbacks``).
+    sync_group : Chainable alias for the constructor ``group=`` kwarg.
+    group : Style a *list* of series together (``dyGroup``) — do not
+        confuse with the ``group=`` constructor kwarg.
+    to_dict : Serialise to a Python dict (raw ``JS`` objects retained).
+    to_js : Serialise to a JSON-safe dict with ``__JS__:code:__JS__``
+        markers (for Dash / Shiny callback returns).
+    to_html : Render to a self-contained HTML page.
+    dygraphs.dash.DygraphChart : Dash component wrapper.
+    dygraphs.shiny.dygraph_ui : Shiny UI helper.
+    dygraphs.shiny.render_dygraph : Shiny server-side render helper.
     """
 
     # ---- construction ------------------------------------------------
