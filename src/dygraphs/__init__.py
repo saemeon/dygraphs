@@ -11,8 +11,6 @@ Install extras for framework support::
 
 from __future__ import annotations
 
-from typing import Any
-
 from dygraphs.declarative import (
     Annotation,
     Axis,
@@ -64,26 +62,27 @@ def dygraph_strategy(**kwargs):  # type: ignore[no-untyped-def]  # noqa: ANN003
     return _fn(**kwargs)
 
 
-class DyGraph:  # noqa: N801
+def DygraphChart(*args, **kwargs):  # type: ignore[no-untyped-def]  # noqa: ANN002, ANN003, N802
     """Dash component wrapper for a dygraphs chart. Requires ``dygraphs[dash]``.
 
     Usage::
 
-        from dygraphs.dash import DyGraph
+        from dygraphs import DygraphChart  # or from dygraphs.dash
 
-        app.layout = html.Div([DyGraph(figure=dg, id="chart")])
+        app.layout = html.Div([DygraphChart(figure=dg, id="chart")])
+
+    Thin re-export of :class:`dygraphs.dash.DygraphChart` — a callable
+    here (not a class) so this module stays importable without Dash.
     """
+    from dygraphs.dash import DygraphChart as _cls
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> Any:
-        from dygraphs.dash import DyGraph as _cls
-
-        return _cls(*args, **kwargs)
+    return _cls(*args, **kwargs)
 
 
 __all__ = [
     # Core
     "Dygraph",
-    "DyGraph",
+    "DygraphChart",
     "JS",
     # Declarative dataclasses
     "Annotation",
