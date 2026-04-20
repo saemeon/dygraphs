@@ -331,8 +331,8 @@ class TestGroupSyncRender:
         df1 = pd.DataFrame({"x": range(10)}, index=_DATES)
         df2 = pd.DataFrame({"y": range(10, 0, -1)}, index=_DATES)
 
-        html1 = Dygraph(df1, group="sync-test").to_json()
-        html2 = Dygraph(df2, group="sync-test").to_json()
+        html1 = Dygraph(df1, group="sync-test")._to_json()
+        html2 = Dygraph(df2, group="sync-test")._to_json()
 
         # Build a multi-chart HTML page manually
         page = f"""<!DOCTYPE html>

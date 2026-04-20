@@ -1,4 +1,4 @@
-"""Tests for Dash component generation and sync/stacked_bar utilities."""
+"""Tests for Dash component generation (DygraphChart, StackedBarChart)."""
 
 from __future__ import annotations
 
@@ -27,8 +27,8 @@ class TestDygraphChartConstruction:
         assert isinstance(component, html.Div)
         # The outer div has no id (dash-wrap convention: prevents
         # DuplicateIdError against the inner store). The chart's id
-        # is exposed via .cid and matches the inner store's id.
-        assert component.cid == "tc"
+        # is exposed via .chart_id and matches the inner store's id.
+        assert component.chart_id == "tc"
 
     def test_auto_id(self) -> None:
         from dash import Dash, html
@@ -39,7 +39,7 @@ class TestDygraphChartConstruction:
         dg = Dygraph(_df())
         component = DygraphChart(figure=dg)
         assert isinstance(component, html.Div)
-        assert component.cid.startswith("dygraph-")
+        assert component.chart_id.startswith("dygraph-")
 
     def test_contains_single_store_and_container(self) -> None:
         """Layout = 1 dcc.Store + 1 html.Div container, no hidden graph.
@@ -103,17 +103,18 @@ class TestGroupSync:
         assert cfg["group"] is None
 
 
-class TestStackedBar:
-    def test_stacked_bar_returns_div(self) -> None:
+class TestStackedBarChart:
+    def test_returns_html_div(self) -> None:
         from dash import Dash, html
 
-        from dygraphs.dash import stacked_bar
+        from dygraphs.dash import StackedBarChart
 
         Dash(__name__)
-        component = stacked_bar(
-            "sb", initial_data="Date,A,B\n2024-01-01,1,2\n2024-01-02,3,4"
+        component = StackedBarChart(
+            id="sb", initial_data="Date,A,B\n2024-01-01,1,2\n2024-01-02,3,4"
         )
         assert isinstance(component, html.Div)
+        assert component.chart_id == "sb"
 
 
 class TestToDict:
@@ -130,7 +131,7 @@ class TestToDict:
 
     def test_to_json(self) -> None:
         d = Dygraph(_df()).callbacks(click="function(){}")
-        j = d.to_json()
+        j = d._to_json()
         assert "function(){}" in j
         assert "__JS__" not in j  # markers should be removed
 

@@ -7,14 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from dygraphs import (
-    Dygraph,
-    Legend,
-    Options,
-    Series,
-    make_custom_bar_data,
-    make_error_bar_data,
-)
+from dygraphs import Dygraph, Legend, Options, Series
 
 
 def _df() -> pd.DataFrame:
@@ -90,20 +83,20 @@ class TestToHtml:
 
 
 class TestErrorBarHelpers:
-    def test_make_error_bar_data(self) -> None:
-        data = make_error_bar_data(x=[1, 2, 3], y=[10, 20, 30], error=[1, 2, 3])
+    def test_error_bar_data(self) -> None:
+        data = Dygraph.error_bar_data(x=[1, 2, 3], y=[10, 20, 30], error=[1, 2, 3])
         assert data == {"x": [1, 2, 3], "value": [10, 20, 30], "error": [1, 2, 3]}
 
-    def test_make_error_bar_data_custom_labels(self) -> None:
-        data = make_error_bar_data(
+    def test_error_bar_data_custom_labels(self) -> None:
+        data = Dygraph.error_bar_data(
             x=[1], y=[10], error=[1], labels=("Time", "Temp", "StdDev")
         )
         assert "Time" in data
         assert "Temp" in data
         assert "StdDev" in data
 
-    def test_make_custom_bar_data(self) -> None:
-        data = make_custom_bar_data(x=[1, 2], low=[8, 18], mid=[10, 20], high=[12, 22])
+    def test_custom_bar_data(self) -> None:
+        data = Dygraph.custom_bar_data(x=[1, 2], low=[8, 18], mid=[10, 20], high=[12, 22])
         assert data == {"x": [1, 2], "low": [8, 18], "mid": [10, 20], "high": [12, 22]}
 
 

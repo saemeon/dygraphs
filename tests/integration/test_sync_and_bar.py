@@ -1,4 +1,4 @@
-"""Chrome integration tests for group sync and stacked_bar."""
+"""Chrome integration tests for group sync and StackedBarChart."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ def synced_app_url():
     from dash import Dash, html
 
     from dygraphs import Dygraph
-    from dygraphs.dash import DygraphChart, stacked_bar
+    from dygraphs.dash import DygraphChart, StackedBarChart
 
     app = Dash(__name__)
 
@@ -59,8 +59,8 @@ def synced_app_url():
         }
     ).to_csv(index=False)
 
-    chart_c = stacked_bar(
-        "chart-c",
+    chart_c = StackedBarChart(
+        id="chart-c",
         initial_data=bar_csv,
         colors=["#00d4aa", "#7eb8f7"],
         height=200,

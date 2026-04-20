@@ -28,16 +28,30 @@ class TestDygraphChartLayout:
         )
         return DygraphChart(figure=Dygraph(df), id="my-chart")
 
-    def test_cid_equals_store_id(self, chart) -> None:  # noqa: ANN001
-        # chart.cid exposes the inner Store's id. (We don't expose
+    def test_chart_id_equals_store_id(self, chart) -> None:  # noqa: ANN001
+        # chart.chart_id exposes the inner Store's id. (We don't expose
         # .id because Dash's layout validation walks all components'
         # .id to detect duplicates — a proxied id would trip it.)
-        assert chart.cid == "my-chart"
+        assert chart.chart_id == "my-chart"
 
     def test_set_random_id_resolves_to_inner(self, chart) -> None:  # noqa: ANN001
         # Callback resolution path: Output(chart, "data") ends up
         # calling _set_random_id, which walks to the inner Store.
         assert chart._set_random_id() == "my-chart"
+
+    def test_id_access_raises_friendly_error(self, chart) -> None:  # noqa: ANN001
+        # Users coming from dcc.Graph reach for chart.id; we intercept
+        # with a message pointing to chart_id instead of the default
+        # generic AttributeError. The raised exception is still an
+        # AttributeError so Dash's hasattr(chart, "id") path (used by
+        # layout validation) still sees False and skips the component.
+        import pytest
+
+        with pytest.raises(AttributeError, match="chart_id"):
+            _ = chart.id
+        assert not hasattr(chart, "id"), (
+            "Dash layout validation uses hasattr — must return False"
+        )
 
     def test_layout_contains_store_and_container(self, chart) -> None:  # noqa: ANN001
         ids = {
@@ -95,4 +109,4 @@ class TestEmptyPlaceholder:
 
         chart = DygraphChart(None, id="empty")
         assert isinstance(chart, dcc.Store)
-        assert chart.cid == "empty"
+        assert chart.chart_id == "empty"

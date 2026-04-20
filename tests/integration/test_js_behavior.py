@@ -378,7 +378,7 @@ class TestDisableZoomBehavior:
         _no_errors(driver)
         # The option should be set
         dz = _js(
-            driver, f"var config = {dg.to_json()}; return config.attrs.disableZoom;"
+            driver, f"var config = {dg._to_json()}; return config.attrs.disableZoom;"
         )
         assert dz is True
 

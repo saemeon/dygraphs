@@ -466,14 +466,14 @@ class TestSerialization:
 
     def test_to_json_produces_valid_json_without_js(self) -> None:
         d = Dygraph(_num_df())
-        raw = d.to_json()
+        raw = d._to_json()
         parsed = json.loads(raw)
         assert "attrs" in parsed
         assert "data" in parsed
 
     def test_to_json_unwraps_js_markers(self) -> None:
         d = Dygraph(_df()).callbacks(click="function(e){}")
-        raw = d.to_json()
+        raw = d._to_json()
         # JS markers should be unwrapped: no __JS__ in output
         assert "__JS__" not in raw
         assert "function(e){}" in raw
@@ -482,7 +482,7 @@ class TestSerialization:
         d = Dygraph(_num_df())
         d._attrs["bad"] = object()
         with pytest.raises(TypeError, match="not JSON serializable"):
-            d.to_json()
+            d._to_json()
 
     def test_css_omitted_when_none(self) -> None:
         d = Dygraph(_df())
