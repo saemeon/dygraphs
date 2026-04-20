@@ -103,24 +103,27 @@ class TestResizable:
 
 
 class TestDynamicStores:
-    def test_opts_store_exists(self) -> None:
-        """The opts store should be in the component for runtime updates."""
+    def test_chart_store_exists(self) -> None:
+        """The chart store should be in the component for data updates."""
         from dash import Dash, dcc
 
+        from dygraphs.dash import DygraphChart
+
         Dash(__name__)
         d = Dygraph(_df())
-        component = d.to_dash(component_id="dyn")
+        component = DygraphChart(figure=d, id="dyn")
         stores = [c for c in component.children if isinstance(c, dcc.Store)]
         store_ids = [s.id for s in stores]
-        assert "dyn-opts" in store_ids
-        # Data store shares the chart id (no suffix)
-        assert "dyn" in store_ids
+        # The store id equals the chart id (no suffix).
+        assert store_ids == ["dyn"]
 
-    def test_store_ids_documented(self) -> None:
-        """Users target stores by convention: {id} for data, {id}-opts for overrides."""
+    def test_store_id_matches_user_id(self) -> None:
+        """Users target the store by the id they gave the constructor."""
         from dash import Dash
+
+        from dygraphs.dash import DygraphChart
 
         Dash(__name__)
         d = Dygraph(_df())
-        d.to_dash(component_id="my-chart")
-        # If we got here without error, the stores and callbacks are registered
+        DygraphChart(figure=d, id="my-chart")
+        # If we got here without error, the store and callback are registered

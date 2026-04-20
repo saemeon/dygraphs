@@ -36,6 +36,7 @@ def dash_app_url():
     from dash import Dash, html
 
     from dygraphs import Dygraph
+    from dygraphs.dash import DygraphChart
 
     app = Dash(__name__)
 
@@ -56,7 +57,7 @@ def dash_app_url():
         .shading("2020-01-02", "2020-01-03")
     )
 
-    component = dg.to_dash(component_id="test-chart", height="300px")
+    component = DygraphChart(figure=dg, id="test-chart", height="300px")
     app.layout = html.Div([html.H1("Integration Test", id="heading"), component])
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

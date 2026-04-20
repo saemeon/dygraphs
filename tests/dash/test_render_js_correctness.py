@@ -206,44 +206,25 @@ class TestJsMarkerSlice:
 
 
 class TestJsMarkerSinglePass:
-    """The renderer must walk the option tree exactly once per render.
+    """The renderer walks the option tree exactly once per render.
 
-    The previous layout called ``processJsMarkers(opts)`` twice — once
-    after parsing ``config.attrs`` and once again after merging
-    ``optsOverride`` — which double-walked every base attr. The current
-    layout merges first and walks the merged result exactly once. Lock
-    this in so a future "let's process attrs early for safety" patch
-    doesn't silently regress to two walks.
+    The marker protocol (``__JS__:...``) is evaluated in a single pass
+    over the ``opts`` object. Lock this in so a future accidental
+    double-walk is caught.
     """
 
     def test_processjsmarkers_called_once_on_opts(self) -> None:
-        # Count call sites that operate on the merged ``opts`` object.
-        # The function definition uses ``processJsMarkers(obj)`` and the
+        # Count call sites that operate on the ``opts`` object. The
+        # function definition uses ``processJsMarkers(obj)`` and the
         # recursive descent uses ``processJsMarkers(val)``, so neither
         # matches this literal.
         assert ASSET.count("processJsMarkers(opts)") == 1, (
-            "processJsMarkers(opts) must be called exactly once per render — "
-            "the previous double-walk layout has regressed"
-        )
-
-    def test_processjsmarkers_call_follows_object_assign(self) -> None:
-        """The single walk must come *after* the override merge.
-
-        If it ran before ``Object.assign(opts, optsOverride)``, any
-        marker strings inside the override would slip through unevaluated.
-        """
-        merge_idx = ASSET.find("Object.assign(opts, optsOverride)")
-        walk_idx = ASSET.find("processJsMarkers(opts)")
-        assert merge_idx != -1, "override merge call missing from renderer"
-        assert walk_idx != -1, "processJsMarkers(opts) call missing from renderer"
-        assert walk_idx > merge_idx, (
-            "processJsMarkers(opts) must run after Object.assign(opts, optsOverride) "
-            "or override markers will not be evaluated"
+            "processJsMarkers(opts) must be called exactly once per render"
         )
 
 
 # ---------------------------------------------------------------------------
-# Hidden dcc.Graph sink removal (Phase 3 — drop the dummy output)
+# No hidden sink — callback writes back to the data store itself
 # ---------------------------------------------------------------------------
 
 
@@ -255,12 +236,10 @@ _COMPONENT_PY = (
 class TestNoHiddenGraphSink:
     """Lock in the always-no-update + allow_duplicate dummy-output pattern.
 
-    The earlier layout used a hidden ``dcc.Graph`` component as the
-    clientside callback's nominal Output target. That ghost component
-    has been removed: the callback now writes back to the data
-    ``dcc.Store`` itself with ``allow_duplicate=True`` and the JS
-    returns ``window.dash_clientside.no_update`` so the store isn't
-    actually mutated (no feedback loop). Requires ``dash>=2.9.0`` for
+    The clientside callback writes back to the data ``dcc.Store``
+    itself with ``allow_duplicate=True`` and the JS returns
+    ``window.dash_clientside.no_update`` so the store isn't actually
+    mutated (no feedback loop). Requires ``dash>=2.9.0`` for
     ``allow_duplicate`` and ``prevent_initial_call='initial_duplicate'``.
     """
 
@@ -275,7 +254,7 @@ class TestNoHiddenGraphSink:
         assert "{data:[],layout:{}}" not in js
 
     def test_component_uses_allow_duplicate(self) -> None:
-        """The dygraph_to_dash callback wires allow_duplicate=True."""
+        """The DygraphChart callback wires allow_duplicate=True."""
         assert "allow_duplicate=True" in _COMPONENT_PY
 
     def test_component_uses_initial_duplicate_prevent(self) -> None:
@@ -452,3 +431,219 @@ class TestRendererAssetIntegration:
         js = _build_render_js("g", "g-container", "g-chart", 320, modebar=True)
         encoded = json.dumps(MULTI_CANVAS_CAPTURE_JS)[1:-1]  # strip outer quotes
         assert encoded in js
+
+
+# ---------------------------------------------------------------------------
+# dateWindow normalisation: Python emits ISO strings, Dygraph wants ms
+# ---------------------------------------------------------------------------
+
+
+class TestDateWindowNormalisation:
+    """Lock in the client-side ISO-string → ms conversion for ``opts.dateWindow``.
+
+    The Python builder (:meth:`Dygraph.range_selector`) serialises the
+    ``date_window`` kwarg as ISO-8601 strings so the dict round-trips
+    cleanly through JSON. The Dygraph constructor, though, expects
+    ``dateWindow`` as ``[number_ms, number_ms]`` or ``[Date, Date]``
+    — handed ISO strings it silently coerces to ``NaN`` and the
+    initial zoom window is ignored. The renderer converts here, before
+    ``new Dygraph(...)``.
+    """
+
+    def test_normalisation_block_present(self) -> None:
+        """The ``opts.dateWindow`` conversion exists in the renderer."""
+        assert "opts.dateWindow && opts.dateWindow.length === 2" in ASSET
+        assert "opts.dateWindow = opts.dateWindow.map" in ASSET
+
+    def test_iso_string_mapped_via_new_date_get_time(self) -> None:
+        """String entries become ``new Date(v).getTime()`` (milliseconds)."""
+        # Single-line check: the conversion body mentions both the
+        # string type guard and the new Date(...).getTime() call.
+        pattern = re.compile(
+            r"opts\.dateWindow\s*=\s*opts\.dateWindow\.map\("
+            r".*?typeof\s+v\s*===\s*'string'\s*\?"
+            r"\s*new\s+Date\(v\)\.getTime\(\)",
+            re.DOTALL,
+        )
+        assert pattern.search(ASSET), (
+            "opts.dateWindow normalisation must convert ISO strings via "
+            "new Date(v).getTime()"
+        )
+
+    def test_numeric_date_window_passes_through(self) -> None:
+        """Numbers/Dates survive the map unchanged (``: v`` fallback)."""
+        # The ternary's false-branch returns v as-is so pre-computed
+        # timestamps (or Date objects) aren't re-wrapped.
+        pattern = re.compile(
+            r"typeof\s+v\s*===\s*'string'\s*\?"
+            r"\s*new\s+Date\(v\)\.getTime\(\)\s*:\s*v",
+            re.DOTALL,
+        )
+        assert pattern.search(ASSET), (
+            "non-string dateWindow entries must pass through unchanged"
+        )
+
+    def test_normalisation_runs_before_dygraph_instantiation(self) -> None:
+        """The conversion must happen before ``new Dygraph(...)``.
+
+        Normalising AFTER construction is too late — Dygraph has already
+        parsed the ISO strings into NaN.
+        """
+        normalise_idx = ASSET.find("opts.dateWindow = opts.dateWindow.map")
+        construct_idx = ASSET.find("new Dygraph(")
+        assert normalise_idx != -1, "dateWindow normalisation missing"
+        assert construct_idx != -1, "new Dygraph(...) call missing"
+        assert normalise_idx < construct_idx, (
+            "dateWindow normalisation must run before new Dygraph(...) — "
+            "otherwise the ISO strings have already become NaN"
+        )
+
+
+# ---------------------------------------------------------------------------
+# interactionModel compat shim: Dygraph.Interaction.defaultModel fallback
+# ---------------------------------------------------------------------------
+
+
+class TestInteractionModelCompatShim:
+    """Lock in the ``Dygraph.Interaction.defaultModel`` fallback.
+
+    ``.range_selector(keep_mouse_zoom=True)`` (the default) emits
+    ``JS("Dygraph.Interaction.defaultModel")`` in the config.
+    ``processJsMarkers`` ``eval``\\ s the marker at render time —
+    but some Dygraph builds expose it only as
+    ``Dygraph.defaultInteractionModel`` at the top level, leaving
+    ``Dygraph.Interaction.defaultModel`` undefined. The shim
+    populates the former from the latter when missing, so the eval
+    resolves to a real interaction model. Same shim as the
+    ``to_html`` path.
+    """
+
+    def test_shim_present(self) -> None:
+        """The fallback assignment exists in the renderer."""
+        # Single-line pattern: when Interaction.defaultModel is falsy
+        # AND defaultInteractionModel exists, copy across.
+        assert "Dygraph.Interaction.defaultModel" in ASSET
+        assert "Dygraph.defaultInteractionModel" in ASSET
+        assert (
+            "Dygraph.Interaction.defaultModel = Dygraph.defaultInteractionModel"
+            in ASSET
+        )
+
+    def test_shim_guarded_by_dygraph_presence(self) -> None:
+        """The shim must not run before dygraphs.js has loaded.
+
+        Running ``Dygraph.Interaction.defaultModel = ...`` before the
+        library loads would crash with ``ReferenceError: Dygraph is
+        not defined``. Guard with a ``typeof Dygraph !== 'undefined'``
+        check.
+        """
+        pattern = re.compile(
+            r"typeof\s+Dygraph\s*!==\s*'undefined'\s*&&\s*Dygraph\.Interaction",
+            re.DOTALL,
+        )
+        assert pattern.search(ASSET), (
+            "interactionModel shim must be guarded by a typeof check"
+        )
+
+    def test_shim_runs_before_dygraph_instantiation(self) -> None:
+        """The shim must run before ``new Dygraph(...)``.
+
+        If it ran afterwards, the first render's ``processJsMarkers``
+        eval of ``Dygraph.Interaction.defaultModel`` would still see
+        ``undefined``.
+        """
+        shim_idx = ASSET.find(
+            "Dygraph.Interaction.defaultModel = Dygraph.defaultInteractionModel"
+        )
+        construct_idx = ASSET.find("new Dygraph(")
+        assert shim_idx != -1, "compat shim missing"
+        assert construct_idx != -1, "new Dygraph(...) call missing"
+        assert shim_idx < construct_idx, (
+            "interactionModel shim must run before new Dygraph(...) — "
+            "otherwise the first render hands an undefined model to Dygraph"
+        )
+
+    def test_shim_runs_before_processjsmarkers(self) -> None:
+        """The shim must run before ``processJsMarkers(opts)``.
+
+        ``processJsMarkers`` is what actually evaluates the
+        ``__JS__:Dygraph.Interaction.defaultModel:__JS__`` marker. If
+        the shim runs after, the marker resolves to ``undefined``.
+        """
+        shim_idx = ASSET.find(
+            "Dygraph.Interaction.defaultModel = Dygraph.defaultInteractionModel"
+        )
+        markers_idx = ASSET.find("processJsMarkers(opts)")
+        assert shim_idx != -1
+        assert markers_idx != -1
+        assert shim_idx < markers_idx, (
+            "interactionModel shim must run before processJsMarkers(opts) "
+            "so the __JS__ marker eval resolves to a defined model"
+        )
+
+
+# ---------------------------------------------------------------------------
+# extraJs eval order: must precede processJsMarkers so Dygraph.Plotters.X
+# and Dygraph.DataHandlers.X are defined when the markers are evaluated.
+# ---------------------------------------------------------------------------
+
+
+class TestExtraJsEvalOrder:
+    """Lock in ``evalExtraJs(config)`` running before ``processJsMarkers(opts)``.
+
+    ``.bar_chart()``, ``.stacked_bar_chart()``, ``.multi_column()``,
+    ``.candlestick()`` each emit two things into the config: a
+    ``plotter`` attr set to a ``JS("Dygraph.Plotters.BarChart")``
+    marker, and an ``extraJs`` entry whose IIFE assigns
+    ``Dygraph.Plotters.BarChart = barChartPlotter``. The namespace
+    lookup only resolves AFTER the IIFE runs — so ``evalExtraJs``
+    must happen before ``processJsMarkers`` evaluates the marker.
+    Otherwise the marker resolves to ``undefined`` and Dygraph
+    silently falls back to the default line plotter.
+    """
+
+    def test_evaljs_runs_before_processjsmarkers(self) -> None:
+        evaljs_idx = ASSET.find("evalExtraJs(config)")
+        markers_idx = ASSET.find("processJsMarkers(opts)")
+        assert evaljs_idx != -1, "evalExtraJs(config) call missing"
+        assert markers_idx != -1, "processJsMarkers(opts) call missing"
+        assert evaljs_idx < markers_idx, (
+            "evalExtraJs(config) must run before processJsMarkers(opts) — "
+            "otherwise JS('Dygraph.Plotters.X') markers resolve to undefined"
+        )
+
+    def test_plotter_js_assigns_namespace(self) -> None:
+        """Each plotter JS assigns ``Dygraph.Plotters.Name = function``.
+
+        If a plotter JS were to define a bare global (e.g.
+        ``function BarChart(e) { ... }``) without the namespace
+        assignment, our ``JS("Dygraph.Plotters.BarChart")`` marker
+        would still resolve to ``undefined``. This test reads each
+        bundled plotter file and verifies the namespace assignment.
+        """
+        plotters_dir = (
+            Path(__file__).parent.parent.parent
+            / "src"
+            / "dygraphs"
+            / "assets"
+            / "plotters"
+        )
+        # The four chart-level plotters referenced by JS(...) markers
+        # in dygraph.py (.bar_chart(), .stacked_bar_chart(),
+        # .multi_column(), .candlestick()). Series-level plotters
+        # (.bar_series(), etc.) use a different mechanism — they
+        # inline the JS source as the plotter value, no namespace
+        # assignment needed.
+        expected = {
+            "barchart.js": "Dygraph.Plotters.BarChart",
+            "stackedbarchart.js": "Dygraph.Plotters.StackedBarChart",
+            "multicolumn.js": "Dygraph.Plotters.MultiColumn",
+            "candlestick.js": "Dygraph.Plotters.CandlestickPlotter",
+        }
+        for fname, namespace in expected.items():
+            src = (plotters_dir / fname).read_text()
+            assert f"{namespace} =" in src, (
+                f"{fname} must assign `{namespace} = ...` so the "
+                f"JS('{namespace}') marker resolves. Otherwise the "
+                f"chart silently falls back to the default line plotter."
+            )

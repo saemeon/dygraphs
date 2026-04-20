@@ -52,9 +52,10 @@ class TestShinyComponent:
         assert "addCustomMessageHandler" in html_str
 
     @skip_no_shiny
-    def test_to_shiny_returns_ui(self) -> None:
-        d = Dygraph(_df(), title="Test")
-        result = d.to_shiny("my-element")
+    def test_dygraph_ui_with_size(self) -> None:
+        from dygraphs.shiny.component import dygraph_ui
+
+        result = dygraph_ui("my-element", height="500px", width="80%")
         assert result is not None
 
     def test_serialise_handles_js(self) -> None:

@@ -16,7 +16,8 @@ def synced_app_url():
     """Start a Dash app with grouped dygraphs + stacked bar."""
     from dash import Dash, html
 
-    from dygraphs import Dygraph, stacked_bar
+    from dygraphs import Dygraph
+    from dygraphs.dash import DygraphChart, stacked_bar
 
     app = Dash(__name__)
 
@@ -29,17 +30,23 @@ def synced_app_url():
         index=pd.date_range("2024-01-01", periods=30, freq="D"),
     )
 
-    chart_a = (
-        Dygraph(df1, title="Chart A", group="test-sync")
-        .options(animated_zooms=False)
-        .range_selector(height=20)
-        .to_dash(component_id="chart-a", height=200)
+    chart_a = DygraphChart(
+        figure=(
+            Dygraph(df1, title="Chart A", group="test-sync")
+            .options(animated_zooms=False)
+            .range_selector(height=20)
+        ),
+        id="chart-a",
+        height=200,
     )
-    chart_b = (
-        Dygraph(df2, title="Chart B", group="test-sync")
-        .options(animated_zooms=False)
-        .range_selector(height=20)
-        .to_dash(component_id="chart-b", height=200)
+    chart_b = DygraphChart(
+        figure=(
+            Dygraph(df2, title="Chart B", group="test-sync")
+            .options(animated_zooms=False)
+            .range_selector(height=20)
+        ),
+        id="chart-b",
+        height=200,
     )
 
     np.random.seed(42)

@@ -13,13 +13,15 @@ def _df() -> pd.DataFrame:
     return pd.DataFrame({"y": [1, 2, 3, 4, 5]}, index=idx)
 
 
-class TestDygraphToDash:
-    def test_to_dash_returns_div(self) -> None:
+class TestDygraphChartConstruction:
+    def test_returns_html_div(self) -> None:
         from dash import Dash, html
+
+        from dygraphs.dash import DygraphChart
 
         Dash(__name__)
         dg = Dygraph(_df(), title="Test")
-        component = dg.to_dash(component_id="tc")
+        component = DygraphChart(figure=dg, id="tc")
         # DygraphChart inherits from ComponentWrapper, which inherits
         # from html.Div — so the outer is a real Div.
         assert isinstance(component, html.Div)
@@ -28,55 +30,64 @@ class TestDygraphToDash:
         # is exposed via .cid and matches the inner store's id.
         assert component.cid == "tc"
 
-    def test_to_dash_auto_id(self) -> None:
+    def test_auto_id(self) -> None:
         from dash import Dash, html
+
+        from dygraphs.dash import DygraphChart
 
         Dash(__name__)
         dg = Dygraph(_df())
-        component = dg.to_dash()
+        component = DygraphChart(figure=dg)
         assert isinstance(component, html.Div)
         assert component.cid.startswith("dygraph-")
 
-    def test_to_dash_contains_two_stores_and_no_hidden_graph(self) -> None:
-        """Layout = 2 dcc.Store (data + opts) + 1 html.Div container.
+    def test_contains_single_store_and_container(self) -> None:
+        """Layout = 1 dcc.Store + 1 html.Div container, no hidden graph.
 
-        The hidden ``dcc.Graph`` sink that earlier versions used as a
-        clientside callback Output target has been removed; the
-        callback now writes back to the data store with
-        ``allow_duplicate=True`` and returns ``no_update`` from JS.
+        The clientside callback writes back to the data store with
+        ``allow_duplicate=True`` and returns ``no_update`` from JS, so
+        there's no need for a hidden ``dcc.Graph`` sink.
         """
         from dash import Dash, dcc, html
 
+        from dygraphs.dash import DygraphChart
+
         Dash(__name__)
         dg = Dygraph(_df())
-        component = dg.to_dash(component_id="x")
+        component = DygraphChart(figure=dg, id="x")
         children = component.children
         stores = [c for c in children if isinstance(c, dcc.Store)]
         graphs = [c for c in children if isinstance(c, dcc.Graph)]
         divs = [c for c in children if isinstance(c, html.Div)]
-        assert len(stores) == 2  # data store + opts store
+        assert len(stores) == 1  # chart data store
         assert len(graphs) == 0  # hidden graph dropped
         assert len(divs) == 1  # container div
 
-    def test_to_dash_height_int(self) -> None:
+    def test_height_int(self) -> None:
         from dash import Dash
+
+        from dygraphs.dash import DygraphChart
 
         Dash(__name__)
         dg = Dygraph(_df())
-        component = dg.to_dash(component_id="h", height=500)
+        component = DygraphChart(figure=dg, id="h", height=500)
         assert isinstance(component, object)  # just verify no error
 
-    def test_to_dash_no_modebar(self) -> None:
+    def test_no_modebar(self) -> None:
         from dash import Dash
+
+        from dygraphs.dash import DygraphChart
 
         Dash(__name__)
         dg = Dygraph(_df())
-        component = dg.to_dash(component_id="nm", modebar=False)
+        component = DygraphChart(figure=dg, id="nm", modebar=False)
         assert component is not None
 
-    def test_to_dash_without_app(self) -> None:
+    def test_without_app(self) -> None:
+        from dygraphs.dash import DygraphChart
+
         dg = Dygraph(_df())
-        component = dg.to_dash(component_id="no-app")
+        component = DygraphChart(figure=dg, id="no-app")
         assert component is not None
 
 
@@ -96,8 +107,10 @@ class TestStackedBar:
     def test_stacked_bar_returns_div(self) -> None:
         from dash import Dash, html
 
+        from dygraphs.dash import stacked_bar
+
         Dash(__name__)
-        component = __import__("dygraphs").stacked_bar(
+        component = stacked_bar(
             "sb", initial_data="Date,A,B\n2024-01-01,1,2\n2024-01-02,3,4"
         )
         assert isinstance(component, html.Div)
