@@ -50,6 +50,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from dash import dcc
+from dash.dcc.Store import Store
 from dash_wrap import ComponentWrapper, register_proxy_defaults
 
 from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
@@ -295,7 +296,8 @@ class DygraphChart(ComponentWrapper):
         )
 
         store = dcc.Store(id=cid, data=serialised_config)
-        opts_store = dcc.Store(id=f"{cid}-opts", data=None)
+        opts_id = f"{cid}-opts"
+        opts_store = dcc.Store(id=opts_id, data=None)
         container_id = f"{cid}-container"
         container = html.Div(id=container_id, style={"width": width})
 
@@ -316,7 +318,7 @@ class DygraphChart(ComponentWrapper):
         # Python-side-only attributes (not Dash props, not serialised
         # into the DOM). dash-wrap's __setattr__ routes non-proxy
         # names through super() to html.Div / object.
-        self._opts_store = opts_store
+        self._opts_store: Store = opts_store
         self._cid = cid
 
         # Per-instance clientside callback. Dummy output targets the
@@ -329,7 +331,7 @@ class DygraphChart(ComponentWrapper):
             js,
             Output(cid, "data", allow_duplicate=True),
             Input(cid, "data"),
-            Input(opts_store.id, "data"),
+            Input(opts_id, "data"),
             prevent_initial_call="initial_duplicate",
         )
 
