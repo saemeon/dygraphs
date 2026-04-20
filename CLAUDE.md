@@ -190,12 +190,18 @@ emission, `to_html` variants, JSON edge cases, ribbon plugin options).
 
 ## Dash adapter architecture
 
-The Dash integration (`src/dygraphs/dash/`) follows the R dygraphs / htmlwidgets model:
+The Dash integration (`src/dygraphs/dash/`) follows the R dygraphs / htmlwidgets model. The goal is **transparency, not magic** — every piece of machinery below is externally documented (in dash-wrap's README or Dash's own docs). Users who want to debug, extend, or audit the component can trace the full chain without surprises.
 
-- **`dash_render.js`** — the clientside renderer, extracted to a real `.js` file (lintable, syntax-highlightable). Defines `window.dygraphsDash.render(setup, config, optsOverride)`. Read once at Python import time, inlined into each chart's clientside callback with an IIFE guard so only the first chart initialises the renderer.
+- **`DygraphChart` class** — the public constructor, `DygraphChart(figure, id=...)`. Inherits from `dash_wrap.ComponentWrapper` with the primary `dcc.Store` as the inner component. Three siblings live inside:
+  - `dcc.Store(id={id})` — primary, carries the serialised config. Its id equals the user-supplied id (the chart's *identity*).
+  - `dcc.Store(id={id}-opts)` — runtime option overrides. Exposed via `chart.opts` (property) or string id.
+  - `html.Div(id={id}-container)` — the DOM container where dygraphs' JS renders.
+  The outer `html.Div` has no id (dash-wrap convention, prevents `DuplicateIdError`). `chart.cid` exposes the inner store's id; `.id` is deliberately NOT proxied because Dash's layout validation walks `.id` to detect duplicates.
+- **`dash_render.js`** — the clientside renderer, extracted to a real `.js` file (lintable, syntax-highlightable). Defines `window.dygraphsDash.render(setup, config, optsOverride)`. Read once at Python import time, inlined into each chart's clientside callback with an IIFE guard so only the first chart initialises the renderer. Early-returns on `!config` so `DygraphChart(None, id=...)` (empty placeholder) is a no-op until real data is pushed.
 - **Always destroy + recreate** — on every data update, the existing dygraph instance is destroyed and a new one is created from scratch (same as R's `renderValue`). This eliminates the "did I forget to invalidate X" class of bugs from the old in-place `updateOptions` path. Zoom can optionally be preserved via `retain_date_window=True` (default `False`, matching R).
-- **`dcc.Store` + clientside callback** — the standard Dash pattern for wrapping a third-party JS library. Two stores: `{cid}-store` (canonical config) and `{cid}-opts` (runtime overrides).
+- **Clientside callback** — standard Dash pattern. Dummy output targets the primary store with `allow_duplicate=True`; the JS returns `dash_clientside.no_update`, so the store isn't mutated and there's no feedback loop. Registered once per chart at construction. Requires `dash>=2.9.0`.
 - **`MULTI_CANVAS_CAPTURE_JS`** — shared JS constant in `capture.py` for DPR-aware multi-canvas PNG capture. Used by both the modebar camera button and the `dash-capture` wizard strategy (`dygraph_strategy()`).
+- **dash-wrap dependency** — provides the `ComponentWrapper` base. Two mechanisms matter: `_set_random_id` returns the inner store's id (so `Output(chart, "data")` resolves), and `__class__` is spoofed so `isinstance(chart, dcc.Store)` is `True`. Everything else is normal Python — the wrapper's a real `html.Div` subclass at the C-type level, which is what Dash uses to serialise the DOM.
 
 ## Test conventions for the Dash adapter
 
@@ -386,53 +392,47 @@ worth doing while the renderer is fresh in someone's head.
 - [x] **`DyGraph` component wrapper** — `DyGraph(figure=dg, id="chart")`
   provides `dcc.Graph`-style construction. The data store gets the user-facing
   `id` so `Output("chart", "data")` targets it directly — no helpers needed.
-  Wrapper div gets `{id}-wrap`, opts store gets `{id}-opts`.
+  Wrapper div gets `{id}-wrap`, opts store gets `{id}-opts`. *(Superseded by
+  the dash-wrap rebuild below; `DyGraph` was renamed to `DygraphChart` and
+  the hand-rolled proxy replaced with `ComponentWrapper` inheritance.)*
+- [x] **Rename `DyGraph` → `DygraphChart` + rebuild on `dash-wrap`.**
+  The class now inherits from `dash_wrap.ComponentWrapper` with the
+  primary `dcc.Store` as the inner component. `Output(chart, "data")`
+  resolves to the store via dash-wrap's `_set_random_id` override;
+  `isinstance(chart, dcc.Store)` is `True` via the `__class__`
+  property. Opts store accessed via `chart.opts` (property returning
+  the sibling `dcc.Store`) or by string id `f"{chart.cid}-opts"`. The
+  outer div has no id (dash-wrap convention; prevents
+  `DuplicateIdError`). `dygraph_to_dash()` kept as a thin functional
+  alias that returns a `DygraphChart`. `register_proxy_defaults(
+  dcc.Store, ("data",))` is called once at module import so third
+  parties can also `wrap(dcc.Store(...))` cleanly. Naming decision:
+  stayed with `DygraphChart` (not `Graph`) because the `dcc.Graph`
+  analogy cracks at the callback boundary — users write
+  `Output(chart, "data")`, not `"figure"`. Better to name the thing
+  for what it is. No backwards-compat alias kept; hard cut. Also:
+  `.cid` property (not `.id`) exposes the inner store's id — Dash's
+  layout validation walks `.id` to detect duplicates, and proxying
+  `id` would trip it against the inner store. Users write
+  `f"{chart.cid}-opts"` or just use `chart.opts`.
+- [x] **`figure=None` empty placeholder.** `DygraphChart(None,
+  id="my-chart")` produces a valid layout with the primary store
+  holding `data=None`; the clientside renderer has an existing
+  `if (!config) return;` guard, so the chart is a no-op until a
+  callback pushes real data. Use case: build an app where the first
+  config arrives via callback.
+- [x] **Centralise `processJsMarkers`.** Was called twice in the old
+  renderer (once on the base `attrs`, once after merging the opts
+  override). Consolidated into a single pass on the merged `opts`
+  dict in `render()`. One easy-to-audit eval site. Pinned by
+  `test_render_js_correctness.py::TestJsMarkerSinglePass`.
 - [x] **Migrated all examples/docs from `@app.callback` to `@dash.callback`.**
   Uses `import dash` + `dash.callback(...)` / `dash.Dash(...)` style
   consistently (no explicit imports of `callback` or `Dash`).
 
 #### Next up
-1. **Centralise `processJsMarkers`** — move the recursive `__JS__:` eval walk
-   to a single pre-pass at the top of `render()` in `dash_render.js`.
-   Currently it's called twice (once on `opts`, once after merging the
-   override). Easier to lint and reason about. ~15 min.
-2. **Replace `DyGraph` proxy with `dash-wrap`** — once the `dash-wrap`
-   package (currently in `brand-toolkit/dash-wrap/`) ships, replace the
-   hand-rolled `DyGraph` proxy class with `wrap(dcc.Store(...))`. dash-wrap
-   handles identity proxying (`Output("chart", "data")` transparently
-   targets the inner store) and sibling injection (opts store, container
-   div) without manual `to_plotly_json` / `children` delegation. The
-   clientside callback registration stays as-is; only the component
-   construction simplifies to a one-liner:
-   ```python
-   def DyGraph(figure, id, ...):
-       store = dcc.Store(id=id, data=serialise_js(figure.to_dict()))
-       return wrap(store,
-           dcc.Store(id=f"{id}-opts", data=None),
-           html.Div(id=f"{id}-container", style={"width": width}),
-       )
-   ```
-   **Design context for this decision:** The key insight is that "the chart
-   IS its data store". The `dcc.Store` with `id="chart"` is the primary
-   identity; everything else (opts store, container div, wrapper div) is
-   rendering infrastructure with derived IDs. This mirrors how `dcc.Graph`
-   IS its figure — `Output("graph", "figure")` targets the component
-   directly. For dygraphs: `Output("chart", "data")` targets the store
-   directly. The `DyGraph(figure=dg, id="chart")` constructor mirrors
-   `dcc.Graph(figure=fig, id="chart")`. Updating from a callback returns
-   a config dict via `Dygraph(new_df).to_dict()`, analogous to returning
-   a plotly figure. The current hand-rolled proxy class
-   (`src/dygraphs/dash/component.py`, class `DyGraph`) manually delegates
-   `to_plotly_json()`, `children`, and `id` — dash-wrap would replace all
-   of that with its generic identity-proxying machinery.
 
-   **Documentation principle:** The result should feel like magic to users
-   (`DyGraph` just works like `dcc.Graph`) but be transparently documented
-   so the mechanism is easily understandable. The docs should explain that
-   `DyGraph` is a `dcc.Store` wrapped with dash-wrap, that `Output("chart",
-   "data")` targets the inner store, and that the clientside callback does
-   the JS rendering. No hidden complexity — show the full picture so users
-   can debug, extend, and trust the abstraction.
+*(no items pending — the Dash adapter backlog is now closed)*
 
 #### Decisions deferred (revisit when there's a reason)
 - **Flask blueprint serving the asset** — would let us replace
