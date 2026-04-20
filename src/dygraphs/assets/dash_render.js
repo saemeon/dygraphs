@@ -406,11 +406,48 @@
 
             var rows = transposeData(config.data, config.format);
 
-            // Clone attrs so the processJsMarkers eval walk doesn't mutate
-            // the cached config. Single pass, single easy-to-audit eval
-            // site for the marker protocol.
+            // Clone attrs so the processJsMarkers eval walk doesn't
+            // mutate the cached config.
             var opts = JSON.parse(JSON.stringify(config.attrs));
+
+            // Compat shim: some Dygraph builds only expose
+            // ``Dygraph.defaultInteractionModel`` at the top level and
+            // leave ``Dygraph.Interaction.defaultModel`` undefined. The
+            // shim populates the latter so ``__JS__`` markers like
+            // ``JS("Dygraph.Interaction.defaultModel")`` (emitted by
+            // ``.range_selector(keep_mouse_zoom=True)``) resolve. Must
+            // run before ``processJsMarkers`` evaluates them.
+            if (typeof Dygraph !== 'undefined' && Dygraph.Interaction
+                && !Dygraph.Interaction.defaultModel
+                && Dygraph.defaultInteractionModel) {
+                Dygraph.Interaction.defaultModel = Dygraph.defaultInteractionModel;
+            }
+
+            // Inject plotter / plugin / data-handler JS BEFORE resolving
+            // ``__JS__`` markers — ``.bar_chart()`` etc. emit
+            // ``plotter: JS("Dygraph.Plotters.BarChart")`` which only
+            // resolves once ``barchart.js`` has run its IIFE and
+            // assigned ``Dygraph.Plotters.BarChart``. If markers were
+            // evaluated first, the lookup returns ``undefined`` and
+            // Dygraph silently falls back to the default line plotter.
+            evalExtraJs(config);
+
+            // Now resolve ``__JS__:code:__JS__`` markers into real JS
+            // values — everything referenced is in scope: Dygraph core,
+            // Dygraph.Plotters.*, Dygraph.DataHandlers.*, and any user-
+            // supplied globals from extraJs.
             processJsMarkers(opts);
+
+            // Normalise opts.dateWindow: the Python builder emits
+            // ISO-8601 strings (e.g. "2024-01-10T00:00:00.000Z") for
+            // date axes; the Dygraph constructor expects millisecond
+            // numbers or Date objects. Without this, Dygraph.parse_
+            // silently coerces to NaN and the initial window is ignored.
+            if (opts.dateWindow && opts.dateWindow.length === 2) {
+                opts.dateWindow = opts.dateWindow.map(function (v) {
+                    return typeof v === 'string' ? new Date(v).getTime() : v;
+                });
+            }
 
             // Group registry: drop any stale entry for this container
             // (we re-register after creating the dygraph below).
@@ -425,7 +462,6 @@
             attachZoomSync(opts, container, setup.graphId, config.group);
             attachHighlightSync(opts, container, setup.graphId, config.group);
 
-            evalExtraJs(config);
             instantiatePlugins(config, opts);
             applyPointShapes(config, opts);
 

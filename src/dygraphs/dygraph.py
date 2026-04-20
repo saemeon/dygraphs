@@ -1898,9 +1898,9 @@ class Dygraph:
         callbacks : Set annotation event handlers globally.
         """
         if self._format == "date":
-            import pandas as pd
+            from dygraphs.utils import ts_to_utc_iso
 
-            x = pd.Timestamp(x).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            x = ts_to_utc_iso(x)
 
         if series is not None and series not in self._attrs["labels"]:
             msg = f"Series {series!r} not found. Valid: {self._attrs['labels'][1:]}"
@@ -1987,10 +1987,10 @@ class Dygraph:
         event : Add a vertical event line.
         """
         if axis == "x" and self._format == "date":
-            import pandas as pd
+            from dygraphs.utils import ts_to_utc_iso
 
-            from_ = pd.Timestamp(from_).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            to = pd.Timestamp(to).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            from_ = ts_to_utc_iso(from_)
+            to = ts_to_utc_iso(to)
         self._shadings.append({"from": from_, "to": to, "color": color, "axis": axis})
         return self
 
@@ -2047,9 +2047,9 @@ class Dygraph:
         shading : Add a shaded region.
         """
         if self._format == "date":
-            import pandas as pd
+            from dygraphs.utils import ts_to_utc_iso
 
-            x = pd.Timestamp(x).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            x = ts_to_utc_iso(x)
 
         self._events.append(
             {
@@ -2188,13 +2188,10 @@ class Dygraph:
         }
         if date_window is not None:
             if self._format == "date":
-                import pandas as pd
+                from dygraphs.utils import ts_to_utc_iso
 
                 try:
-                    opts["dateWindow"] = [
-                        pd.Timestamp(d).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-                        for d in date_window
-                    ]
+                    opts["dateWindow"] = [ts_to_utc_iso(d) for d in date_window]
                 except Exception as exc:
                     msg = (
                         f"Cannot convert date_window values to timestamps: "

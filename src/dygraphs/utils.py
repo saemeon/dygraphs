@@ -20,6 +20,38 @@ DYGRAPH_CSS_CDN = (
 )
 
 
+def ts_to_utc_iso(x: Any) -> str:
+    """Serialise a timestamp-like value to ``"YYYY-MM-DDTHH:MM:SS.000Z"``.
+
+    The ``Z`` suffix marks UTC — so tz-aware inputs are converted to
+    UTC first, and naive inputs are assumed to be UTC. Without the
+    conversion, ``strftime("%Y-%m-%dT%H:%M:%S.000Z")`` on a tz-aware
+    non-UTC Timestamp would emit the local wall-clock time followed by
+    ``Z``, which the browser then parses as UTC — silently shifting
+    the value by the local offset.
+
+    Used for annotations, shadings, events, and ``dateWindow`` where a
+    single consistent UTC form is required (unlike the main x-axis
+    data, which keeps its offset via ``isoformat()``).
+
+    Parameters
+    ----------
+    x : Any
+        Any pandas-parseable timestamp: ``str``, ``datetime``,
+        ``pd.Timestamp``, ``np.datetime64``.
+
+    Returns
+    -------
+    str
+        ISO-8601 UTC string, ending in ``.000Z``.
+    """
+    import pandas as pd
+
+    t = pd.Timestamp(x)
+    t = t.tz_localize("UTC") if t.tzinfo is None else t.tz_convert("UTC")
+    return t.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
 def merge_dicts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
     """Recursively merge *overlay* into *base*, returning a new dict.
 
