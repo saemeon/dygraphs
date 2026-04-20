@@ -1,12 +1,18 @@
 """dygraphs: Python wrapper for the dygraphs JavaScript charting library.
 
 Core port of the R dygraphs package with a Pythonic builder API.
-Framework adapters available for Dash and Shiny (future).
+Framework adapters available for Dash and Shiny.
 
 Install extras for framework support::
 
     pip install dygraphs[dash]     # Plotly Dash
-    pip install dygraphs[shiny]    # Shiny for Python (coming soon)
+    pip install dygraphs[shiny]    # Shiny for Python
+
+Framework-specific entry points live under their subpackages — import
+them directly so Pylance / pyright can see the real signatures::
+
+    from dygraphs.dash import DygraphChart, stacked_bar, dygraph_strategy
+    from dygraphs.shiny import dygraph_ui, render_dygraph
 """
 
 from __future__ import annotations
@@ -34,48 +40,9 @@ except ModuleNotFoundError:  # pragma: no cover – editable install before firs
     __version__ = "0.0.0.dev0"
 
 
-# ---------------------------------------------------------------------------
-# Lazy Dash imports — only available when dygraphs[dash] is installed.
-# These are top-level convenience re-exports so users can write:
-#   from dygraphs import DygraphChart
-# ---------------------------------------------------------------------------
-
-
-def stacked_bar(*args, **kwargs):  # type: ignore[no-untyped-def]  # noqa: ANN002, ANN003
-    """Create a stacked bar chart for Dash. Requires ``dygraphs[dash]``."""
-    from dygraphs.dash import stacked_bar as _fn
-
-    return _fn(*args, **kwargs)
-
-
-def dygraph_strategy(**kwargs):  # type: ignore[no-untyped-def]  # noqa: ANN003
-    """Capture strategy for dash-capture. Requires ``dygraphs[dash]``."""
-    from dygraphs.dash import dygraph_strategy as _fn
-
-    return _fn(**kwargs)
-
-
-def DygraphChart(*args, **kwargs):  # type: ignore[no-untyped-def]  # noqa: ANN002, ANN003, N802
-    """Dash component wrapper for a dygraphs chart. Requires ``dygraphs[dash]``.
-
-    Usage::
-
-        from dygraphs import DygraphChart  # or from dygraphs.dash
-
-        app.layout = html.Div([DygraphChart(figure=dg, id="chart")])
-
-    Thin re-export of :class:`dygraphs.dash.DygraphChart` — a callable
-    here (not a class) so this module stays importable without Dash.
-    """
-    from dygraphs.dash import DygraphChart as _cls  # noqa: N814 N813
-
-    return _cls(*args, **kwargs)
-
-
 __all__ = [
     # Core
     "Dygraph",
-    "DygraphChart",
     "JS",
     # Declarative dataclasses
     "Annotation",
@@ -93,8 +60,5 @@ __all__ = [
     # Utilities
     "make_custom_bar_data",
     "make_error_bar_data",
-    # Dash (lazy)
-    "dygraph_strategy",
-    "stacked_bar",
     "__version__",
 ]

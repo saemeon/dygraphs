@@ -201,8 +201,8 @@ def dygraph_strategy(
         from dash import Dash, html
         from dash_capture import capture_element
 
-        from dygraphs import Dygraph, dygraph_strategy
-        from dygraphs.dash import DygraphChart
+        from dygraphs import Dygraph
+        from dygraphs.dash import DygraphChart, dygraph_strategy
 
         app = Dash(__name__)
 
