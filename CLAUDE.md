@@ -374,26 +374,65 @@ worth doing while the renderer is fresh in someone's head.
   `<script>` tags rendered through its vDOM, so the asset never initialised.
   Reverted to inlining in the per-chart callback body with the IIFE guard.
 
+#### Done (recent, continued)
+- [x] **Drop hidden `dcc.Graph` sink** — replaced with `Output(store_id,
+  "data", allow_duplicate=True)` + `prevent_initial_call='initial_duplicate'`.
+- [x] **Outputs helper module** — `src/dygraphs/dash/outputs.py` was created,
+  then simplified away: the data store now shares the chart's `id` directly,
+  so `Output("my-chart", "data")` works without helpers. `data()` and `opts()`
+  helpers removed.
+- [x] **Document the always-recreate model in `docs/`** — "Updating data from
+  Dash callbacks" section added to `docs/index.md`.
+- [x] **`DyGraph` component wrapper** — `DyGraph(figure=dg, id="chart")`
+  provides `dcc.Graph`-style construction. The data store gets the user-facing
+  `id` so `Output("chart", "data")` targets it directly — no helpers needed.
+  Wrapper div gets `{id}-wrap`, opts store gets `{id}-opts`.
+- [x] **Migrated all examples/docs from `@app.callback` to `@dash.callback`.**
+  Uses `import dash` + `dash.callback(...)` / `dash.Dash(...)` style
+  consistently (no explicit imports of `callback` or `Dash`).
+
 #### Next up
-1. **Drop hidden `dcc.Graph` sink** — replace `Output(hidden_graph_id,
-   "figure")` (still present at `src/dygraphs/dash/component.py:178, 202, 253,
-   493, 500`) with `Output(store_id, "data", allow_duplicate=True)` +
-   `prevent_initial_call='initial_duplicate'`. Bump `dash>=2.9.0` in
-   `pyproject.toml`. Delete the hidden Graph component. Removes one ghost
-   component from every chart's DOM. ~30 min.
-2. **Outputs helper module** — new file `src/dygraphs/dash/outputs.py`
-   exporting `data(component_id)` and `opts(component_id)` that produce the
-   right `Output` objects. Re-export from `dygraphs.dash`. Update README
-   example. ~30 min.
-3. **Centralise `processJsMarkers`** — move the recursive `__JS__:` eval walk
+1. **Centralise `processJsMarkers`** — move the recursive `__JS__:` eval walk
    to a single pre-pass at the top of `render()` in `dash_render.js`.
    Currently it's called twice (once on `opts`, once after merging the
    override). Easier to lint and reason about. ~15 min.
-4. **Document the always-recreate model in `docs/`** — add an "Updating data
-   from Dash callbacks" section to `docs/index.md` explaining: write to
-   `Output(f"{cid}-store", "data")`, the chart destroys + recreates on every
-   update, set `retain_date_window=True` if you need zoom preserved. Include
-   the `outputs` helper from item 2 once it lands.
+2. **Replace `DyGraph` proxy with `dash-wrap`** — once the `dash-wrap`
+   package (currently in `brand-toolkit/dash-wrap/`) ships, replace the
+   hand-rolled `DyGraph` proxy class with `wrap(dcc.Store(...))`. dash-wrap
+   handles identity proxying (`Output("chart", "data")` transparently
+   targets the inner store) and sibling injection (opts store, container
+   div) without manual `to_plotly_json` / `children` delegation. The
+   clientside callback registration stays as-is; only the component
+   construction simplifies to a one-liner:
+   ```python
+   def DyGraph(figure, id, ...):
+       store = dcc.Store(id=id, data=serialise_js(figure.to_dict()))
+       return wrap(store,
+           dcc.Store(id=f"{id}-opts", data=None),
+           html.Div(id=f"{id}-container", style={"width": width}),
+       )
+   ```
+   **Design context for this decision:** The key insight is that "the chart
+   IS its data store". The `dcc.Store` with `id="chart"` is the primary
+   identity; everything else (opts store, container div, wrapper div) is
+   rendering infrastructure with derived IDs. This mirrors how `dcc.Graph`
+   IS its figure — `Output("graph", "figure")` targets the component
+   directly. For dygraphs: `Output("chart", "data")` targets the store
+   directly. The `DyGraph(figure=dg, id="chart")` constructor mirrors
+   `dcc.Graph(figure=fig, id="chart")`. Updating from a callback returns
+   a config dict via `Dygraph(new_df).to_dict()`, analogous to returning
+   a plotly figure. The current hand-rolled proxy class
+   (`src/dygraphs/dash/component.py`, class `DyGraph`) manually delegates
+   `to_plotly_json()`, `children`, and `id` — dash-wrap would replace all
+   of that with its generic identity-proxying machinery.
+
+   **Documentation principle:** The result should feel like magic to users
+   (`DyGraph` just works like `dcc.Graph`) but be transparently documented
+   so the mechanism is easily understandable. The docs should explain that
+   `DyGraph` is a `dcc.Store` wrapped with dash-wrap, that `Output("chart",
+   "data")` targets the inner store, and that the clientside callback does
+   the JS rendering. No hidden complexity — show the full picture so users
+   can debug, extend, and trust the abstraction.
 
 #### Decisions deferred (revisit when there's a reason)
 - **Flask blueprint serving the asset** — would let us replace
@@ -401,12 +440,10 @@ worth doing while the renderer is fresh in someone's head.
   matching R/htmlwidgets exactly. Only worth doing once a page has many
   charts and the duplicated callback bodies become a payload concern.
 - **Real React component (`dash-dygraph` package)** — npm/webpack toolchain,
-  separate distribution, version-compat matrix. Worth doing if
-  dygraphs-for-Dash adoption justifies the build pipeline. Not until then.
-- **Collapse `chart-store` + `chart-opts` into one** — keeps the option for
-  users to toggle a single setting without retransmitting data. Different
-  from R, not strictly worse. Don't touch unless the split causes a concrete
-  problem.
+  separate distribution, version-compat matrix. Would unlock
+  `Output("chart", "figure")` and interaction props (`hoverData`,
+  `zoomData`, `clickData`). Worth doing if dygraphs-for-Dash adoption
+  justifies the build pipeline. Not until then.
 - **Selenium capture tests** — DPR/edge-probe browser tests. The static
   checks in `test_render_js_correctness.py` cover the same regressions;
   adding browser tests would be belt-and-suspenders.
