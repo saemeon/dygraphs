@@ -101,7 +101,9 @@ class TestPlotterParity:
     )
     def test_plotter_matches(self, name: str, r_path: Path, py_path: Path) -> None:
         if name in _INTENTIONAL_DIVERGENCES:
-            pytest.skip(f"{name} intentionally diverges from R (see _INTENTIONAL_DIVERGENCES)")
+            pytest.skip(
+                f"{name} intentionally diverges from R (see _INTENTIONAL_DIVERGENCES)"
+            )
         r_code = _normalise_ws(r_path.read_text())
         py_code = _normalise_ws(py_path.read_text())
         assert r_code == py_code, (

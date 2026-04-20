@@ -163,3 +163,6 @@ _local_notes.md
 # setuptools-scm generated version file
 **/_version.py
 .claude/*
+
+dygraphs-js/*
+dygraphs-r/*

@@ -286,9 +286,7 @@ class DygraphChart(ComponentWrapper):
         from dash.dependencies import Input, Output
 
         cid = id or f"dygraph-{uuid.uuid4().hex[:8]}"
-        height_px = (
-            int(height.replace("px", "")) if isinstance(height, str) else height
-        )
+        height_px = int(height.replace("px", "")) if isinstance(height, str) else height
         # figure=None → store holds None; dash_render.js line 403
         # (``if (!config) return;``) makes the callback a no-op until
         # a real config is pushed.

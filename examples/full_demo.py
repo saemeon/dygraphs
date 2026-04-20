@@ -9,9 +9,9 @@ Then open http://127.0.0.1:8050 in your browser.
 
 from __future__ import annotations
 
+import dash
 import numpy as np
 import pandas as pd
-import dash
 from dash import Input, Output, dcc, html
 
 from dygraphs import (

@@ -28,9 +28,9 @@ as an observable Output target.
 
 from __future__ import annotations
 
+import dash
 import numpy as np
 import pandas as pd
-import dash
 from dash import Input, Output, dash_table, dcc, html
 
 from dygraphs import Dygraph
