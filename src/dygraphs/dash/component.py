@@ -43,7 +43,7 @@ from __future__ import annotations
 import json
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from dash import dcc
 from dash_wrap import ComponentWrapper, register_proxy_defaults
@@ -70,8 +70,6 @@ _DASH_RENDER_JS = (
 register_proxy_defaults(dcc.Store, ("data",))
 
 if TYPE_CHECKING:
-    from dash.development.base_component import Component
-
     from dygraphs.dygraph import Dygraph
 
 # ---------------------------------------------------------------------------

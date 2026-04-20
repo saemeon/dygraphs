@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import pandas as pd
 import pytest
-
-from dygraphs import Dygraph
 
 _shiny_available = True
 try:
@@ -14,13 +11,6 @@ except ImportError:
     _shiny_available = False
 
 skip_no_shiny = pytest.mark.skipif(not _shiny_available, reason="shiny not installed")
-
-
-def _df() -> pd.DataFrame:
-    return pd.DataFrame(
-        {"y": range(5)},
-        index=pd.date_range("2020-01-01", periods=5, freq="D"),
-    )
 
 
 class TestShinyComponent:
