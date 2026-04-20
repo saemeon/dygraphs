@@ -21,7 +21,8 @@ import pandas as pd
 from dash import Dash, html
 from dash_capture import capture_element
 
-from dygraphs import Dygraph, dygraph_strategy
+from dygraphs import Dygraph
+from dygraphs.dash import DygraphChart, dygraph_strategy
 
 
 def make_data() -> pd.DataFrame:
@@ -44,7 +45,7 @@ chart = (
     .legend(show="always")
     .range_selector(height=30)
 )
-chart_component = chart.to_dash(component_id="sensors", height="320px")
+chart_component = DygraphChart(figure=chart, id="sensors", height="320px")
 
 # The chart's canvas container is f"{component_id}-container".
 ELEMENT_ID = "sensors-container"

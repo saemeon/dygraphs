@@ -1,9 +1,8 @@
 """Demo: what you can ``Output`` from a single Dash callback.
 
 A single dropdown drives one server-side callback that overwrites
-**eight** different properties across seven different component types
-in one shot — including a Dygraph chart's data store *and* its
-options store.
+**seven** different properties across seven different component types
+in one shot — including a Dygraph chart's data store.
 
 Run with::
 
@@ -14,13 +13,12 @@ Then open http://127.0.0.1:8050 and switch trends from the dropdown.
 Outputs demonstrated
 --------------------
 1. ``dcc.Store.data``                 — chart data store (drives the chart)
-2. ``dcc.Store.data``                 — chart options store (legend toggle)
-3. ``html.Div.children``              — status text
-4. ``html.Div.style``                 — status background colour
-5. ``dcc.Input.value``                — text input value
-6. ``dcc.Dropdown.options``           — repopulate a second dropdown
-7. ``html.Button.disabled``           — gate a button
-8. ``dash_table.DataTable.data``      — refresh a table
+2. ``html.Div.children``              — status text
+3. ``html.Div.style``                 — status background colour
+4. ``dcc.Input.value``                — text input value
+5. ``dcc.Dropdown.options``           — repopulate a second dropdown
+6. ``html.Button.disabled``           — gate a button
+7. ``dash_table.DataTable.data``      — refresh a table
 
 Any other component prop works the same way — Dash treats every prop
 as an observable Output target.
@@ -34,7 +32,7 @@ import pandas as pd
 from dash import Input, Output, dash_table, dcc, html
 
 from dygraphs import Dygraph
-from dygraphs.utils import serialise_js
+from dygraphs.dash import DygraphChart
 
 
 def make_data(trend: float, seed: int = 42) -> pd.DataFrame:
@@ -59,7 +57,7 @@ initial_chart = (
     .options(stroke_width=2, colors=["#00d4aa"])
     .legend(show="always")
 )
-chart_component = initial_chart.to_dash(component_id="chart", height="280px")
+chart_component = DygraphChart(figure=initial_chart, id="chart", height="280px")
 
 # Layout — note IDs we'll target as Outputs
 TREND_OPTS = [
@@ -88,7 +86,7 @@ app.layout = html.Div(
         html.H1("One callback → many Output props"),
         html.P(
             "Switching the trend dropdown fires ONE callback whose return "
-            "value updates eight different props across seven component "
+            "value updates seven different props across seven component "
             "types. The chart, the status banner, the table, the second "
             "dropdown, the text input, and the button are all driven by "
             "the same return tuple."
@@ -101,7 +99,7 @@ app.layout = html.Div(
             clearable=False,
             style={"width": "260px", "marginBottom": "16px"},
         ),
-        # 1 + 2: chart store + chart opts store live inside chart_component
+        # 1: chart store lives inside chart_component
         html.Div(style=CARD, children=[chart_component]),
         # 3 + 4: status banner — children + style
         html.Div(
@@ -145,43 +143,41 @@ app.layout = html.Div(
 
 
 # ---------------------------------------------------------------------------
-# Single callback, eight outputs
+# Single callback, seven outputs
 # ---------------------------------------------------------------------------
 
 
 @dash.callback(
     # 1. Chart data store — drives the dygraph re-render
     Output("chart", "data"),
-    # 2. Chart options store — legend show/hide
-    Output("chart-opts", "data"),
-    # 3. Status banner text
+    # 2. Status banner text
     Output("status", "children"),
-    # 4. Status banner background
+    # 3. Status banner background
     Output("status", "style"),
-    # 5. Text input value
+    # 4. Text input value
     Output("label-input", "value"),
-    # 6. Second dropdown options
+    # 5. Second dropdown options
     Output("presets", "options"),
-    # 7. Button disabled flag
+    # 6. Button disabled flag
     Output("apply-btn", "disabled"),
-    # 8. Table rows
+    # 7. Table rows
     Output("summary-table", "data"),
     Input("trend", "value"),
 )
 def on_trend_change(trend: int) -> tuple:
     df = make_data(float(trend))
 
-    # 1. Build a fresh dygraph config and ship its serialised dict to the store
+    # 1. Build a fresh dygraph config and ship it to the store.
+    # Everything about the chart — data AND styling — flows through
+    # this single write.
     new_chart = Dygraph(df, title=f"Trend = {trend:+d}").options(
         stroke_width=2,
         colors=["#00d4aa" if trend >= 0 else "#e74c3c"],
+        show_labels_on_highlight=trend != 0,
     )
-    chart_data = serialise_js(new_chart.to_dict())
+    chart_data = new_chart.to_js()
 
-    # 2. opts override — toggle the legend off when trend == 0
-    chart_opts = {"showLabelsOnHighlight": trend != 0}
-
-    # 3 + 4. status banner
+    # 2 + 3. status banner
     if trend > 0:
         status_text = f"Uptrend selected ({trend:+d})"
         status_style = {
@@ -207,19 +203,19 @@ def on_trend_change(trend: int) -> tuple:
             "marginBottom": "16px",
         }
 
-    # 5. text input value
+    # 4. text input value
     label_value = f"trend_{trend:+d}"
 
-    # 6. populate the second dropdown's options dynamically
+    # 5. populate the second dropdown's options dynamically
     preset_options = [
         {"label": f"Preset A (trend {trend:+d})", "value": f"a-{trend}"},
         {"label": f"Preset B (trend {trend:+d})", "value": f"b-{trend}"},
     ]
 
-    # 7. enable the button only when there's a non-flat trend
+    # 6. enable the button only when there's a non-flat trend
     apply_disabled = trend == 0
 
-    # 8. table summary stats
+    # 7. table summary stats
     series = df["Series"]
     table_rows = [
         {"metric": "min", "value": round(float(series.min()), 2)},
@@ -230,7 +226,6 @@ def on_trend_change(trend: int) -> tuple:
 
     return (
         chart_data,
-        chart_opts,
         status_text,
         status_style,
         label_value,
