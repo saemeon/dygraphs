@@ -77,7 +77,7 @@
 
 ::: dygraphs.dash.DygraphChart
 
-::: dygraphs.stacked_bar
+::: dygraphs.dash.StackedBarChart
 
 ## Shiny Integration
 
@@ -92,7 +92,3 @@
 ## Utilities
 
 ::: dygraphs.JS
-
-::: dygraphs.make_error_bar_data
-
-::: dygraphs.make_custom_bar_data

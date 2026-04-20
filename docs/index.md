@@ -29,6 +29,98 @@ pip install dygraphs[dash]      # + Plotly Dash adapter
 pip install dygraphs[shiny]     # + Shiny for Python adapter
 ```
 
+## Mental model
+
+One builder, four rendering paths. The builder stays framework-agnostic;
+each framework wraps it with a separate, small adapter — same split as
+plotly's `Figure` and R's htmlwidget.
+
+```text
+                   ┌──────────────────────────┐
+                   │  Dygraph(df, ...)        │
+                   │  .options(...)           │
+                   │  .series(...)            │   ← builder, framework-agnostic
+                   │  .range_selector(...)    │     (pure Python data class)
+                   └────────────┬─────────────┘
+                                │
+         ┌──────────────────────┼──────────────────────────┐
+         │                      │                          │
+         ▼                      ▼                          ▼
+  DygraphChart(           dygraph_ui(id)            dg.to_html()
+    figure=dg,            render_dygraph(             → standalone
+    id="chart")             session, id, dg)            HTML string
+    → Dash                → Shiny                    → no server
+```
+
+- **Dash** — build layout with `DygraphChart(figure=dg, id="chart")`;
+  update via `Output(chart, "data")` returning `Dygraph(...).to_js()`.
+- **Shiny** — `dygraph_ui("chart")` in the UI, `render_dygraph(session,
+  "chart", dg)` in the server.
+- **Standalone HTML** — `dg.to_html()` returns a complete, self-contained
+  HTML page (for reports, emails, iframes).
+- **Introspection / JSON** — `dg.to_dict()` (raw, with `JS()` objects)
+  or `dg.to_js()` (JSON-safe, string markers for JS code).
+
+## Recipes
+
+Short answers to the most common questions. Deeper sections below.
+
+**I want to build a chart and view it in a notebook.**
+
+```python
+chart = Dygraph(df, title="Demo").range_selector()
+chart  # auto-displays via _repr_html_
+```
+
+**I want to render it in Dash.**
+
+```python
+from dygraphs.dash import DygraphChart
+app.layout = html.Div([DygraphChart(figure=chart, id="my-chart")])
+```
+
+**I want to update the chart from a Dash callback.**
+
+```python
+@callback(Output(chart, "data"), Input("btn", "n_clicks"))
+def refresh(n):
+    return Dygraph(df * n).to_js()   # .to_js() is the Dash-safe serialiser
+```
+
+**I want an empty placeholder that a callback fills in later.**
+
+```python
+chart = DygraphChart(None, id="chart")   # data=None; renderer is a no-op
+```
+
+**I want to read the chart's id from Python.**
+
+```python
+chart.chart_id   # "my-chart" — NOT chart.id (Dash reserves .id for its
+                 #             duplicate-id validator, so we use a
+                 #             different attribute name)
+```
+
+**I want symmetric error bars.**
+
+```python
+data = Dygraph.error_bar_data(x=dates, y=values, error=stddev)
+chart = Dygraph(data, options={"error_bars": True})
+```
+
+**I want to sync zoom across multiple charts.**
+
+```python
+Dygraph(df1, group="sync")
+Dygraph(df2, group="sync")     # same group name → shared x-axis window
+```
+
+**I want to export a chart to a single HTML file.**
+
+```python
+Path("chart.html").write_text(Dygraph(df).to_html())
+```
+
 ## Quick Start
 
 ### Builder API (chaining)
@@ -202,9 +294,9 @@ Also via constructor: `Dygraph(df, plotter="bar_chart")`
 ## Error Bars
 
 ```python
-from dygraphs import Dygraph, make_error_bar_data
+from dygraphs import Dygraph
 
-data = make_error_bar_data(x=[1, 2, 3], y=[10, 20, 30], error=[1, 2, 3])
+data = Dygraph.error_bar_data(x=[1, 2, 3], y=[10, 20, 30], error=[1, 2, 3])
 chart = Dygraph(data, options={"error_bars": True})
 ```
 
@@ -214,11 +306,11 @@ Charts with the same `group` name automatically sync zoom, pan, and highlight:
 
 ```python
 from dygraphs import Dygraph
-from dygraphs.dash import DygraphChart, stacked_bar
+from dygraphs.dash import DygraphChart, StackedBarChart
 
 chart_a = DygraphChart(figure=Dygraph(df1, group="sync").range_selector(), id="a")
 chart_b = DygraphChart(figure=Dygraph(df2, group="sync").range_selector(), id="b")
-chart_c = stacked_bar("c", csv_data, title="Stacked Bar", group="sync")
+chart_c = StackedBarChart(id="c", initial_data=csv_data, title="Stacked Bar", group="sync")
 
 app.layout = html.Div([chart_a, chart_b, chart_c])
 ```

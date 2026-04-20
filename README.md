@@ -153,9 +153,9 @@ json_str = chart.to_json()                # JSON with JS functions
 ## Error Bars
 
 ```python
-from dygraphs import Dygraph, make_error_bar_data
+from dygraphs import Dygraph
 
-data = make_error_bar_data(x=[1,2,3], y=[10,20,30], error=[1,2,3])
+data = Dygraph.error_bar_data(x=[1,2,3], y=[10,20,30], error=[1,2,3])
 chart = Dygraph(data, options={"error_bars": True})
 ```
 
@@ -165,7 +165,7 @@ Charts with the same `group` name automatically sync zoom, pan, and highlight:
 
 ```python
 from dygraphs import Dygraph
-from dygraphs.dash import DygraphChart, stacked_bar
+from dygraphs.dash import DygraphChart, StackedBarChart
 
 chart_a = DygraphChart(
     figure=Dygraph(df1, group="sync").range_selector(),
@@ -175,7 +175,7 @@ chart_b = DygraphChart(
     figure=Dygraph(df2, group="sync").range_selector(),
     id="b",
 )
-chart_c = stacked_bar("c", csv_data, title="Stacked Bar", group="sync")
+chart_c = StackedBarChart(id="c", initial_data=csv_data, title="Stacked Bar", group="sync")
 
 app.layout = html.Div([chart_a, chart_b, chart_c])
 ```
