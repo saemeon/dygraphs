@@ -83,10 +83,15 @@ chart = Dygraph(
 
 ### Render in Dash
 
+`Dygraph` stays framework-agnostic (same pattern as
+`plotly.graph_objects.Figure`). Wrap it with `DygraphChart` for Dash:
+
 ```python
 from dash import Dash, html
+from dygraphs.dash import DygraphChart
+
 app = Dash(__name__)
-app.layout = html.Div([chart.to_dash()])
+app.layout = html.Div([DygraphChart(figure=chart, id="my-chart")])
 ```
 
 ### Render in Shiny
@@ -159,10 +164,17 @@ chart = Dygraph(data, options={"error_bars": True})
 Charts with the same `group` name automatically sync zoom, pan, and highlight:
 
 ```python
-from dygraphs import Dygraph, stacked_bar
+from dygraphs import Dygraph
+from dygraphs.dash import DygraphChart, stacked_bar
 
-chart_a = Dygraph(df1, group="sync").range_selector().to_dash(component_id="a")
-chart_b = Dygraph(df2, group="sync").range_selector().to_dash(component_id="b")
+chart_a = DygraphChart(
+    figure=Dygraph(df1, group="sync").range_selector(),
+    id="a",
+)
+chart_b = DygraphChart(
+    figure=Dygraph(df2, group="sync").range_selector(),
+    id="b",
+)
 chart_c = stacked_bar("c", csv_data, title="Stacked Bar", group="sync")
 
 app.layout = html.Div([chart_a, chart_b, chart_c])
@@ -210,33 +222,33 @@ chart = (
 
 ## Dynamic Updates (Dash)
 
-Each chart created with `DygraphChart` (or `dygraph_to_dash` /
-`Dygraph.to_dash`) is an `html.Div` wrapping three siblings: a primary
-`dcc.Store` (id = the chart's `id`), an opts `dcc.Store` (id =
-`{id}-opts`), and a container `html.Div` (id = `{id}-container`) where
-the JS renders. The wrapper uses [dash-wrap](https://github.com/saemeon/dash-wrap)
-so `Output(chart, "data")` resolves to the primary store — no
-identity magic beyond what dash-wrap documents.
+Each `DygraphChart` is an `html.Div` wrapping two siblings: a
+`dcc.Store` (id = the chart's `id`) and a container `html.Div` (id =
+`{id}-container`) where the JS renders. The wrapper uses
+[dash-wrap](https://github.com/saemeon/dash-wrap) so `Output(chart,
+"data")` resolves to the store — no identity magic beyond what
+dash-wrap documents.
 
 ```python
 import dash
 from dash import Input, Output
-from dygraphs import Dygraph, DygraphChart
+from dygraphs import Dygraph
+from dygraphs.dash import DygraphChart
 
 chart = DygraphChart(figure=Dygraph(df), id="my-chart")
 
-# Pushing a fresh config (data + attrs) → full destroy+recreate.
-# Output(chart, ...) and Output("my-chart", ...) are equivalent.
+# Every change — data AND styling — flows through this single write.
+# ``to_js()`` is ``to_dict()`` with any embedded ``JS(...)`` objects
+# (default interaction model, callbacks, custom plotters) converted
+# to ``"__JS__:code:__JS__"`` string markers that Dash can ship over
+# the wire and the clientside renderer evaluates at render time.
 @dash.callback(Output(chart, "data"), Input("refresh", "n_clicks"))
 def refresh(_n):
-    return Dygraph(new_df).to_dict()
+    return Dygraph(new_df).to_js()
 
-# Pushing runtime overrides → merged on top of the existing config.
-# chart.opts returns the sibling dcc.Store; Output(f"{chart.cid}-opts",
-# "data") via string id would be equivalent.
-@dash.callback(Output(chart.opts, "data"), Input("toggle", "value"))
+@dash.callback(Output(chart, "data"), Input("toggle", "value"))
 def toggle(v):
-    return {"strokeWidth": 3 if v else 1}
+    return Dygraph(df).options(stroke_width=3 if v else 1).to_js()
 ```
 
 The chart is always destroyed and recreated on every config update (R
@@ -250,13 +262,13 @@ config arrives only via a callback)? Pass `figure=None`:
 chart = DygraphChart(None, id="my-chart")  # renders nothing until pushed
 ```
 
-The primary store holds `data=None`; the clientside renderer is a no-op
+The store holds `data=None`; the clientside renderer is a no-op
 on falsy config. Callbacks wire up normally.
 
 ## Capture (dash-capture)
 
 ```python
-from dygraphs import dygraph_strategy
+from dygraphs.dash import dygraph_strategy
 from dash_capture import capture_element
 
 capture_element(app, "btn", "chart-container", "img-store",
@@ -293,8 +305,8 @@ capture_element(app, "btn", "chart-container", "img-store",
 | `.update(...)` | — | Modify config post-construction |
 | `.copy()` | — | Deep copy for forking variants |
 | `.show()` | — | Render in Jupyter via `IPython.display` |
-| `.to_dash()` | — | Dash component |
-| `.to_shiny(id)` | — | Shiny component |
+| `DygraphChart(figure=dg, id=...)` | — | Dash component (plotly-style wrap, separate class) |
+| `dygraph_ui(id) + render_dygraph(...)` | — | Shiny binding (framework-side functions) |
 | `.to_html()` | — | Standalone HTML page |
 | `.to_dict()` | — | Plain dict (framework-agnostic) |
 | `.to_json()` | — | JSON string (with JS markers preserved) |

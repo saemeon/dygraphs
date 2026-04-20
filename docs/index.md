@@ -81,10 +81,15 @@ chart = Dygraph(
 
 ### Render in Dash
 
+A `Dygraph` is framework-agnostic (same pattern as
+`plotly.graph_objects.Figure`). For Dash, wrap it with `DygraphChart`:
+
 ```python
 from dash import Dash, html
+from dygraphs.dash import DygraphChart
+
 app = Dash(__name__)
-app.layout = html.Div([chart.to_dash()])
+app.layout = html.Div([DygraphChart(figure=chart, id="my-chart")])
 ```
 
 ### Render in Shiny
@@ -160,8 +165,8 @@ chart = (
     .roller(roll_period=7)
     .crosshair(direction="vertical")
     .unzoom()
-    .to_dash()
 )
+dash_component = DygraphChart(figure=chart, id="my-chart")
 ```
 
 | Method | R Equivalent | Description |
@@ -208,10 +213,11 @@ chart = Dygraph(data, options={"error_bars": True})
 Charts with the same `group` name automatically sync zoom, pan, and highlight:
 
 ```python
-from dygraphs import Dygraph, stacked_bar
+from dygraphs import Dygraph
+from dygraphs.dash import DygraphChart, stacked_bar
 
-chart_a = Dygraph(df1, group="sync").range_selector().to_dash(component_id="a")
-chart_b = Dygraph(df2, group="sync").range_selector().to_dash(component_id="b")
+chart_a = DygraphChart(figure=Dygraph(df1, group="sync").range_selector(), id="a")
+chart_b = DygraphChart(figure=Dygraph(df2, group="sync").range_selector(), id="b")
 chart_c = stacked_bar("c", csv_data, title="Stacked Bar", group="sync")
 
 app.layout = html.Div([chart_a, chart_b, chart_c])
@@ -230,18 +236,17 @@ The abstraction is deliberately thin and worth stating honestly — no
 magic outside what [`dash-wrap`](https://github.com/saemeon/dash-wrap)
 documents.
 
-A `DygraphChart` is a plain `html.Div` containing three sibling
+A `DygraphChart` is a plain `html.Div` containing two sibling
 components:
 
 | Component | Purpose |
 | --- | --- |
-| `dcc.Store(id={id})` | Primary store — canonical config; the chart's *identity*. |
-| `dcc.Store(id={id}-opts)` | Opts store — runtime overrides (e.g. `strokeWidth`). |
+| `dcc.Store(id={id})` | Chart store — canonical config; the chart's *identity*. |
 | `html.Div(id={id}-container)` | Container where the dygraphs JS renders its DOM. |
 
 `DygraphChart` subclasses `dash_wrap.ComponentWrapper` with the
-primary store as the *inner* component. Two small pieces of
-machinery make `Output(chart, "data")` resolve to the primary store:
+store as the *inner* component. Two small pieces of machinery make
+`Output(chart, "data")` resolve to the store:
 
 - `_set_random_id` is overridden on the wrapper to return the inner
   store's id. Dash's dependency wiring calls this when it sees a
@@ -252,44 +257,50 @@ machinery make `Output(chart, "data")` resolve to the primary store:
   serialiser uses to emit the DOM (a normal `<div>`).
 
 A per-instance clientside callback, registered at construction,
-listens to both stores and calls `window.dygraphsDash.render(setup,
-config, opts)`. The renderer JS itself lives in
+listens to the store and calls `window.dygraphsDash.render(setup,
+config)`. The renderer JS itself lives in
 `src/dygraphs/assets/dash_render.js` (real `.js` file, lintable).
 
 ### Writing callbacks
 
-There are two data surfaces — pick whichever one you want to update.
-Both the component-reference form and the string-id form work; they're
-equivalent to Dash's dependency wiring.
-
-| Surface | Write for | Output expression |
-| --- | --- | --- |
-| Primary store | Fresh data + attrs (destroy+recreate) | `Output(chart, "data")` or `Output(chart.cid, "data")` |
-| Opts store | Runtime overrides (merged on top) | `Output(chart.opts, "data")` or `Output(f"{chart.cid}-opts", "data")` |
+One write surface: the store. Every change — data, attrs, styling —
+flows through it. Both the component-reference form and the string-id
+form work; they're equivalent to Dash's dependency wiring.
 
 ```python
 import dash
 from dash import Input, Output
-from dygraphs import Dygraph, DygraphChart
+from dygraphs import Dygraph
+from dygraphs.dash import DygraphChart
 
 chart = DygraphChart(figure=Dygraph(df), id="my-chart")
 
-# Fresh config → full destroy+recreate
+# Output(chart, "data") and Output("my-chart", "data") are equivalent.
+# ``to_js()`` is the Dash-callback-safe counterpart of ``to_dict()``:
+# embedded ``JS(code)`` objects (default interaction model, custom
+# plotters, user callbacks) are replaced by ``"__JS__:code:__JS__"``
+# string markers so Dash's prop validator accepts them; the clientside
+# renderer evaluates the markers back to real JS at render time.
 @dash.callback(Output(chart, "data"), Input("refresh", "n_clicks"))
 def refresh(_n):
-    return Dygraph(new_df).to_dict()
+    return Dygraph(new_df).to_js()
 
-# Runtime overrides → merged on top of the existing config
-@dash.callback(Output(chart.opts, "data"), Input("toggle", "value"))
+# Styling changes go through the same channel — build a fresh config
+# with the new options.  Destroy+recreate is cheap for typical charts.
+@dash.callback(Output(chart, "data"), Input("toggle", "value"))
 def toggle(v):
-    return {"strokeWidth": 3 if v else 1}
+    return Dygraph(df).options(stroke_width=3 if v else 1).to_js()
 ```
+
+If you hit a performance wall with large datasets + frequent cosmetic
+updates, see `CLAUDE.md` → *Decisions deferred / opts store* for the
+preserved design of a cheaper override channel.
 
 ### Empty placeholder
 
 Sometimes the first real config arrives only after a callback fires
 (e.g. a button click, a URL-query parse). Pass `figure=None` to build
-an empty `DygraphChart` whose primary store holds `data=None`:
+an empty `DygraphChart` whose store holds `data=None`:
 
 ```python
 chart = DygraphChart(None, id="my-chart")
@@ -312,8 +323,8 @@ chart = (
     Dygraph(df, title="Live data")
     .options(retain_date_window=True)
     .range_selector(height=30)
-    .to_dash(component_id="my-chart")
 )
+dash_component = DygraphChart(figure=chart, id="my-chart")
 ```
 
 The renderer reads the previous instance's `xAxisRange()` before
@@ -332,12 +343,12 @@ Plotly-style overlay buttons appear on hover:
 - **Camera icon**: Download chart as PNG (hides range selector)
 - **Home icon**: Reset zoom to full range
 
-Disable with `modebar=False` in `.to_dash()`.
+Disable with `DygraphChart(..., modebar=False)`.
 
 ## dash-capture Integration
 
 ```python
-from dygraphs import dygraph_strategy
+from dygraphs.dash import dygraph_strategy
 from dash_capture import capture_element
 
 capture_element(

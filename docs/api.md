@@ -75,7 +75,7 @@
 
 ## Dash Integration
 
-::: dygraphs.dygraph_to_dash
+::: dygraphs.dash.DygraphChart
 
 ::: dygraphs.stacked_bar
 
