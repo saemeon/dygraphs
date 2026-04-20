@@ -285,6 +285,21 @@ def toggle(v):
     return {"strokeWidth": 3 if v else 1}
 ```
 
+### Empty placeholder
+
+Sometimes the first real config arrives only after a callback fires
+(e.g. a button click, a URL-query parse). Pass `figure=None` to build
+an empty `DygraphChart` whose primary store holds `data=None`:
+
+```python
+chart = DygraphChart(None, id="my-chart")
+```
+
+The clientside renderer has an existing `if (!config) return;` guard,
+so the chart is a no-op until real data is pushed via
+`Output(chart, "data")`. Callbacks wire up normally — the chart is a
+real component with a real id from the moment the layout is built.
+
 ### Preserving zoom across updates
 
 Because every config update is a full destroy+recreate, the user's current
