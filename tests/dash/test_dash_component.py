@@ -20,9 +20,13 @@ class TestDygraphToDash:
         Dash(__name__)
         dg = Dygraph(_df(), title="Test")
         component = dg.to_dash(component_id="tc")
+        # DygraphChart inherits from ComponentWrapper, which inherits
+        # from html.Div — so the outer is a real Div.
         assert isinstance(component, html.Div)
-        # Wrapper div gets a derived id; the data store owns "tc"
-        assert component.id == "tc-wrap"
+        # The outer div has no id (dash-wrap convention: prevents
+        # DuplicateIdError against the inner store). The chart's id
+        # is exposed via .cid and matches the inner store's id.
+        assert component.cid == "tc"
 
     def test_to_dash_auto_id(self) -> None:
         from dash import Dash, html
@@ -31,7 +35,7 @@ class TestDygraphToDash:
         dg = Dygraph(_df())
         component = dg.to_dash()
         assert isinstance(component, html.Div)
-        assert component.id.startswith("dygraph-")
+        assert component.cid.startswith("dygraph-")
 
     def test_to_dash_contains_two_stores_and_no_hidden_graph(self) -> None:
         """Layout = 2 dcc.Store (data + opts) + 1 html.Div container.
