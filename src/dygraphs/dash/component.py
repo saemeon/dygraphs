@@ -56,11 +56,14 @@ from dygraphs.utils import (
     DYGRAPH_JS_CDN as _DYGRAPH_JS_CDN,
 )
 
-# Read the renderer asset once at import time. It's an IIFE that
-# populates ``window.dygraphsDash`` on first execution and is a no-op
-# on subsequent inlines, so each per-instance clientside callback can
-# safely include it without re-initialising.
-_DASH_RENDER_JS = (
+# Read the renderer assets once at import time. Both are IIFEs that
+# guard their own globals, so repeated inlines are idempotent. We
+# inline ``render_core.js`` first (populates ``window.dygraphs``) then
+# ``dash_render.js`` (populates ``window.dygraphsDash`` on top).
+_RENDER_CORE_JS = (
+    Path(__file__).parent.parent / "assets" / "render_core.js"
+).read_text()
+_DASH_RENDER_JS = _RENDER_CORE_JS + "\n" + (
     Path(__file__).parent.parent / "assets" / "dash_render.js"
 ).read_text()
 
