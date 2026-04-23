@@ -23,13 +23,17 @@ from pathlib import Path
 
 import pytest
 
-ASSET = (
-    Path(__file__).parent.parent.parent
-    / "src"
-    / "dygraphs"
-    / "assets"
-    / "dash_render.js"
-).read_text()
+# The shared framework-agnostic renderer. All the correctness properties
+# pinned below (destroy+recreate, dateWindow normalisation, plotter eval
+# order, interactionModel shim, group sync, processJsMarkers
+# single-pass, etc.) live here — both Dash and Shiny inline this asset,
+# so the assertions apply to both rendering paths simultaneously.
+_ASSETS_DIR = Path(__file__).parent.parent.parent / "src" / "dygraphs" / "assets"
+ASSET = (_ASSETS_DIR / "render_core.js").read_text()
+
+# The Dash-specific shim (modebar, capture, reset buttons). Used only by
+# the handful of tests asserting on Dash-only features.
+DASH_SHIM = (_ASSETS_DIR / "dash_render.js").read_text()
 
 
 def _skip_if_no_dash_capture() -> None:
@@ -186,7 +190,11 @@ class TestJsMarkerSlice:
         assert "slice(7, -7)" in ASSET
         assert "slice(7, -6)" not in ASSET, "off-by-one slice has reappeared"
 
-    def test_uses_correct_slice_in_shiny_component(self) -> None:
+    def test_shiny_delegates_to_shared_core(self) -> None:
+        """Shiny must go through ``window.dygraphs.render`` (the shared
+        core) rather than re-implementing the marker slice / rendering
+        pipeline inline. This is how we prevent the two adapters from
+        drifting apart — fixes to the core apply to both."""
         from pathlib import Path
 
         shiny = (
@@ -196,8 +204,13 @@ class TestJsMarkerSlice:
             / "shiny"
             / "component.py"
         ).read_text()
-        assert "slice(7, -7)" in shiny
-        assert "slice(7, -6)" not in shiny
+        assert "window.dygraphs.render(" in shiny
+        # And the old re-implemented slice(7, -7) / processJS function
+        # should no longer live in the Shiny source — the core handles it.
+        assert "slice(7, -7)" not in shiny, (
+            "Shiny adapter should delegate to window.dygraphs.render "
+            "(shared core), not re-implement __JS__ marker resolution"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -311,7 +324,7 @@ class TestGroupSyncWiring:
         echo its own zoom event. Locks in the shape of the entry.
         """
         assert "groups[config.group].push" in ASSET
-        assert "id: setup.graphId" in ASSET
+        assert "id: graphId" in ASSET  # local var in render_core.js
         assert "instance: dygraph" in ASSET
 
     def test_group_registry_dedupes_stale_entries_on_re_render(self) -> None:
@@ -319,7 +332,7 @@ class TestGroupSyncWiring:
         same graphId must be filtered out — otherwise group sync would
         accumulate dead peer references across destroy+recreate cycles."""
         assert "groups[config.group].filter" in ASSET
-        assert "e.id !== setup.graphId" in ASSET
+        assert "e.id !== graphId" in ASSET
 
     def test_zoom_broadcast_loop_skips_source_chart(self) -> None:
         """The broadcast loop must early-return when the peer is the
@@ -379,19 +392,38 @@ class TestGroupSyncWiring:
 
 
 class TestRendererAssetIntegration:
-    def test_asset_is_idempotent_iife(self) -> None:
-        """The asset wraps in an IIFE that no-ops on second execution."""
-        # The file starts with a /* ... */ docstring; strip it before
-        # checking the IIFE shape.
+    def test_core_asset_is_idempotent_iife(self) -> None:
+        """The shared core asset wraps in an IIFE that no-ops on second
+        execution (multiple charts and both adapters inline it)."""
         body = re.sub(r"^/\*.*?\*/\s*", "", ASSET, count=1, flags=re.DOTALL)
         assert body.lstrip().startswith(
             "(function (global)"
         ) or body.lstrip().startswith("(function(global)")
-        assert "if (global.dygraphsDash) return;" in ASSET
+        assert "if (global.dygraphs) return;" in ASSET
 
-    def test_asset_exposes_render_entrypoint(self) -> None:
-        assert "global.dygraphsDash = {" in ASSET
+    def test_core_asset_exposes_render_entrypoint(self) -> None:
+        assert "global.dygraphs = {" in ASSET
         assert "render: render" in ASSET
+
+    def test_dash_shim_is_idempotent_iife(self) -> None:
+        """The Dash shim also guards via IIFE so multiple per-chart
+        inlines only register ``window.dygraphsDash`` once."""
+        body = re.sub(r"^/\*.*?\*/\s*", "", DASH_SHIM, count=1, flags=re.DOTALL)
+        assert body.lstrip().startswith(
+            "(function (global)"
+        ) or body.lstrip().startswith("(function(global)")
+        assert "if (global.dygraphsDash) return;" in DASH_SHIM
+
+    def test_dash_shim_exposes_render_entrypoint(self) -> None:
+        assert "global.dygraphsDash = {" in DASH_SHIM
+        assert "render: render" in DASH_SHIM
+
+    def test_dash_shim_dispatches_to_shared_core(self) -> None:
+        """The Dash shim must go through ``window.dygraphs.render`` —
+        that's the whole point of the shared-core extraction. Lock it
+        in so a future refactor doesn't silently re-inline the
+        rendering logic back into ``dash_render.js``."""
+        assert "global.dygraphs.render(" in DASH_SHIM
 
     def test_shim_dispatches_to_window_dygraphsdash(self) -> None:
         from dygraphs.dash.component import _build_render_js

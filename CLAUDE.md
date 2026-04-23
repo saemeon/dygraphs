@@ -192,16 +192,48 @@ emission, `to_html` variants, JSON edge cases, ribbon plugin options).
 
 The Dash integration (`src/dygraphs/dash/`) follows the R dygraphs / htmlwidgets model. The goal is **transparency, not magic** — every piece of machinery below is externally documented (in dash-wrap's README or Dash's own docs). Users who want to debug, extend, or audit the component can trace the full chain without surprises.
 
-- **`DygraphChart` class** — the public constructor, `DygraphChart(figure, id=...)`. Inherits from `dash_wrap.ComponentWrapper` with the primary `dcc.Store` as the inner component. Three siblings live inside:
-  - `dcc.Store(id={id})` — primary, carries the serialised config. Its id equals the user-supplied id (the chart's *identity*).
-  - `dcc.Store(id={id}-opts)` — runtime option overrides. Exposed via `chart.opts` (property) or string id.
+- **`DygraphChart` class** — the public constructor, `DygraphChart(figure, id=...)`. Inherits from `dash_wrap.ComponentWrapper` with the `dcc.Store` as the inner component. Two siblings live inside the outer `html.Div`:
+  - `dcc.Store(id={id})` — carries the serialised config. Its id equals the user-supplied id (the chart's *identity*).
   - `html.Div(id={id}-container)` — the DOM container where dygraphs' JS renders.
-  The outer `html.Div` has no id (dash-wrap convention, prevents `DuplicateIdError`). `chart.chart_id` exposes the inner store's id; `.id` is deliberately NOT proxied because Dash's layout validation walks `.id` to detect duplicates.
-- **`dash_render.js`** — the clientside renderer, extracted to a real `.js` file (lintable, syntax-highlightable). Defines `window.dygraphsDash.render(setup, config, optsOverride)`. Read once at Python import time, inlined into each chart's clientside callback with an IIFE guard so only the first chart initialises the renderer. Early-returns on `!config` so `DygraphChart(None, id=...)` (empty placeholder) is a no-op until real data is pushed.
+  The outer `html.Div` has no id (dash-wrap convention, prevents `DuplicateIdError`). `chart.chart_id` exposes the inner store's id; accessing `chart.id` raises a friendly `AttributeError` pointing at `.chart_id` (while still returning `False` for `hasattr(chart, "id")` so Dash's layout-duplicate walk skips the outer wrapper). Single write channel: every change (data, attrs, styling) flows through `Output(chart, "data")` returning a `dg.to_js()` dict. An earlier two-store design had a second `{id}-opts` sibling for cheap cosmetic updates; removed in favour of R's single-channel model — preserved implementation sketch under "Decisions deferred / opts store" below.
+- **`render_core.js`** (shared, framework-agnostic) — the clientside renderer core. Defines `window.dygraphs.render(container, config, options)`. IIFE-guarded, idempotent on repeat inlines. Contains everything that turns a `Dygraph.to_js()` payload into a rendered chart: `processJsMarkers`, `evalExtraJs`, group sync registry, `instantiatePlugins`, `applyPointShapes`, annotation/shading/event overlays, dateWindow ISO→ms normalisation, `Dygraph.Interaction.defaultModel` compat shim, always-destroy+recreate, resize observer. Early-returns on `!config` so `DygraphChart(None, id=...)` is a no-op until real data is pushed. The scaffold-builder option lets frameworks inject their own chart-div wrapper (Dash adds the modebar HTML; Shiny uses the default plain div).
+- **`dash_render.js`** (Dash-specific shim) — inlines `render_core.js`, then adds Dash-only concerns: lazy-load `dygraph.css` / `dygraph.min.js` from the CDN, build the modebar-wrapped scaffold, install the PNG capture + reset-zoom button handlers. Dispatches to `window.dygraphs.render(container, config, {scaffoldBuilder})`.
 - **Always destroy + recreate** — on every data update, the existing dygraph instance is destroyed and a new one is created from scratch (same as R's `renderValue`). This eliminates the "did I forget to invalidate X" class of bugs from the old in-place `updateOptions` path. Zoom can optionally be preserved via `retain_date_window=True` (default `False`, matching R).
 - **Clientside callback** — standard Dash pattern. Dummy output targets the primary store with `allow_duplicate=True`; the JS returns `dash_clientside.no_update`, so the store isn't mutated and there's no feedback loop. Registered once per chart at construction. Requires `dash>=2.9.0`.
 - **`MULTI_CANVAS_CAPTURE_JS`** — shared JS constant in `capture.py` for DPR-aware multi-canvas PNG capture. Used by both the modebar camera button and the `dash-capture` wizard strategy (`dygraph_strategy()`).
-- **dash-wrap dependency** — provides the `ComponentWrapper` base. Two mechanisms matter: `_set_random_id` returns the inner store's id (so `Output(chart, "data")` resolves), and `__class__` is spoofed so `isinstance(chart, dcc.Store)` is `True`. Everything else is normal Python — the wrapper's a real `html.Div` subclass at the C-type level, which is what Dash uses to serialise the DOM.
+- **dash-wrap dependency** — provides the `ComponentWrapper` base. Two mechanisms matter: `_set_random_id` returns the inner store's id (so `Output(chart, "data")` resolves), and `__class__` is spoofed so `isinstance(chart, dcc.Store)` is `True`. Everything else is normal Python — the wrapper's a real `html.Div` subclass at the C-type level, which is what Dash uses to serialise the DOM. **`dash-wrap` was extracted to its own PyPI package** (previously vendored in `brand-toolkit/dash-wrap/`); `dygraphs[dash]` declares `dash-wrap>=0.0.1` as a regular dependency.
+
+## Shiny adapter architecture
+
+Parallel to Dash, much thinner. The goal is for Shiny users to feel like they're using standard Shiny — `@render_dygraph` should feel exactly like `@render.plot`, `output_dygraph(id)` like `ui.output_plot(id)`. Rendering delegates to the same `render_core.js` as Dash, so any fix applies to both adapters.
+
+- **`dygraph_ui(element_id, ...)`** — returns a Shiny `TagList` containing the CDN links, the shared `render_core.js` asset (IIFE-guarded; idempotent), the target `<div>`, and a custom-message handler registration keyed by `dygraphs_{element_id}`. The handler is a one-liner: `window.dygraphs.render(el, config)`.
+- **`render_dygraph(session, element_id, dg)`** — async server-side function. Serialises `dg` via `.to_js()` (or `None` to clear) and pushes through `session.send_custom_message()`. Planned evolution: add a `@render_dygraph` decorator on top of this, mirroring `@render.plot` — see "Shiny parity plan" below.
+- **No `StackedBarChart` / modebar / capture integration yet** — Dash-only, tracked under the parity plan.
+
+## Shiny parity plan (Phases 0–5)
+
+Working toward full Dash-parity for Shiny. Phase 0 is done; Phase 1+ are pending.
+
+**Phase 0 — Shared renderer extraction (DONE).** Everything rendering-related moved from `dash_render.js` into framework-agnostic `render_core.js`; both `dash_render.js` (slim Dash shim) and `shiny/component.py`'s handler now delegate into `window.dygraphs.render`. Eliminates silent drift between adapters: any bug fix applies to both. Shiny users automatically picked up the three recent fixes that were previously Dash-only (dateWindow normalisation, `defaultModel` shim, `evalExtraJs` ordering).
+
+**Phase 1 — Shiny correctness + integration tests (TODO).** Add `tests/shiny/test_render_js_correctness.py` asserting that the Shiny handler goes through `window.dygraphs.render` (i.e. no re-implementation). Add a `shinytest2` / Playwright integration test proving a chart renders and config updates propagate. Confirm `render_dygraph(session, id, None)` clears cleanly.
+
+**Phase 2 — `@render_dygraph` decorator (TODO).** Subclass `shiny.render.renderer.Renderer[Dygraph | None]` so users write:
+
+```python
+@render_dygraph
+def chart():
+    return Dygraph(df)
+```
+
+— indistinguishable from `@render.plot`. `None`-return clears the chart. Works with both Shiny Core and Shiny Express. Keep the current `async def render_dygraph(session, id, dg)` as the functional escape hatch. Rename `dygraph_ui` → `output_dygraph` for Plotly-parity naming.
+
+**Phase 3 — feature additions (TODO).** Port `StackedBarChart` to Shiny (same shared-core move: extract the stacked-bar canvas JS into a framework-neutral asset). Port the modebar overlay (hover camera + reset-zoom) into `render_core.js` as an opt-in config, so both adapters get it.
+
+**Phase 4 — docs parity (TODO).** Extend the mental-model diagram in `docs/index.md` to show the Shiny decorator path. Add Shiny recipes, an `examples/shiny_reactive_demo.py` (decorator + reactive input + group sync), promote Shiny in README to a full "Render in Shiny" section.
+
+**Phase 5 — capture (optional).** Mirror `dygraph_strategy()` for the sibling `shinycapture` package.
 
 ## Test conventions for the Dash adapter
 
@@ -445,10 +477,133 @@ worth doing while the renderer is fresh in someone's head.
   `render_dygraph(session, id, dg)`. `.to_html()` remains because it's a
   self-contained render, not a framework wrapper — analogous to R's
   htmlwidget auto-print / `plotly.Figure.to_html`.
+- [x] **Added `Dygraph.to_js()`.** JSON-safe sibling of `to_dict()`:
+  substitutes embedded `JS(code)` objects with `"__JS__:code:__JS__"`
+  string markers that Dash's prop validator accepts and the clientside
+  `processJsMarkers` re-evaluates at render time. Made Dash callback
+  returns a one-liner — `return Dygraph(df).to_js()` — no user-side
+  `serialise_js()` import. `to_dict()` still exposes the raw config
+  for introspection / `to_html()` (which inlines JS directly into a
+  `<script>` block). The `to_dict` docstring points at `to_js` so
+  users who hit `InvalidCallbackReturnValue` get the fix immediately.
+- [x] **Dropped public `to_json()` → private `_to_json()`.** Only used
+  internally by `to_html()`; external users never had a reason to
+  reach for it (they want `to_dict` / `to_js` / `to_html`). Removed
+  from the public surface; renamed to `_to_json` to signal that.
+- [x] **Renamed `chart.cid` → `chart.chart_id` + friendly `.id` error.**
+  Users coming from `dcc.Graph` habitually reach for `chart.id`, but
+  the wrapper has no `.id` attribute (on purpose — Dash's duplicate-
+  id walk would trip against the inner store). Now `.id` raises an
+  `AttributeError` whose message points at `.chart_id`, while
+  `hasattr(chart, "id")` still returns `False` so Dash's layout
+  validation keeps working. Renamed the accessor from the terse
+  `.cid` to the more self-documenting `.chart_id`.
+- [x] **`StackedBarChart` class** (was `stacked_bar()` function).
+  Parallels `DygraphChart` shape: `StackedBarChart(id=None, *,
+  initial_data=..., colors=..., height=..., title=..., group=...)`.
+  Same `.chart_id` accessor, same friendly `.id` error, same
+  `dash-wrap`-based identity proxying. Canvas-drawing JS lives in
+  `_build_stacked_bar_js` helper alongside `DygraphChart`. Different
+  renderer from `DygraphChart` (not backed by dygraphs.js); uses its
+  own small canvas-drawing routine.
+- [x] **`Dygraph.error_bar_data` / `Dygraph.custom_bar_data` classmethods.**
+  Moved from top-level `dygraphs.make_error_bar_data` / `make_custom_bar_data`
+  to classmethods on `Dygraph`. Better discoverability via
+  autocomplete and reduces top-level namespace noise. Top-level
+  functions removed.
+- [x] **Dropped top-level lazy re-exports** from `dygraphs/__init__.py`.
+  `stacked_bar`, `dygraph_strategy`, `DygraphChart`, etc. were lazily
+  re-exported from `dygraphs.*` via `*args, **kwargs` wrapper
+  functions. Removed because `*args, **kwargs` kills Pylance hints —
+  users should `from dygraphs.dash import DygraphChart` directly so
+  the IDE sees the real signature. Slim and honest over "everything
+  in one namespace."
+- [x] **Fixed three clientside-renderer bugs** surfaced by an internal
+  MR author's hand-patches:
+  1. **`opts.dateWindow` ISO-string → ms normalisation.** Python
+     serialises date bounds as `"2024-01-10T00:00:00.000Z"`; dygraphs
+     JS expects `[number_ms, number_ms]`. Previously strings slipped
+     through → silent NaN → initial window ignored. Fixed in
+     `render_core.js` by mapping string entries via
+     `new Date(v).getTime()`.
+  2. **`Dygraph.Interaction.defaultModel` compat shim.** Some dygraphs
+     builds only expose `Dygraph.defaultInteractionModel`, leaving
+     `Dygraph.Interaction.defaultModel` undefined. Our
+     `range_selector(keep_mouse_zoom=True)` emits a `JS` marker
+     referencing the latter path, which silently eval'd to `undefined`
+     → broken interaction model. The shim populates the namespace
+     from the top-level default when missing.
+  3. **`evalExtraJs` must run before `processJsMarkers`.**
+     `.bar_chart()` etc. emit `plotter: JS("Dygraph.Plotters.BarChart")`
+     AND an `extraJs` entry that defines that namespace via an IIFE.
+     Evaluating the marker first returned `undefined` →
+     silent fall-back to the default line plotter. Reordered so
+     extraJs is evaluated first and the markers resolve against the
+     populated namespace. Pinned by
+     `TestExtraJsEvalOrder::test_evaljs_runs_before_processjsmarkers`
+     plus per-plotter file assertions.
+- [x] **Fixed timezone-incorrect date serialisation.** Annotations,
+  shadings, events, and `range_selector(date_window=...)` all
+  emitted `strftime("%Y-%m-%dT%H:%M:%S.000Z")` — but the `Z` suffix
+  claims UTC, and for tz-aware non-UTC timestamps the `strftime`
+  output is the *local wall-clock time* with a lying `Z` → value
+  shifted by the local offset (e.g. 1–2h off for Europe/Zurich).
+  Added `dygraphs.utils.ts_to_utc_iso()` helper that `tz_convert` /
+  `tz_localize` to UTC first. All four callsites replaced; twelve
+  tz-correctness tests pinned in `tests/dygraphs/test_timezone.py`.
+- [x] **Fixed four integration test failures across plotter parity
+  and stacked-bar rendering:**
+  - `test_js_asset_parity.py::fillplotter.js` — the R upstream and
+    Python disagree on the inner function name (`filledlineplotter`
+    vs `fillplotter`); the Python rename is an intentional
+    bug fix (see "Done" note above) so added an
+    `_INTENTIONAL_DIVERGENCES` allowlist and `pytest.skip`.
+  - `test_r_parity.py::TestPlotterFamily` (5 tests) — read from
+    `dg$x$attrs$plotter` but R actually stores the plotter name
+    at `dg$x$plotter` (top level). Fixed the R path in all five
+    tests.
+  - `test_r_parity.py::TestStrictJsonDiff` (3 tests) — the
+    `_STRICT_SKIP_TOP` loop only popped `scale` from the R side; now
+    that Python also emits `scale` (after the `periodicity=`
+    addition), it needed popping from both. One-line fix.
+  - `test_sync_and_bar.py` (3 tests) — `stacked_bar()` had a JS
+    scoping bug: the group-registration block referenced
+    `container` before it was declared (local to `render()`),
+    throwing a `ReferenceError` whenever `group=` was passed and
+    killing the callback silently. Hoisted the container lookup.
+- [x] **Extracted shared renderer (`render_core.js`).** Both
+  `dash_render.js` and the Shiny handler used to re-implement
+  ~250 lines of rendering logic independently; three recent bug
+  fixes had already diverged across them. Moved the framework-
+  agnostic core (marker resolution, group sync, plugin
+  instantiation, point shapes, annotation/shading/event
+  overlays, dateWindow normalisation, interactionModel shim,
+  destroy+recreate, resize observer) to
+  `src/dygraphs/assets/render_core.js` exposing
+  `window.dygraphs.render(container, config, options)`. The scaffold
+  builder is a caller-provided callback, letting Dash inject its
+  modebar HTML while Shiny uses a plain chart `<div>`. Kills the
+  drift permanently — any future fix applies to both adapters.
+- [x] **Expanded `Dygraph` class docstring per the project STYLEGUIDE.**
+  Added full NumPy-convention coverage with every declarative
+  parameter documented (`axes`, `series`, `options`, `legend`,
+  `highlight`, `annotations`, `shadings`, `events`, `limits`,
+  `range_selector`, `roller`, `callbacks`, `plotter`) — was
+  previously uncovered. Examples cover builder + declarative +
+  dict-mixed + CSV + group sync + three serialisation targets.
+  `See Also` cross-refs every major builder method and the three
+  framework adapters.
+- [x] **Added mental-model diagram and recipes** to `docs/index.md` —
+  ASCII sketch of the one-builder / four-rendering-paths split
+  (Dash / Shiny / HTML / dict-JSON), plus eight "how do I…"
+  recipes (notebook display, Dash render, callback update, empty
+  placeholder, chart id access, error bars, group sync, standalone
+  HTML export).
 
 #### Next up
 
-*(no items pending — the Dash adapter backlog is now closed)*
+*(no items pending — the Dash adapter backlog is now closed; Shiny
+parity work tracked under "Shiny parity plan" above)*
 
 #### Decisions deferred (revisit when there's a reason)
 - **Flask blueprint serving the asset** — would let us replace
