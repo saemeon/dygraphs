@@ -29,8 +29,9 @@ class TestShinyComponent:
         from dygraphs.shiny.component import dygraph_ui
 
         result = dygraph_ui("chart1")
-        html_str = str(result)
-        assert "cdnjs.cloudflare.com" in html_str
+        # CDN links live in an HTMLDependency; str(TagList) only renders Tag
+        # children, so check each child individually.
+        assert any("cdnjs.cloudflare.com" in str(c) for c in result)
 
     @skip_no_shiny
     def test_dygraph_ui_includes_handler(self) -> None:
