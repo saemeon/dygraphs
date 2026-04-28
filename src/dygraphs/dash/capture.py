@@ -29,6 +29,7 @@ dygraphs.dash.DygraphChart : Render a Dygraph as a Dash component.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -178,11 +179,50 @@ MULTI_CANVAS_CAPTURE_JS = """\
 })"""
 
 
+def _build_reflow_preprocess(
+    has_width: bool,
+    has_height: bool,
+    settle_frames: int,
+) -> str:
+    """Build JS that live-resizes the chart container before capture.
+
+    Saves original inline ``width``/``height`` on ``el._dcap_saved`` so
+    the capture's ``finally`` block can restore them. After resizing,
+    awaits ``settle_frames`` ``requestAnimationFrame`` ticks so the
+    chart's ``ResizeObserver`` (in :file:`render_core.js`) re-lays-out
+    the canvases at the new aspect — the IIFE then captures them at
+    target size.
+
+    Note: we deliberately do NOT use ``visibility: hidden`` to suppress
+    the resize flicker — visibility cascades to descendants and
+    html2canvas (used inside the IIFE for the HTML overlay pass)
+    skips ``visibility: hidden`` elements, which would drop the
+    chart title, axis labels, tick labels, and legend from the
+    captured image. A brief flicker is the price of correct output.
+    """
+    set_w = "if (opts.width != null) el.style.width = opts.width + 'px';"
+    set_h = "if (opts.height != null) el.style.height = opts.height + 'px';"
+    set_dims = "\n                ".join(
+        x for x, on in [(set_w, has_width), (set_h, has_height)] if on
+    )
+    return f"""\
+                el._dcap_saved = {{
+                    w: el.style.width,
+                    h: el.style.height
+                }};
+                {set_dims}
+                for (let i = 0; i < {settle_frames}; i++) {{
+                    await new Promise(r => requestAnimationFrame(r));
+                }}"""
+
+
 def dygraph_strategy(
     *,
     hide_range_selector: bool = True,
     format: str = "png",
     debug: bool = False,
+    settle_frames: int = 2,
+    _params: Mapping | None = None,
 ) -> Any:
     """Create a capture strategy compatible with ``dash_capture.capture_element()``.
 
@@ -214,6 +254,20 @@ def dygraph_strategy(
         to the browser console; it also draws a 1px red border around
         each source canvas's destination rect in the output. Use this
         to diagnose cropping or overlay-alignment issues.
+    settle_frames : int, default: 2
+        When ``_params`` declares ``capture_width`` / ``capture_height``,
+        the strategy live-resizes the chart container so dygraphs's
+        ``ResizeObserver`` (in :file:`render_core.js`) redraws the
+        canvases at the target dimensions. ``settle_frames`` is the
+        number of ``requestAnimationFrame`` ticks awaited between the
+        resize and the capture. Bump this if you see partial redraws.
+    _params : Mapping or None, optional
+        Internal hook mirroring :func:`dash_capture.html2canvas_strategy`.
+        Pass ``inspect.signature(renderer).parameters`` to enable
+        target-size capture: when the renderer declares
+        ``capture_width`` and/or ``capture_height``, this strategy
+        emits a live-resize preprocess that runs before the
+        multi-canvas merge.
 
     Returns
     -------
@@ -285,20 +339,43 @@ def dygraph_strategy(
 
     ensure_html2canvas([])
 
+    # Live-resize preprocess gated on whether the renderer declared
+    # capture_width / capture_height. Mirrors dash_capture.html2canvas_strategy.
+    params = _params or {}
+    has_w = "capture_width" in params
+    has_h = "capture_height" in params
+    preprocess: str | None = None
+    if has_w or has_h:
+        preprocess = _build_reflow_preprocess(
+            has_w, has_h, settle_frames
+        )
+
     # Raw statement that invokes the shared async IIFE with the wrapper's
-    # `el`. `preprocess` stays None — hide/restore is internal to the IIFE.
-    # The IIFE is async (it awaits html2canvas for the overlay pass), so the
-    # capture body must `await` its Promise. dash-capture wraps the capture
-    # JS in an `async function`, so top-level `await` is valid.
+    # `el`. The IIFE is async (it awaits html2canvas for the overlay pass), so
+    # the capture body must `await` its Promise. dash-capture wraps the capture
+    # JS in an `async function`, so top-level `await` is valid. The try/finally
+    # restores any inline styles set by the live-resize preprocess; it's a
+    # no-op when no preprocess ran (el._dcap_saved is undefined).
     hide_js = "true" if hide_range_selector else "false"
     debug_js = "true" if debug else "false"
     capture = (
-        f"return await {MULTI_CANVAS_CAPTURE_JS}"
-        f"(el, '{format}', {hide_js}, {debug_js});"
+        f"try {{ return await {MULTI_CANVAS_CAPTURE_JS}"
+        f"(el, '{format}', {hide_js}, {debug_js}); }} "
+        "finally { if (el._dcap_saved) { "
+        "el.style.width = el._dcap_saved.w; "
+        "el.style.height = el._dcap_saved.h; "
+        "delete el._dcap_saved; } }"
     )
 
     return CaptureStrategy(
-        preprocess=None,
+        preprocess=preprocess,
         capture=capture,
         format=format,
+        _rebuild=lambda p: dygraph_strategy(
+            hide_range_selector=hide_range_selector,
+            format=format,
+            debug=debug,
+            settle_frames=settle_frames,
+            _params=p,
+        ),
     )

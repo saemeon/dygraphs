@@ -139,8 +139,8 @@ class TestMultiCanvasCaptureDpr:
 
 
 class TestDygraphStrategyShape:
-    def test_capture_starts_with_return_await_statement(self) -> None:
-        """The strategy capture must be raw statements, not an IIFE.
+    def test_capture_dispatches_to_shared_iife(self) -> None:
+        """The strategy capture must dispatch to the shared async IIFE.
 
         We earlier hit a parser collision where the strategy was wrapped
         as ``(function (el, opts) { ... })`` and dash-capture concatenated
@@ -148,20 +148,20 @@ class TestDygraphStrategyShape:
         ``(preprocessFn)(captureFn)`` — calling the preprocess with the
         capture *function* as its ``el`` argument. Disaster.
 
-        Raw statements must start with the dispatch call. Now that the
-        shared IIFE is async (it awaits html2canvas for the HTML overlay
-        pass), the dispatch must use ``return await``.
+        Now the capture is wrapped in ``try { ... } finally { ... }`` so
+        the live-resize preprocess can be cleaned up safely; the
+        dispatch must still ``await`` the shared async IIFE.
         """
         _skip_if_no_dash_capture()
         from dygraphs.dash.capture import dygraph_strategy
 
         strategy = dygraph_strategy()
-        assert strategy.capture.lstrip().startswith("return await "), (
-            "strategy.capture must start with 'return await' — the shared "
-            f"IIFE is async; got: {strategy.capture[:80]!r}"
+        assert "await (async function" in strategy.capture, (
+            "strategy.capture must await the shared async IIFE; "
+            f"got: {strategy.capture[:120]!r}"
         )
 
-    def test_capture_does_not_define_async_function_expression(self) -> None:
+    def test_capture_does_not_define_top_level_function_expression(self) -> None:
         _skip_if_no_dash_capture()
         from dygraphs.dash.capture import dygraph_strategy
 
@@ -173,13 +173,88 @@ class TestDygraphStrategyShape:
             "capture is wrapped as a function expression — IIFE bug"
         )
 
-    def test_preprocess_is_none(self) -> None:
-        """All hide/restore logic lives inside the shared IIFE in the JS."""
+    def test_capture_has_finally_cleanup(self) -> None:
+        """The capture must restore inline styles in a finally block.
+
+        The live-resize preprocess sets ``el.style.width``/``height``/
+        ``visibility`` and stashes the originals on ``el._dcap_saved``;
+        the finally block restores them so the live chart isn't left
+        in the resized state if html2canvas throws.
+        """
+        _skip_if_no_dash_capture()
+        from dygraphs.dash.capture import dygraph_strategy
+
+        capture = dygraph_strategy().capture
+        assert "finally" in capture
+        assert "_dcap_saved" in capture
+
+    def test_preprocess_none_without_capture_dims(self) -> None:
+        """No preprocess when the renderer doesn't declare capture_width/height."""
         _skip_if_no_dash_capture()
         from dygraphs.dash.capture import dygraph_strategy
 
         assert dygraph_strategy().preprocess is None
         assert dygraph_strategy(hide_range_selector=False).preprocess is None
+        assert dygraph_strategy(_params={}).preprocess is None
+
+    def test_preprocess_emitted_for_capture_width(self) -> None:
+        _skip_if_no_dash_capture()
+        from dygraphs.dash.capture import dygraph_strategy
+
+        s = dygraph_strategy(_params={"capture_width": None})
+        assert s.preprocess is not None
+        assert "opts.width" in s.preprocess
+        assert "opts.height" not in s.preprocess
+
+    def test_preprocess_emitted_for_capture_height(self) -> None:
+        _skip_if_no_dash_capture()
+        from dygraphs.dash.capture import dygraph_strategy
+
+        s = dygraph_strategy(_params={"capture_height": None})
+        assert s.preprocess is not None
+        assert "opts.height" in s.preprocess
+        assert "opts.width" not in s.preprocess
+
+    def test_preprocess_emitted_for_both_dims(self) -> None:
+        _skip_if_no_dash_capture()
+        from dygraphs.dash.capture import dygraph_strategy
+
+        s = dygraph_strategy(
+            _params={"capture_width": None, "capture_height": None}
+        )
+        assert s.preprocess is not None
+        assert "opts.width" in s.preprocess
+        assert "opts.height" in s.preprocess
+        assert "_dcap_saved" in s.preprocess
+        assert "requestAnimationFrame" in s.preprocess
+
+    def test_preprocess_settle_frames_default(self) -> None:
+        _skip_if_no_dash_capture()
+        from dygraphs.dash.capture import dygraph_strategy
+
+        s = dygraph_strategy(_params={"capture_width": None})
+        assert "i < 2" in s.preprocess
+
+    def test_preprocess_settle_frames_custom(self) -> None:
+        _skip_if_no_dash_capture()
+        from dygraphs.dash.capture import dygraph_strategy
+
+        s = dygraph_strategy(
+            settle_frames=4, _params={"capture_width": None}
+        )
+        assert "i < 4" in s.preprocess
+
+    def test_preprocess_does_not_set_visibility_hidden(self) -> None:
+        # Regression: visibility:hidden cascades to descendants and
+        # html2canvas (used by the IIFE for the HTML overlay pass) skips
+        # hidden elements — that wiped chart title, axis labels, tick
+        # labels, and legend from the captured PNG. The brief flicker of
+        # the resize is the price of correct output.
+        _skip_if_no_dash_capture()
+        from dygraphs.dash.capture import dygraph_strategy
+
+        s = dygraph_strategy(_params={"capture_width": None})
+        assert "visibility" not in s.preprocess
 
 
 # ---------------------------------------------------------------------------
