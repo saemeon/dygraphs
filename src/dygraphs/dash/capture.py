@@ -206,10 +206,12 @@ def _build_reflow_preprocess(
         x for x, on in [(set_w, has_width), (set_h, has_height)] if on
     )
     return f"""\
-                el._dcap_saved = {{
-                    w: el.style.width,
-                    h: el.style.height
-                }};
+                if (!el._dcap_saved) {{
+                    el._dcap_saved = {{
+                        w: el.style.width,
+                        h: el.style.height
+                    }};
+                }}
                 {set_dims}
                 for (let i = 0; i < {settle_frames}; i++) {{
                     await new Promise(r => requestAnimationFrame(r));
@@ -335,7 +337,9 @@ def dygraph_strategy(
         )
         raise ImportError(msg) from exc
 
-    from dash_capture._html2canvas import ensure_html2canvas  # type: ignore[unresolved-import]
+    from dash_capture._html2canvas import (
+        ensure_html2canvas,  # type: ignore[unresolved-import]
+    )
 
     ensure_html2canvas([])
 
@@ -346,9 +350,7 @@ def dygraph_strategy(
     has_h = "capture_height" in params
     preprocess: str | None = None
     if has_w or has_h:
-        preprocess = _build_reflow_preprocess(
-            has_w, has_h, settle_frames
-        )
+        preprocess = _build_reflow_preprocess(has_w, has_h, settle_frames)
 
     # Raw statement that invokes the shared async IIFE with the wrapper's
     # `el`. The IIFE is async (it awaits html2canvas for the overlay pass), so

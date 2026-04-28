@@ -297,5 +297,3 @@ def serialise_js(obj: Any) -> Any:
     if isinstance(obj, list):
         return [serialise_js(v) for v in obj]
     return obj
-
-

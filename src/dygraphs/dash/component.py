@@ -63,9 +63,11 @@ from dygraphs.utils import (
 _RENDER_CORE_JS = (
     Path(__file__).parent.parent / "assets" / "render_core.js"
 ).read_text()
-_DASH_RENDER_JS = _RENDER_CORE_JS + "\n" + (
-    Path(__file__).parent.parent / "assets" / "dash_render.js"
-).read_text()
+_DASH_RENDER_JS = (
+    _RENDER_CORE_JS
+    + "\n"
+    + (Path(__file__).parent.parent / "assets" / "dash_render.js").read_text()
+)
 
 # dash-wrap's default registry has no entry for dcc.Store. Register
 # "data" so wrap(Store) and DygraphChart auto-proxy the one prop that

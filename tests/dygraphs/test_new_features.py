@@ -96,7 +96,9 @@ class TestErrorBarHelpers:
         assert "StdDev" in data
 
     def test_custom_bar_data(self) -> None:
-        data = Dygraph.custom_bar_data(x=[1, 2], low=[8, 18], mid=[10, 20], high=[12, 22])
+        data = Dygraph.custom_bar_data(
+            x=[1, 2], low=[8, 18], mid=[10, 20], high=[12, 22]
+        )
         assert data == {"x": [1, 2], "low": [8, 18], "mid": [10, 20], "high": [12, 22]}
 
 

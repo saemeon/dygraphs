@@ -54,9 +54,7 @@ class TestDygraphChartLayout:
         )
 
     def test_layout_contains_store_and_container(self, chart) -> None:  # noqa: ANN001
-        ids = {
-            c.id for c in chart.children if hasattr(c, "id") and c.id is not None
-        }
+        ids = {c.id for c in chart.children if hasattr(c, "id") and c.id is not None}
         assert ids == {"my-chart", "my-chart-container"}
 
     def test_outer_div_has_no_id(self, chart) -> None:  # noqa: ANN001

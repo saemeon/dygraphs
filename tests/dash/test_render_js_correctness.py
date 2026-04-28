@@ -219,9 +219,7 @@ class TestDygraphStrategyShape:
         _skip_if_no_dash_capture()
         from dygraphs.dash.capture import dygraph_strategy
 
-        s = dygraph_strategy(
-            _params={"capture_width": None, "capture_height": None}
-        )
+        s = dygraph_strategy(_params={"capture_width": None, "capture_height": None})
         assert s.preprocess is not None
         assert "opts.width" in s.preprocess
         assert "opts.height" in s.preprocess
@@ -239,9 +237,7 @@ class TestDygraphStrategyShape:
         _skip_if_no_dash_capture()
         from dygraphs.dash.capture import dygraph_strategy
 
-        s = dygraph_strategy(
-            settle_frames=4, _params={"capture_width": None}
-        )
+        s = dygraph_strategy(settle_frames=4, _params={"capture_width": None})
         assert "i < 4" in s.preprocess
 
     def test_preprocess_does_not_set_visibility_hidden(self) -> None:
@@ -285,8 +281,7 @@ class TestHtmlOverlayCapture:
             "overlay pass must invoke window.html2canvas"
         )
         assert "await window.html2canvas(el" in MULTI_CANVAS_CAPTURE_JS, (
-            "html2canvas call must be awaited so the overlay completes "
-            "before toDataURL"
+            "html2canvas call must be awaited so the overlay completes before toDataURL"
         )
 
     def test_iife_skips_canvas_elements_in_overlay_pass(self) -> None:
@@ -309,8 +304,7 @@ class TestHtmlOverlayCapture:
         from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
 
         assert re.search(r"scale:\s*dpr", MULTI_CANVAS_CAPTURE_JS), (
-            "html2canvas must be called with scale: dpr to match the "
-            "output canvas DPR"
+            "html2canvas must be called with scale: dpr to match the output canvas DPR"
         )
 
     def test_iife_overlay_drawn_in_device_pixels(self) -> None:
