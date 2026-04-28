@@ -35,28 +35,39 @@ from typing import Any
 # Shared multi-canvas merge JS
 # ---------------------------------------------------------------------------
 #
-# Self-contained IIFE: takes (el, fmt, hideRangeSelector, debug) and returns a
-# data-URI string. Used by both ``dygraph_strategy`` (via the dash-capture
-# wizard) and the chart modebar's camera-icon download in
+# Self-contained async IIFE: takes ``(el, fmt, hideRangeSelector, debug)`` and
+# returns a Promise<data-URI>. Used by both ``dygraph_strategy`` (via the
+# dash-capture wizard) and the chart modebar's camera-icon download in
 # ``dygraphs.dash.component``. Keep this as the sole multi-canvas merge JS in
 # the codebase — fixes here flow to both call sites.
 #
 # Behaviour:
-#   1. If hideRangeSelector, hide the three range-selector canvases on `el`.
+#   1. If hideRangeSelector, hide the three range-selector canvases / handles
+#      on `el`. They're hidden BEFORE the html2canvas pass so the overlay
+#      capture skips them too (html2canvas honours display:none).
 #   2. Allocate a destination canvas sized at offset(W,H) * devicePixelRatio
 #      and scale the 2D context by DPR — output is sharp on retina displays.
 #   3. For each visible source canvas under `el`, blit it via the 9-arg
 #      drawImage form, mapping its full backing buffer (cv.width × cv.height,
 #      which dygraph backs at css * DPR) into its CSS-pixel rect.
-#   4. Restore any hidden range-selector elements (always — even on errors
-#      via the surrounding async wrapper, since this body is synchronous).
-#   5. Return the data-URI.
+#   4. Rasterise the HTML overlay layer (chart title, x/y axis labels, tick
+#      labels, legend, annotations) via ``window.html2canvas`` at the same
+#      DPR and composite it on top of the canvas content. ``ignoreElements``
+#      skips ``<canvas>`` tags so we don't double-paint them at
+#      html2canvas's lower fidelity. The compositing context is reset to
+#      identity for this draw because the overlay canvas is already at
+#      device-pixel scale. If html2canvas isn't loaded the overlay step
+#      silently no-ops; ``dygraph_strategy`` always queues the asset, so
+#      this only happens for unusual setups (e.g. a modebar download
+#      before any strategy was constructed).
+#   5. Restore any hidden range-selector elements.
+#   6. Resolve with the data-URI.
 #
 # When `debug` is true, the IIFE logs dpr/dimensions/per-canvas rects to the
 # browser console and outlines each blit destination with a 1px red border so
 # you can see exactly where every source canvas landed in the output.
 MULTI_CANVAS_CAPTURE_JS = """\
-(function (el, fmt, hideRangeSelector, debug) {
+(async function (el, fmt, hideRangeSelector, debug) {
     if (hideRangeSelector) {
         el._dyHidden = [];
         [
@@ -125,8 +136,38 @@ MULTI_CANVAS_CAPTURE_JS = """\
     });
     if (debug) {
         console.log('drew', drawn, 'canvases onto output');
-        console.groupEnd();
     }
+    if (window.html2canvas) {
+        try {
+            var overlay = await window.html2canvas(el, {
+                backgroundColor: null,
+                scale: dpr,
+                useCORS: true,
+                logging: !!debug,
+                ignoreElements: function (n) {
+                    return n.tagName === 'CANVAS';
+                }
+            });
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.drawImage(overlay, 0, 0);
+            ctx.restore();
+            if (debug) {
+                console.log(
+                    'html2canvas overlay (device px):',
+                    overlay.width, 'x', overlay.height
+                );
+            }
+        } catch (e) {
+            if (debug) console.warn('html2canvas overlay failed:', e);
+        }
+    } else if (debug) {
+        console.warn(
+            '[dygraph capture] html2canvas not loaded; ' +
+            'skipping HTML overlay (title / axis labels / legend).'
+        );
+    }
+    if (debug) console.groupEnd();
     if (el._dyHidden) {
         el._dyHidden.forEach(function (h) {
             h.el.style.display = h.display;
@@ -146,9 +187,10 @@ def dygraph_strategy(
     """Create a capture strategy compatible with ``dash_capture.capture_element()``.
 
     The returned strategy composites every visible ``<canvas>`` inside
-    the target element onto a single white-backed canvas and returns a
-    base64 data-URI. It is designed for charts produced by
-    :class:`dygraphs.dash.DygraphChart`.
+    the target element onto a single white-backed canvas and overlays
+    the HTML layer — chart title, x/y axis labels, tick labels, legend,
+    annotations — via ``html2canvas``, returning a base64 data-URI.
+    Designed for charts produced by :class:`dygraphs.dash.DygraphChart`.
 
     The capture JS is :data:`MULTI_CANVAS_CAPTURE_JS` — the same code
     invoked by the chart modebar's camera-icon download — so the two
@@ -167,10 +209,11 @@ def dygraph_strategy(
         build a separate strategy per format if you need a chooser.
     debug : bool, default: False
         If ``True``, the capture JS logs ``devicePixelRatio``, target
-        element dimensions, output canvas dimensions, and the bounding
-        rect of every source canvas to the browser console; it also
-        draws a 1px red border around each source canvas's destination
-        rect in the output. Use this to diagnose cropping issues.
+        element dimensions, output canvas dimensions, the bounding rect
+        of every source canvas, and the html2canvas overlay dimensions
+        to the browser console; it also draws a 1px red border around
+        each source canvas's destination rect in the output. Use this
+        to diagnose cropping or overlay-alignment issues.
 
     Returns
     -------
@@ -189,10 +232,16 @@ def dygraph_strategy(
     SVG output is **not** supported: dygraphs renders to ``<canvas>``,
     and ``canvas.toDataURL`` only emits raster formats.
 
-    HTML elements rendered outside the canvases (chart title, axis tick
-    labels, legend) are **not** captured by this strategy — only the
-    plot canvases are. Use ``dash_capture.html2canvas_strategy()`` if
-    you need the full HTML overlay.
+    The HTML overlay rendered by ``html2canvas`` is rasterised at the
+    same ``devicePixelRatio`` as the canvas composite, so text stays
+    crisp on retina displays. Compositing order is canvases first,
+    overlays on top — so labels never get drawn over by axis lines.
+
+    The ``html2canvas`` asset is queued via
+    :func:`dash_capture._html2canvas.ensure_html2canvas` at strategy
+    construction time. Call ``dygraph_strategy()`` at module level (or
+    anywhere before the first page is served) so Dash can drain the
+    inline-script queue into the served HTML.
 
     Examples
     --------
@@ -232,12 +281,20 @@ def dygraph_strategy(
         )
         raise ImportError(msg) from exc
 
-    # Raw statement that invokes the shared IIFE with the wrapper's `el`.
-    # `preprocess` stays None — hide/restore is internal to the IIFE.
+    from dash_capture._html2canvas import ensure_html2canvas  # type: ignore[unresolved-import]
+
+    ensure_html2canvas([])
+
+    # Raw statement that invokes the shared async IIFE with the wrapper's
+    # `el`. `preprocess` stays None — hide/restore is internal to the IIFE.
+    # The IIFE is async (it awaits html2canvas for the overlay pass), so the
+    # capture body must `await` its Promise. dash-capture wraps the capture
+    # JS in an `async function`, so top-level `await` is valid.
     hide_js = "true" if hide_range_selector else "false"
     debug_js = "true" if debug else "false"
     capture = (
-        f"return {MULTI_CANVAS_CAPTURE_JS}(el, '{format}', {hide_js}, {debug_js});"
+        f"return await {MULTI_CANVAS_CAPTURE_JS}"
+        f"(el, '{format}', {hide_js}, {debug_js});"
     )
 
     return CaptureStrategy(

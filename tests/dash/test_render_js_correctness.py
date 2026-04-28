@@ -139,7 +139,7 @@ class TestMultiCanvasCaptureDpr:
 
 
 class TestDygraphStrategyShape:
-    def test_capture_starts_with_return_statement(self) -> None:
+    def test_capture_starts_with_return_await_statement(self) -> None:
         """The strategy capture must be raw statements, not an IIFE.
 
         We earlier hit a parser collision where the strategy was wrapped
@@ -148,14 +148,17 @@ class TestDygraphStrategyShape:
         ``(preprocessFn)(captureFn)`` — calling the preprocess with the
         capture *function* as its ``el`` argument. Disaster.
 
-        Raw statements must start with the dispatch call.
+        Raw statements must start with the dispatch call. Now that the
+        shared IIFE is async (it awaits html2canvas for the HTML overlay
+        pass), the dispatch must use ``return await``.
         """
         _skip_if_no_dash_capture()
         from dygraphs.dash.capture import dygraph_strategy
 
         strategy = dygraph_strategy()
-        assert strategy.capture.lstrip().startswith("return "), (
-            f"strategy.capture must start with 'return', got: {strategy.capture[:80]!r}"
+        assert strategy.capture.lstrip().startswith("return await "), (
+            "strategy.capture must start with 'return await' — the shared "
+            f"IIFE is async; got: {strategy.capture[:80]!r}"
         )
 
     def test_capture_does_not_define_async_function_expression(self) -> None:
@@ -177,6 +180,112 @@ class TestDygraphStrategyShape:
 
         assert dygraph_strategy().preprocess is None
         assert dygraph_strategy(hide_range_selector=False).preprocess is None
+
+
+# ---------------------------------------------------------------------------
+# HTML overlay capture (title / axis labels / tick labels / legend)
+# ---------------------------------------------------------------------------
+
+
+class TestHtmlOverlayCapture:
+    """Pin the html2canvas overlay pass that captures HTML-rendered chart
+    chrome (title, x/y axis labels, tick labels, legend, annotations).
+    Without this pass the strategy only blits ``<canvas>`` elements and
+    drops everything that dygraphs renders as positioned ``<div>``s.
+    """
+
+    def test_iife_is_async(self) -> None:
+        """The shared IIFE must be async to await html2canvas."""
+        from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
+
+        assert MULTI_CANVAS_CAPTURE_JS.lstrip().startswith("(async function"), (
+            "MULTI_CANVAS_CAPTURE_JS must be an async IIFE so it can await "
+            "html2canvas; got: " + MULTI_CANVAS_CAPTURE_JS[:60]
+        )
+
+    def test_iife_calls_html2canvas(self) -> None:
+        from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
+
+        assert "window.html2canvas" in MULTI_CANVAS_CAPTURE_JS, (
+            "overlay pass must invoke window.html2canvas"
+        )
+        assert "await window.html2canvas(el" in MULTI_CANVAS_CAPTURE_JS, (
+            "html2canvas call must be awaited so the overlay completes "
+            "before toDataURL"
+        )
+
+    def test_iife_skips_canvas_elements_in_overlay_pass(self) -> None:
+        """``ignoreElements`` must skip ``<canvas>`` so html2canvas doesn't
+        re-rasterise plot canvases at lower fidelity over our sharp blits.
+        """
+        from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
+
+        assert "ignoreElements" in MULTI_CANVAS_CAPTURE_JS
+        assert re.search(
+            r"n\.tagName\s*===\s*['\"]CANVAS['\"]",
+            MULTI_CANVAS_CAPTURE_JS,
+        ), "ignoreElements filter must compare tagName === 'CANVAS'"
+
+    def test_iife_overlay_uses_dpr_scale(self) -> None:
+        """The overlay must rasterise at the same DPR as the canvas
+        composite — otherwise label text would either be blurry (scale
+        too low) or oversized when blitted (scale mismatch).
+        """
+        from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
+
+        assert re.search(r"scale:\s*dpr", MULTI_CANVAS_CAPTURE_JS), (
+            "html2canvas must be called with scale: dpr to match the "
+            "output canvas DPR"
+        )
+
+    def test_iife_overlay_drawn_in_device_pixels(self) -> None:
+        """Before drawImage'ing the overlay, the context must be reset to
+        identity transform — the overlay canvas is already at device
+        pixels, but our context is dpr-scaled.
+        """
+        from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
+
+        # The overlay drawImage block must appear after a setTransform
+        # to identity. Search the substring around the overlay drawImage.
+        idx = MULTI_CANVAS_CAPTURE_JS.find("ctx.drawImage(overlay")
+        assert idx > 0, "overlay drawImage call missing"
+        prelude = MULTI_CANVAS_CAPTURE_JS[max(0, idx - 200) : idx]
+        assert "setTransform(1, 0, 0, 1, 0, 0)" in prelude, (
+            "overlay drawImage must be preceded by setTransform identity "
+            "so the overlay is painted at device pixels"
+        )
+
+    def test_strategy_queues_html2canvas(self) -> None:
+        """``dygraph_strategy()`` must queue the vendored html2canvas asset
+        so Dash drains it into the served HTML's inline-script slot.
+        """
+        _skip_if_no_dash_capture()
+        from dash._callback import GLOBAL_INLINE_SCRIPTS
+
+        from dygraphs.dash.capture import dygraph_strategy
+
+        before = list(GLOBAL_INLINE_SCRIPTS)
+        try:
+            dygraph_strategy()
+            joined = "\n".join(GLOBAL_INLINE_SCRIPTS)
+            assert "__dcap_html2canvas__" in joined, (
+                "html2canvas must be queued into Dash's inline-script slot "
+                "by every dygraph_strategy() construction"
+            )
+        finally:
+            GLOBAL_INLINE_SCRIPTS[:] = before
+
+    def test_modebar_handler_awaits_async_capture(self) -> None:
+        """The modebar ``__dyCap_<id>`` handler must be async and await
+        the capture function — the IIFE now returns a Promise.
+        """
+        assert re.search(
+            r"__dyCap_'\s*\+\s*jsId\s*\]\s*=\s*async function",
+            DASH_SHIM,
+        ), "modebar capture handler must be declared 'async function'"
+        assert "await captureFn(" in DASH_SHIM, (
+            "modebar handler must await the (now async) capture IIFE"
+        )
 
 
 # ---------------------------------------------------------------------------
