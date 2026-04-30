@@ -200,9 +200,9 @@ class TestCapture:
             pytest.skip("dash-capture not installed")
         # Empty selectors array, debug=false.
         assert "[], false)" in strategy.capture
-        assert ".dygraph-rangesel" not in strategy.capture.split(
-            "})"
-        )[1]  # only inside the inlined IIFE body, not the args
+        assert (
+            ".dygraph-rangesel" not in strategy.capture.split("})")[1]
+        )  # only inside the inlined IIFE body, not the args
 
     def test_dygraph_strategy_debug(self) -> None:
         from dygraphs.dash.capture import dygraph_strategy
@@ -213,3 +213,84 @@ class TestCapture:
             pytest.skip("dash-capture not installed")
         # Selectors array, debug=true.
         assert "], true)" in strategy.capture
+
+
+class TestDyModebarButton:
+    """``DyModebarButton`` is the dygraphs-side counterpart to dash-capture's
+    ``ModebarButton`` — a custom modebar trigger that injects a button
+    into the chart's modebar and exposes the bridge protocol so
+    ``capture_element(trigger=...)`` can swallow the bridge transparently.
+    """
+
+    def test_construction_and_attributes(self) -> None:
+        from dash import html
+
+        from dygraphs.dash import DyModebarButton
+
+        btn = DyModebarButton(graph_id="sales", label="Export")
+        # Bridge: hidden html.Div with n_clicks=0 and a unique id.
+        assert isinstance(btn.bridge, html.Div)
+        assert btn.bridge.n_clicks == 0
+        assert btn.bridge.style == {"display": "none"}
+        assert btn.bridge.id.startswith("_dy_mb_bridge_sales_")
+
+        # open_input: Input(bridge_id, "n_clicks") for the wizard.
+        assert btn.open_input.component_id == btn.bridge.id
+        assert btn.open_input.component_property == "n_clicks"
+
+    def test_default_icon_is_a_download_glyph(self) -> None:
+        from dygraphs.dash import DyModebarButton
+
+        btn = DyModebarButton(graph_id="g")
+        assert "<svg" in btn.icon
+        # Default icon is the download glyph (down-arrow into a tray).
+        assert btn.icon == btn.DEFAULT_ICON
+
+    def test_custom_icon_passes_through(self) -> None:
+        from dygraphs.dash import DyModebarButton
+
+        custom = '<svg xmlns="http://www.w3.org/2000/svg">CUSTOM</svg>'
+        btn = DyModebarButton(graph_id="g", icon=custom)
+        assert btn.icon == custom
+
+    def test_implements_dash_capture_bridge_protocol(self) -> None:
+        """The whole point of the class — duck-typed contract with
+        ``dash_capture.capture_element`` so the bridge is folded into
+        the wizard component without the user mounting it manually.
+        """
+        from dygraphs.dash import DyModebarButton
+
+        btn = DyModebarButton(graph_id="g", label="x")
+        assert hasattr(btn, "bridge")
+        assert hasattr(btn, "open_input")
+
+    def test_is_consumable_by_capture_element(self) -> None:
+        """End-to-end: pass a DyModebarButton as ``trigger=`` and assert
+        the wizard constructs without complaining and that the bridge
+        ends up in the returned component tree (folded automatically).
+        """
+        from dash import html
+
+        try:
+            from dash_capture import capture_element
+        except ImportError:
+            pytest.skip("dash-capture not installed")
+
+        from dygraphs.dash import DyModebarButton, dygraph_strategy
+
+        btn = DyModebarButton(graph_id="chart", label="Save")
+
+        wizard = capture_element(
+            "chart-container",
+            trigger=btn,
+            strategy=dygraph_strategy(),
+        )
+        assert isinstance(wizard, html.Div)
+
+        # The bridge id should appear somewhere in the rendered tree —
+        # otherwise the wizard's open callback has nothing to listen on.
+        rendered = str(wizard.to_plotly_json())
+        assert btn.bridge.id in rendered, (
+            f"Expected bridge id {btn.bridge.id!r} to appear in the "
+            f"rendered wizard component tree."
+        )

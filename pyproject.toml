@@ -28,9 +28,19 @@ pandas = ["pandas>=1.5.0"]
 # objects and the 'initial_duplicate' value for prevent_initial_call —
 # both are required by the clientside callback wiring in
 # src/dygraphs/dash/component.py.
-dash = ["dash>=2.9.0", "dash-wrap>=0.0.1"]
+# dash-capture>=0.0.11 is required for `multi_canvas_strategy`,
+# `MULTI_CANVAS_CAPTURE_JS`, and `build_reflow_preprocess`, which
+# `dygraphs.dash.capture` consumes directly. Earlier versions don't
+# ship these public APIs.
+dash = ["dash>=2.9.0", "dash-wrap>=0.0.1", "dash-capture>=0.0.11"]
 shiny = ["shiny>=0.6.0"]
-all = ["pandas>=1.5.0", "dash>=2.9.0", "dash-wrap>=0.0.1", "shiny>=0.6.0"]
+all = [
+    "pandas>=1.5.0",
+    "dash>=2.9.0",
+    "dash-wrap>=0.0.1",
+    "dash-capture>=0.0.11",
+    "shiny>=0.6.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/saemeon/dygraphs"

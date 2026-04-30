@@ -89,6 +89,10 @@
 
 ::: dygraphs.dash.capture.dygraph_strategy
 
+::: dygraphs.dash.capture.DYGRAPH_HIDE_SELECTORS
+
+::: dygraphs.dash.modebar.DyModebarButton
+
 ## Utilities
 
 ::: dygraphs.JS

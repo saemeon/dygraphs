@@ -34,7 +34,7 @@ from dash_capture import capture_element
 from PIL import Image, ImageDraw, ImageFont
 
 from dygraphs import Dygraph
-from dygraphs.dash import DygraphChart, dygraph_strategy
+from dygraphs.dash import DygraphChart, DyModebarButton, dygraph_strategy
 
 
 def make_data() -> pd.DataFrame:
@@ -42,9 +42,9 @@ def make_data() -> pd.DataFrame:
     dates = pd.date_range("2024-01-01", periods=180, freq="D")
     return pd.DataFrame(
         {
-            "Revenue":   (100 + np.cumsum(rng.standard_normal(180) * 0.7)).round(2),
-            "Cost":      ( 80 + np.cumsum(rng.standard_normal(180) * 0.5)).round(2),
-            "Forecast":  (110 + np.cumsum(rng.standard_normal(180) * 0.4)).round(2),
+            "Revenue": (100 + np.cumsum(rng.standard_normal(180) * 0.7)).round(2),
+            "Cost": (80 + np.cumsum(rng.standard_normal(180) * 0.5)).round(2),
+            "Forecast": (110 + np.cumsum(rng.standard_normal(180) * 0.4)).round(2),
         },
         index=dates,
     )
@@ -145,11 +145,16 @@ app.layout = html.Div(
             "no bitmap-zoom blur."
         ),
         html.Div(style=CARD, children=[chart_component]),
+        # Wizard triggered by an extra button injected into the chart's
+        # built-in modebar. ``DyModebarButton`` exposes the bridge protocol
+        # that ``capture_element`` recognises, so the bridge gets folded
+        # into the wizard component automatically — no hidden html.Button
+        # in the layout.
         capture_element(
             ELEMENT_ID,
             renderer=renderer,
             capture_resolver=resolve,
-            trigger="Capture for report",
+            trigger=DyModebarButton(graph_id="metrics", label="Save as report"),
             strategy=dygraph_strategy(),
             filename="metrics-report.png",
         ),

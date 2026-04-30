@@ -33,12 +33,8 @@ from dygraphs.dash import DygraphChart
 np.random.seed(0)
 _INDEX = pd.date_range("2024-01-01", periods=120, freq="D")
 DATASETS: dict[str, pd.DataFrame] = {
-    "sine": pd.DataFrame(
-        {"y": np.sin(np.linspace(0, 8 * np.pi, 120))}, index=_INDEX
-    ),
-    "random walk": pd.DataFrame(
-        {"y": np.cumsum(np.random.randn(120))}, index=_INDEX
-    ),
+    "sine": pd.DataFrame({"y": np.sin(np.linspace(0, 8 * np.pi, 120))}, index=_INDEX),
+    "random walk": pd.DataFrame({"y": np.cumsum(np.random.randn(120))}, index=_INDEX),
     "double": pd.DataFrame(
         {"a": np.cumsum(np.random.randn(120)), "b": np.cumsum(np.random.randn(120))},
         index=_INDEX,

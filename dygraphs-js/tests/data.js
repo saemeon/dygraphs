@@ -1,1 +1,0 @@
-../gallery/data.js

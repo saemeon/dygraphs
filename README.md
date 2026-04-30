@@ -267,12 +267,28 @@ on falsy config. Callbacks wire up normally.
 
 ## Capture (dash-capture)
 
-```python
-from dygraphs.dash import dygraph_strategy
-from dash_capture import capture_element
+Capture dygraphs as PNG / JPEG images with `dash-capture` integration:
 
-capture_element(app, "btn", "chart-container", "img-store",
-                strategy=dygraph_strategy(hide_range_selector=True))
+```python
+from dash_capture import capture_element
+from dygraphs.dash import dygraph_strategy
+
+# Wizard with a button trigger
+capture_element(
+    "my-chart-container",
+    trigger="Export to PNG",
+    strategy=dygraph_strategy(hide_range_selector=True),
+)
+```
+
+Or use the modebar button directly (no separate wizard component needed):
+
+```python
+from dygraphs.dash import DygraphChart, DyModebarButton
+
+chart = DygraphChart(figure=dg, id="my-chart")
+button = DyModebarButton(trigger=chart)
+# button automatically handles capture via the modebar camera icon
 ```
 
 ## API Reference
