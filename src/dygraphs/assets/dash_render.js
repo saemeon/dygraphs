@@ -40,17 +40,21 @@
         var jsId = safeJsId(setup.graphId);
         // Build the multi-canvas capture IIFE from the source string passed
         // in via setup.captureJs (defined Python-side as
-        // dygraphs.dash.capture.MULTI_CANVAS_CAPTURE_JS, the same source
-        // used by the dash-capture wizard strategy). The IIFE is async —
-        // it awaits html2canvas for the HTML overlay pass — so the
-        // handler must await its Promise. If html2canvas isn't loaded
-        // (e.g. no dygraph_strategy() was constructed in this app) the
-        // IIFE silently degrades to canvas-only.
+        // dash_capture.MULTI_CANVAS_CAPTURE_JS, the same source used by
+        // the dash-capture wizard strategy). The IIFE is async — it awaits
+        // html2canvas for the HTML overlay pass — so the handler must
+        // await its Promise. If html2canvas isn't loaded (e.g. no
+        // dygraph_strategy() was constructed in this app) the IIFE
+        // silently degrades to canvas-only.
+        //
+        // The 3rd arg is an array of CSS selectors to hide before capture
+        // (dygraphs-specific: range-selector chrome).
         var captureFn = eval('(' + setup.captureJs + ')');
+        var hideSelectors = setup.hideSelectors || [];
         global['__dyCap_' + jsId] = async function () {
             var chartEl = document.getElementById(setup.chartDivId);
             if (!chartEl) return;
-            var dataUri = await captureFn(chartEl, 'png', true, false);
+            var dataUri = await captureFn(chartEl, 'png', hideSelectors, false);
             var a = document.createElement('a');
             a.download = setup.graphId + '.png';
             a.href = dataUri;

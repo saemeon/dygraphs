@@ -185,8 +185,11 @@ class TestCapture:
         # preprocess is None — hide/restore is internal to the shared IIFE
         assert strategy.preprocess is None
         assert MULTI_CANVAS_CAPTURE_JS in strategy.capture
-        # hide=true, debug=false
-        assert "true, false)" in strategy.capture
+        # Selectors array baked into the call site, debug=false.
+        assert ".dygraph-rangesel-fgcanvas" in strategy.capture
+        assert ".dygraph-rangesel-bgcanvas" in strategy.capture
+        assert ".dygraph-rangesel-zoomhandle" in strategy.capture
+        assert "], false)" in strategy.capture  # closes selectors array, debug=false
 
     def test_dygraph_strategy_no_hide(self) -> None:
         from dygraphs.dash.capture import dygraph_strategy
@@ -195,8 +198,11 @@ class TestCapture:
             strategy = dygraph_strategy(hide_range_selector=False)
         except ImportError:
             pytest.skip("dash-capture not installed")
-        # hide=false, debug=false
-        assert "false, false)" in strategy.capture
+        # Empty selectors array, debug=false.
+        assert "[], false)" in strategy.capture
+        assert ".dygraph-rangesel" not in strategy.capture.split(
+            "})"
+        )[1]  # only inside the inlined IIFE body, not the args
 
     def test_dygraph_strategy_debug(self) -> None:
         from dygraphs.dash.capture import dygraph_strategy
@@ -205,5 +211,5 @@ class TestCapture:
             strategy = dygraph_strategy(debug=True)
         except ImportError:
             pytest.skip("dash-capture not installed")
-        # hide=true, debug=true
-        assert "true, true)" in strategy.capture
+        # Selectors array, debug=true.
+        assert "], true)" in strategy.capture

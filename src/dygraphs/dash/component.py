@@ -48,7 +48,7 @@ from typing import TYPE_CHECKING, Any
 from dash import dcc
 from dash_wrap import ComponentWrapper, register_proxy_defaults
 
-from dygraphs.dash.capture import MULTI_CANVAS_CAPTURE_JS
+from dygraphs.dash.capture import DYGRAPH_HIDE_SELECTORS, MULTI_CANVAS_CAPTURE_JS
 from dygraphs.utils import (
     DYGRAPH_CSS_CDN as _DYGRAPH_CSS_CDN,
 )
@@ -151,6 +151,7 @@ def _build_render_js(
             "modebarCss": _MODEBAR_CSS,
             "modebarHtml": modebar_html,
             "captureJs": MULTI_CANVAS_CAPTURE_JS,
+            "hideSelectors": DYGRAPH_HIDE_SELECTORS,
         }
     )
 
