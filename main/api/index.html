@@ -10493,14 +10493,14 @@ early-returns on falsy config.</p>
     <div class="doc doc-contents first">
 
         <p>Create a capture strategy compatible with <code>dash_capture.capture_element()</code>.</p>
-<p>The returned strategy composites every visible <code>&lt;canvas&gt;</code> inside
-the target element onto a single white-backed canvas and overlays
-the HTML layer — chart title, x/y axis labels, tick labels, legend,
-annotations — via <code>html2canvas</code>, returning a base64 data-URI.
-Designed for charts produced by :class:<code>dygraphs.dash.DygraphChart</code>.</p>
-<p>The capture JS is :data:<code>MULTI_CANVAS_CAPTURE_JS</code> — the same code
-invoked by the chart modebar's camera-icon download — so the two
-paths cannot drift apart.</p>
+<p>Composites every visible <code>&lt;canvas&gt;</code> inside the target element onto
+a single white-backed canvas and overlays the HTML layer (chart
+title, axis labels, tick labels, legend, annotations) via
+<code>html2canvas</code>, returning a base64 data-URI. Designed for charts
+produced by :class:<code>dygraphs.dash.DygraphChart</code>.</p>
+<p>This is a thin wrapper around :func:<code>dash_capture.multi_canvas_strategy</code>
+that pre-fills :data:<code>DYGRAPH_HIDE_SELECTORS</code> when
+<code>hide_range_selector</code> is True.</p>
 
 
 <table>
@@ -10518,8 +10518,7 @@ paths cannot drift apart.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>If <code>True</code>, temporarily hide the range-selector canvases
-(<code>.dygraph-rangesel-fgcanvas</code>, <code>.dygraph-rangesel-bgcanvas</code>,
-<code>.dygraph-rangesel-zoomhandle</code>) before capture and restore
+(:data:<code>DYGRAPH_HIDE_SELECTORS</code>) before capture and restore
 their original <code>display</code> values afterwards.</p>
               </div>
               <p>
@@ -10562,12 +10561,8 @@ build a separate strategy per format if you need a chooser.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>If <code>True</code>, the capture JS logs <code>devicePixelRatio</code>, target
-element dimensions, output canvas dimensions, the bounding rect
-of every source canvas, and the html2canvas overlay dimensions
-to the browser console; it also draws a 1px red border around
-each source canvas's destination rect in the output. Use this
-to diagnose cropping or overlay-alignment issues.</p>
+                <p>Forward to :func:<code>multi_canvas_strategy</code> — logs per-canvas blits
+and outlines destination rects in red.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -10587,12 +10582,9 @@ to diagnose cropping or overlay-alignment issues.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>When <code>_params</code> declares <code>capture_width</code> / <code>capture_height</code>,
-the strategy live-resizes the chart container so dygraphs's
-<code>ResizeObserver</code> (in :file:<code>render_core.js</code>) redraws the
-canvases at the target dimensions. <code>settle_frames</code> is the
-number of <code>requestAnimationFrame</code> ticks awaited between the
-resize and the capture. Bump this if you see partial redraws.</p>
+                <p>rAF ticks to await between live-resize and capture, so dygraphs's
+<code>ResizeObserver</code> (in :file:<code>render_core.js</code>) re-lays-out the
+canvases at the new aspect.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -10615,14 +10607,13 @@ resize and the capture. Bump this if you see partial redraws.</p>
                 <p>Internal hook mirroring :func:<code>dash_capture.html2canvas_strategy</code>.
 Pass <code>inspect.signature(renderer).parameters</code> to enable
 target-size capture: when the renderer declares
-<code>capture_width</code> and/or <code>capture_height</code>, this strategy
-emits a live-resize preprocess that runs before the
-multi-canvas merge.</p>
+<code>capture_width</code> / <code>capture_height</code>, the wrapped strategy
+emits a live-resize preprocess.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="collections.abc.Mapping">Mapping</span> or None</code>
+                      <code><span title="Mapping">Mapping</span> or None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -10693,11 +10684,6 @@ and <code>canvas.toDataURL</code> only emits raster formats.</p>
 same <code>devicePixelRatio</code> as the canvas composite, so text stays
 crisp on retina displays. Compositing order is canvases first,
 overlays on top — so labels never get drawn over by axis lines.</p>
-<p>The <code>html2canvas</code> asset is queued via
-:func:<code>dash_capture._html2canvas.ensure_html2canvas</code> at strategy
-construction time. Call <code>dygraph_strategy()</code> at module level (or
-anywhere before the first page is served) so Dash can drain the
-inline-script queue into the served HTML.</p>
 </details>
 
 <p><span class="doc-section-title">Examples:</span></p>
@@ -10727,6 +10713,184 @@ app.layout = html.Div([
 <code>f"{id}-container"</code> — the inner <code>&lt;div&gt;</code> that holds
 the chart canvases (see :class:<code>dygraphs.dash.DygraphChart</code>).</p>
 
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+
+
+    <div class="doc doc-contents first">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>A custom button on a <code>DygraphChart</code>'s modebar.</p>
+<p>Implements the bridge protocol expected by
+<code>dash_capture.capture_element(trigger=...)</code>: exposes a hidden
+<code>bridge</code> <code>html.Div</code> (with <code>n_clicks</code>) and an <code>open_input</code>
+that the wizard listens on. <code>capture_element</code> detects the
+protocol via <code>hasattr(trigger, "bridge") and hasattr(trigger,
+"open_input")</code> and folds the bridge into the wizard's returned
+component.</p>
+<p>Construction is side-effecting: it registers a clientside callback
+that runs once when the chart's render store updates, finds the
+chart's modebar in the DOM, and appends a <code>&lt;button&gt;</code> whose
+<code>onclick</code> clicks the bridge.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>graph_id</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The <code>id=</code> you passed to <code>DygraphChart</code>. The injector targets
+<code>#{graph_id}-container .dy-modebar</code> to find where to append.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>label</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p><code>title</code> attribute on the rendered button — shown as a tooltip
+on hover. Also used as the ARIA label.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>&#39;Custom action&#39;</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>icon</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Inner HTML of the button. Typically a small inline <code>&lt;svg&gt;</code>.
+Defaults to a download glyph.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>&#39;&#39;</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">ATTRIBUTE</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="dygraphs.dash.modebar.DyModebarButton.bridge">bridge</span></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>The hidden bridge component. Mount it anywhere in the layout —
+<code>capture_element</code> does this for you when you pass the
+<code>DyModebarButton</code> as <code>trigger=</code>.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="dash.html">html</span>.<span title="dash.html.Div">Div</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="dygraphs.dash.modebar.DyModebarButton.open_input">open_input</span></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p><code>Input(bridge.id, "n_clicks")</code>. Used by the wizard to open
+on click, and exposed in case you want to wire the button to
+something other than dash-capture (e.g. a custom callback).</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="dash.dependencies.Input">Input</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
 
     </div>
 
