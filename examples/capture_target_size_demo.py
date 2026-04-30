@@ -25,10 +25,13 @@ strategy, so ``dygraph_strategy()`` "just works" without explicit
 
 from __future__ import annotations
 
+import io
+
 import numpy as np
 import pandas as pd
 from dash import Dash, html
 from dash_capture import capture_element
+from PIL import Image, ImageDraw, ImageFont
 
 from dygraphs import Dygraph
 from dygraphs.dash import DygraphChart, dygraph_strategy
@@ -73,17 +76,42 @@ ELEMENT_ID = "metrics-container"
 def renderer(
     _target,
     _snapshot_img,
+    title: str = "Quarterly metrics — report draft",
     width: int = 1200,
     height: int = 600,
     capture_width: int = 1200,
     capture_height: int = 600,
 ):
-    """``width`` / ``height`` show up in the wizard; ``capture_*`` plumb
-    to the strategy via the resolver below."""
-    _target.write(_snapshot_img())
+    """Composite a title bar onto the captured chart.
+
+    Field roles (proven by which fields hit the cache):
+
+    - ``width`` / ``height`` are dimensional — they go through
+      ``capture_resolver`` and ARE part of the cache key. Editing them
+      forces a fresh JS capture (chart reflows, ResizeObserver redraws).
+    - ``title`` is non-dimensional — only used here, in Python. The
+      cache hash doesn't see it, so editing the title reuses the prior
+      browser-side capture and just re-composites the title bar.
+      You can confirm by watching the live chart: it flickers when you
+      change width/height, but stays still when you only change title.
+    """
+    img = Image.open(io.BytesIO(_snapshot_img()))
+    bar_h = 48
+    out = Image.new("RGB", (img.width, img.height + bar_h), "white")
+    out.paste(img, (0, bar_h))
+    draw = ImageDraw.Draw(out)
+    try:
+        font = ImageFont.truetype("Helvetica", 22)
+    except OSError:
+        font = ImageFont.load_default()
+    draw.text((16, 12), title, fill="black", font=font)
+    buf = io.BytesIO()
+    out.save(buf, format="PNG")
+    _target.write(buf.getvalue())
 
 
 def resolve(width, height, **_):
+    """Drives the cache key. ``title`` is intentionally absent."""
     return {"capture_width": width, "capture_height": height}
 
 
