@@ -6,20 +6,24 @@ the same bridge protocol as ``dash_capture.ModebarButton``.
 
 Usage::
 
-    from dash_capture import capture_element
+    from pathlib import Path
+    from dash_capture import capture_element, ModebarButton, ModebarIcon
     from dygraphs.dash import DygraphChart, DyModebarButton, dygraph_strategy
 
     chart = DygraphChart(figure=dg, id="sales", height="320px")
 
+    # Load SVG icon from file and use ModebarButton (same as plotly modebar)
+    svg_content = Path("icon.svg").read_text()
     wizard = capture_element(
         "sales-container",
         trigger=DyModebarButton(
             graph_id="sales",
-            label="Save as report",
-            icon="<svg ...>...</svg>",
+            button=ModebarButton(
+                icon=ModebarIcon(svg_content=svg_content),
+                tooltip="Save as report",
+            ),
         ),
         renderer=my_renderer,
-        capture_resolver=resolve,
         strategy=dygraph_strategy(),
     )
 
@@ -46,10 +50,15 @@ because plotly's ``manageModeBar`` keeps wiping injected buttons after
 from __future__ import annotations
 
 import secrets
+from typing import TYPE_CHECKING, cast
 
 import dash
 from dash import html
 from dash.dependencies import Input, Output
+
+if TYPE_CHECKING:
+    from dash_capture._modebar import ModebarButton as DashCaptureModebarButton
+    from dash_capture._modebar import ModebarIcon
 
 
 class DyModebarButton:
@@ -73,12 +82,15 @@ class DyModebarButton:
     graph_id :
         The ``id=`` you passed to ``DygraphChart``. The injector targets
         ``#{graph_id}-container .dy-modebar`` to find where to append.
-    label :
+    button : ModebarButton, optional
+        A ``ModebarButton`` from dash-capture. When set, *icon* and
+        *tooltip* are ignored.
+    icon : str | ModebarIcon
+        Inner HTML of the button or a ``ModebarIcon`` (from dash-capture).
+        Typically a small inline ``<svg>``. Defaults to a download glyph.
+    tooltip : str
         ``title`` attribute on the rendered button — shown as a tooltip
-        on hover. Also used as the ARIA label.
-    icon :
-        Inner HTML of the button. Typically a small inline ``<svg>``.
-        Defaults to a download glyph.
+        on hover. Also used as the ARIA label. Default ``"Capture"``.
 
     Attributes
     ----------
@@ -105,12 +117,32 @@ class DyModebarButton:
         self,
         *,
         graph_id: str,
-        label: str = "Custom action",
-        icon: str = "",
+        button: "DashCaptureModebarButton | None" = None,
+        icon: str | ModebarIcon = "",
+        tooltip: str = "Capture",
     ):
         self.graph_id = graph_id
-        self.label = label
-        self.icon = icon or self.DEFAULT_ICON
+
+        # Extract from ModebarButton if provided
+        if button is not None:
+            icon = button.icon or ""
+            tooltip = button.tooltip
+
+        # Accept ModebarIcon (duck-typed to avoid hard import)
+        if hasattr(icon, "to_svg_inner"):
+            modeicon = cast("ModebarIcon", icon)
+            inner = modeicon.to_svg_inner()
+            # Scale to 16×16 (same as default icon size)
+            h = 16
+            w = round(h * modeicon.width / modeicon.height)
+            self.icon = (
+                f'<svg viewBox="0 0 {modeicon.width} {modeicon.height}" '
+                f'width="{w}" height="{h}" fill="currentColor">{inner}</svg>'
+            )
+        else:
+            self.icon = cast(str, icon) or self.DEFAULT_ICON
+
+        self.label = tooltip
 
         # Random suffix so multiple buttons on the same chart, or the
         # same chart on different pages, don't collide.
