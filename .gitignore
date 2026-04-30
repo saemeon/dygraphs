@@ -164,5 +164,5 @@ _local_notes.md
 **/_version.py
 .claude/*
 
-/dygraphs-js
-/dygraphs-r
+dygraphs-js/
+dygraphs-r/
