@@ -10780,21 +10780,21 @@ chart's modebar in the DOM, and appends a <code>&lt;button&gt;</code> whose
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>label</code>
+                <code>button</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p><code>title</code> attribute on the rendered button — shown as a tooltip
-on hover. Also used as the ARIA label.</p>
+                <p>A <code>ModebarButton</code> from dash-capture. When set, <em>icon</em> and
+<em>tooltip</em> are ignored.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="str">str</span></code>
+                      <code><span title="ModebarButton">ModebarButton</span></code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
-                      <code>&#39;Custom action&#39;</code>
+                      <code>None</code>
                   </span>
               </p>
             </td>
@@ -10805,8 +10805,29 @@ on hover. Also used as the ARIA label.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Inner HTML of the button. Typically a small inline <code>&lt;svg&gt;</code>.
-Defaults to a download glyph.</p>
+                <p>Inner HTML of the button or a <code>ModebarIcon</code> (from dash-capture).
+Typically a small inline <code>&lt;svg&gt;</code>. Defaults to a download glyph.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="dash_capture._modebar.ModebarIcon">ModebarIcon</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>&#39;&#39;</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>tooltip</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p><code>title</code> attribute on the rendered button — shown as a tooltip
+on hover. Also used as the ARIA label. Default <code>"Capture"</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -10815,7 +10836,7 @@ Defaults to a download glyph.</p>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
-                      <code>&#39;&#39;</code>
+                      <code>&#39;Capture&#39;</code>
                   </span>
               </p>
             </td>
