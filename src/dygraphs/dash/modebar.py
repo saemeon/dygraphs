@@ -117,7 +117,7 @@ class DyModebarButton:
         self,
         *,
         graph_id: str,
-        button: "DashCaptureModebarButton | None" = None,
+        button: DashCaptureModebarButton | None = None,
         icon: str | ModebarIcon = "",
         tooltip: str = "Capture",
     ):
