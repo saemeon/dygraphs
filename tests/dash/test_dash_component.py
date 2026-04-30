@@ -227,7 +227,7 @@ class TestDyModebarButton:
 
         from dygraphs.dash import DyModebarButton
 
-        btn = DyModebarButton(graph_id="sales", label="Export")
+        btn = DyModebarButton(graph_id="sales", tooltip="Export")
         # Bridge: hidden html.Div with n_clicks=0 and a unique id.
         assert isinstance(btn.bridge, html.Div)
         assert btn.bridge.n_clicks == 0
@@ -260,7 +260,7 @@ class TestDyModebarButton:
         """
         from dygraphs.dash import DyModebarButton
 
-        btn = DyModebarButton(graph_id="g", label="x")
+        btn = DyModebarButton(graph_id="g", tooltip="Export")
         assert hasattr(btn, "bridge")
         assert hasattr(btn, "open_input")
 
@@ -278,7 +278,7 @@ class TestDyModebarButton:
 
         from dygraphs.dash import DyModebarButton, dygraph_strategy
 
-        btn = DyModebarButton(graph_id="chart", label="Save")
+        btn = DyModebarButton(graph_id="chart", tooltip="Save")
 
         wizard = capture_element(
             "chart-container",

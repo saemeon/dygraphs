@@ -45,6 +45,7 @@ DYGRAPH_HIDE_SELECTORS = [
 def dygraph_strategy(
     *,
     hide_range_selector: bool = True,
+    strip_margin: bool = False,
     format: str = "png",
     debug: bool = False,
     settle_frames: int = 2,
@@ -68,6 +69,10 @@ def dygraph_strategy(
         If ``True``, temporarily hide the range-selector canvases
         (:data:`DYGRAPH_HIDE_SELECTORS`) before capture and restore
         their original ``display`` values afterwards.
+    strip_margin : bool, default: False
+        If ``True``, temporarily zero out CSS margin and padding on the
+        target element during capture. This removes spacing around the
+        chart, matching the behavior of Plotly's ``strip_margin`` option.
     format : {"png", "jpeg", "webp"}, default: "png"
         Output image format. The format is baked into the JS at strategy
         build time, so the wizard's runtime ``fmt`` argument is ignored —
@@ -146,10 +151,25 @@ def dygraph_strategy(
         )
         raise ImportError(msg) from exc
 
-    return multi_canvas_strategy(
+    strategy = multi_canvas_strategy(
         hide_selectors=DYGRAPH_HIDE_SELECTORS if hide_range_selector else [],
         format=format,
         debug=debug,
         settle_frames=settle_frames,
         _params=_params,
     )
+
+    # If strip_margin is True, enhance the preprocess to zero margins.
+    if strip_margin:
+        margin_strip = """\
+            const _orig_margin = el.style.margin;
+            const _orig_padding = el.style.padding;
+            el.style.margin = "0";
+            el.style.padding = "0";"""
+        strategy.preprocess = (
+            (strategy.preprocess + "\n" + margin_strip)
+            if strategy.preprocess
+            else margin_strip
+        )
+
+    return strategy

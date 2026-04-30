@@ -4,23 +4,20 @@ Run::
 
     uv run python examples/capture_target_size_demo.py
 
-Then open http://127.0.0.1:8050, click "Capture for report", and pick
-the width / height that matches your report's chart slot. The
-downloaded PNG is rendered at exactly that size — not a bitmap zoom of
-the live render. Dygraphs's ``ResizeObserver`` redraws the canvases at
-the new aspect, axis ticks rebalance, the legend re-positions, and
-``html2canvas`` snapshots the freshly-laid-out chart. Original styles
-are restored after capture, so the live view is unchanged.
+Then open http://127.0.0.1:8050 and click the "Save" button on each chart
+to download a PNG. The downloaded PNG is rendered at exactly the chosen size
+— not a bitmap zoom of the live render. Dygraphs's ``ResizeObserver`` redraws
+the canvases at the new aspect, axis ticks rebalance, the legend re-positions,
+and ``html2canvas`` snapshots the freshly-laid-out chart.
 
-How it's wired
---------------
-The renderer declares ``capture_width`` / ``capture_height``. Those
-are excluded from the auto-generated form (they're a wire-protocol to
-the strategy), so the wizard exposes plain ``width`` / ``height``
-fields and a ``capture_resolver`` translates one to the other.
-``capture_element`` auto-wires the renderer's params into the
-strategy, so ``dygraph_strategy()`` "just works" without explicit
-``_params=...`` plumbing.
+The three examples show how ``.axis()`` options control spacing:
+- Chart 1: default layout with full margins and axis labels
+- Chart 2: remove CSS margins with `strip_margin=True`, hide axis labels
+- Chart 3: tune ``axis_label_width`` (controls tick label space)
+
+Adjust ``axis_label_width`` to match your data's label widths (e.g., "100"
+is smaller than "1000000"). No automatic sizing exists — it's a fixed
+pixel allocation that you tune per dataset.
 """
 
 from __future__ import annotations
@@ -53,19 +50,38 @@ def make_data() -> pd.DataFrame:
 df = make_data()
 peak = df["Revenue"].idxmax()
 
-chart = (
-    Dygraph(df, title="Quarterly metrics", xlab="Date", ylab="Index (base = 100)")
-    .options(
-        stroke_width=2,
-        colors=["#1f77b4", "#d62728", "#2ca02c"],
-        include_zero=False,
-    )
-    .legend(show="always", labels_separate_lines=True)
-    .annotation(series="Revenue", x=peak, text="P", tooltip="Peak")
-)
-chart_component = DygraphChart(figure=chart, id="metrics", height="320px")
 
-ELEMENT_ID = "metrics-container"
+def make_base_chart(title: str) -> Dygraph:
+    """Base chart with default styling."""
+    dg = Dygraph(df, title=title, xlab="Date", ylab="Index")
+    return (
+        dg.options(
+            stroke_width=2,
+            colors=["#1f77b4", "#d62728", "#2ca02c"],
+            include_zero=False,
+        )
+        .legend(show="always", labels_separate_lines=True)
+        .annotation(series="Revenue", x=peak, text="P", tooltip="Peak")
+    )
+
+
+chart_default = make_base_chart("Default layout")
+chart_compact = make_base_chart("Compact (no labels)").axis(
+    "x", label="", label_height=0
+).axis("y", label="", label_width=0)
+chart_tuned = make_base_chart("Custom axis spacing").axis(
+    "y", label="", label_width=0, axis_label_width=30
+)
+
+chart_default_component = DygraphChart(
+    figure=chart_default, id="metrics-default", height="320px"
+)
+chart_compact_component = DygraphChart(
+    figure=chart_compact, id="metrics-compact", height="320px"
+)
+chart_tuned_component = DygraphChart(
+    figure=chart_tuned, id="metrics-tuned", height="320px"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -82,19 +98,7 @@ def renderer(
     capture_width: int = 1200,
     capture_height: int = 600,
 ):
-    """Composite a title bar onto the captured chart.
-
-    Field roles (proven by which fields hit the cache):
-
-    - ``width`` / ``height`` are dimensional — they go through
-      ``capture_resolver`` and ARE part of the cache key. Editing them
-      forces a fresh JS capture (chart reflows, ResizeObserver redraws).
-    - ``title`` is non-dimensional — only used here, in Python. The
-      cache hash doesn't see it, so editing the title reuses the prior
-      browser-side capture and just re-composites the title bar.
-      You can confirm by watching the live chart: it flickers when you
-      change width/height, but stays still when you only change title.
-    """
+    """Composite a title bar onto the captured chart."""
     img = Image.open(io.BytesIO(_snapshot_img()))
     bar_h = 48
     out = Image.new("RGB", (img.width, img.height + bar_h), "white")
@@ -126,37 +130,90 @@ CARD = {
     "marginBottom": "16px",
 }
 
+COLUMN = {
+    "flex": "1",
+    "minWidth": "300px",
+}
+
 app = Dash(__name__)
 
 app.layout = html.Div(
     style={
         "fontFamily": "system-ui, sans-serif",
-        "maxWidth": "960px",
+        "maxWidth": "1400px",
         "margin": "0 auto",
         "padding": "40px",
     },
     children=[
-        html.H1("dygraphs — target-size capture for reports"),
+        html.H1("dygraphs — axis label sizing for chart exports"),
         html.P(
-            "The live chart below is 320px tall. Click 'Capture for "
-            "report', set the width and height to fit your report "
-            "slot, and the downloaded PNG will be rendered at exactly "
-            "those dimensions — ticks rebalanced, legend repositioned, "
-            "no bitmap-zoom blur."
+            "Click 'Save' on each chart to download a PNG at your chosen size. "
+            "The key to fitting charts into report layouts is controlling axis label space with .axis() options. "
+            "Tune axis_label_width to match your data's label widths (e.g., '100' vs '1000000')."
         ),
-        html.Div(style=CARD, children=[chart_component]),
-        # Wizard triggered by an extra button injected into the chart's
-        # built-in modebar. ``DyModebarButton`` exposes the bridge protocol
-        # that ``capture_element`` recognises, so the bridge gets folded
-        # into the wizard component automatically — no hidden html.Button
-        # in the layout.
-        capture_element(
-            ELEMENT_ID,
-            renderer=renderer,
-            capture_resolver=resolve,
-            trigger=DyModebarButton(graph_id="metrics", label="Save as report"),
-            strategy=dygraph_strategy(),
-            filename="metrics-report.png",
+        html.Div(
+            style={"display": "flex", "gap": "20px", "flexWrap": "wrap"},
+            children=[
+                html.Div(
+                    style={**COLUMN},
+                    children=[
+                        html.H3("Chart 1: Default"),
+                        html.Div(style=CARD, children=[chart_default_component]),
+                        capture_element(
+                            "metrics-default-container",
+                            renderer=renderer,
+                            capture_resolver=resolve,
+                            trigger=DyModebarButton(
+                                graph_id="metrics-default", tooltip="Save"
+                            ),
+                            strategy=dygraph_strategy(strip_margin=False),
+                            filename="chart-default.png",
+                        ),
+                    ],
+                ),
+                html.Div(
+                    style={**COLUMN},
+                    children=[
+                        html.H3("Chart 2: Compact (no labels)"),
+                        html.Div(style=CARD, children=[chart_compact_component]),
+                        html.P(
+                            "Removes x/y label divs with label_height=0, label_width=0",
+                            style={"fontSize": "12px", "color": "#666"},
+                        ),
+                        capture_element(
+                            "metrics-compact-container",
+                            renderer=renderer,
+                            capture_resolver=resolve,
+                            trigger=DyModebarButton(
+                                graph_id="metrics-compact", tooltip="Save"
+                            ),
+                            strategy=dygraph_strategy(strip_margin=True),
+                            filename="chart-compact.png",
+                        ),
+                    ],
+                ),
+                html.Div(
+                    style={**COLUMN},
+                    children=[
+                        html.H3("Chart 3: Custom axis spacing"),
+                        html.Div(style=CARD, children=[chart_tuned_component]),
+                        html.P(
+                            "Tune axis_label_width=30 for your data's label widths",
+                            style={"fontSize": "12px", "color": "#666"},
+                        ),
+                        capture_element(
+                            "metrics-tuned-container",
+                            renderer=renderer,
+                            capture_resolver=resolve,
+                            trigger=DyModebarButton(
+                                graph_id="metrics-tuned", tooltip="Save"
+                            ),
+                            strategy=dygraph_strategy(strip_margin=True),
+                            filename="chart-tuned.png",
+                        ),
+                    ],
+                ),
+            ],
         ),
     ],
 )
