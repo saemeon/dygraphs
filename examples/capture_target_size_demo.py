@@ -66,9 +66,11 @@ def make_base_chart(title: str) -> Dygraph:
 
 
 chart_default = make_base_chart("Default layout")
-chart_compact = make_base_chart("Compact (no labels)").axis(
-    "x", label="", label_height=0
-).axis("y", label="", label_width=0)
+chart_compact = (
+    make_base_chart("Compact (no labels)")
+    .axis("x", label="", label_height=0)
+    .axis("y", label="", label_width=0)
+)
 chart_tuned = make_base_chart("Custom axis spacing").axis(
     "y", label="", label_width=0, axis_label_width=30
 )

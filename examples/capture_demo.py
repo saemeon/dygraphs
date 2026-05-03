@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 from dash import Dash, html
 from dash_capture import capture_element
+from dash_fn_form import Field
 
 from dygraphs import Dygraph
 from dygraphs.dash import DygraphChart, dygraph_strategy
@@ -57,6 +58,18 @@ CARD = {
     "marginBottom": "16px",
 }
 
+
+# Custom renderer + resolver for the configurable-size capture
+def custom_renderer(
+    _target, _snapshot_img, title: str = "", width: int = 800, capture_width: int = 800
+):
+    _target.write(_snapshot_img())
+
+
+def resolver(width, **_):
+    return {"capture_width": width}
+
+
 app.layout = html.Div(
     style={
         "fontFamily": "system-ui, sans-serif",
@@ -86,6 +99,16 @@ app.layout = html.Div(
                     trigger="Capture (with range selector)",
                     strategy=dygraph_strategy(hide_range_selector=False),
                     filename="sensors-with-selector.png",
+                ),
+                # Custom renderer that exposes a user-facing `width` field
+                # and maps it to the strategy's `capture_width` via a resolver
+                capture_element(
+                    ELEMENT_ID,
+                    trigger="Capture (custom size)",
+                    strategy=dygraph_strategy(hide_range_selector=False),
+                    renderer=custom_renderer,
+                    capture_resolver=resolver,
+                    filename="sensors-custom.png",
                 ),
             ],
         ),
