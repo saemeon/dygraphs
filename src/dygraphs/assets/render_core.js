@@ -394,10 +394,13 @@
         // ``JS("Dygraph.Interaction.defaultModel")`` (emitted by
         // ``.range_selector(keep_mouse_zoom=True)``) resolve. Must
         // run before ``processJsMarkers`` evaluates them.
-        if (typeof Dygraph !== 'undefined' && Dygraph.Interaction
-            && !Dygraph.Interaction.defaultModel
-            && Dygraph.defaultInteractionModel) {
-            Dygraph.Interaction.defaultModel = Dygraph.defaultInteractionModel;
+        if (typeof Dygraph !== 'undefined' && Dygraph.defaultInteractionModel) {
+            if (!Dygraph.Interaction) {
+                Dygraph.Interaction = {};
+            }
+            if (!Dygraph.Interaction.defaultModel) {
+                Dygraph.Interaction.defaultModel = Dygraph.defaultInteractionModel;
+            }
         }
 
         // Inject plotter / plugin / data-handler JS BEFORE resolving

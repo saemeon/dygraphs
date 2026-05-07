@@ -284,7 +284,7 @@ class DygraphChart(ComponentWrapper):
 
         store = dcc.Store(id=cid, data=serialised_config)
         container_id = f"{cid}-container"
-        container = html.Div(id=container_id, style={"width": width})
+        container = html.Div(id=container_id, style={"width": width, "height": f"{height_px}px"})
 
         # Proxy only ``data``. We deliberately do NOT proxy ``id``:
         # Dash's layout validation walks the tree reading each

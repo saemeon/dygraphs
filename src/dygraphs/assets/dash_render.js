@@ -77,9 +77,9 @@
         // injects the per-chart modebar HTML (camera + reset buttons).
         return function (container) {
             container.innerHTML =
-                '<div class="dy-modebar-wrap" style="position:relative">'
+                '<div class="dy-modebar-wrap" style="position:relative;width:100%;height:100%">'
                 + '<div id="' + setup.chartDivId
-                + '" style="width:100%;height:' + setup.height + 'px"></div>'
+                + '" style="width:100%;height:100%"></div>'
                 + (setup.modebar ? setup.modebarHtml : '')
                 + '</div>';
             return document.getElementById(setup.chartDivId);
