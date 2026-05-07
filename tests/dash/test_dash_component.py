@@ -217,7 +217,7 @@ class TestCapture:
 
 class TestDyModebarButton:
     """``DyModebarButton`` is the dygraphs-side counterpart to dash-capture's
-    ``ModebarButton`` — a custom modebar trigger that injects a button
+    ``CaptureButton`` — a custom modebar trigger that injects a button
     into the chart's modebar and exposes the bridge protocol so
     ``capture_element(trigger=...)`` can swallow the bridge transparently.
     """

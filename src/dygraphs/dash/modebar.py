@@ -2,24 +2,24 @@
 
 This module provides :class:`DyModebarButton`, a Dash trigger that
 injects a custom button into the dygraph's modebar overlay and exposes
-the same bridge protocol as ``dash_capture.ModebarButton``.
+the same bridge protocol as ``dash_capture.CaptureButton``.
 
 Usage::
 
     from pathlib import Path
-    from dash_capture import capture_element, ModebarButton, ModebarIcon
+    from dash_capture import capture_element, CaptureButton, SvgIcon
     from dygraphs.dash import DygraphChart, DyModebarButton, dygraph_strategy
 
     chart = DygraphChart(figure=dg, id="sales", height="320px")
 
-    # Load SVG icon from file and use ModebarButton (same as plotly modebar)
+    # Load SVG icon from file and use CaptureButton (same as plotly modebar)
     svg_content = Path("icon.svg").read_text()
     wizard = capture_element(
         "sales-container",
         trigger=DyModebarButton(
             graph_id="sales",
-            button=ModebarButton(
-                icon=ModebarIcon(svg_content=svg_content),
+            button=CaptureButton(
+                icon=SvgIcon(svg_content=svg_content),
                 tooltip="Save as report",
             ),
         ),
@@ -31,7 +31,7 @@ Usage::
 
 The bridge ``html.Div`` is folded into the wizard component returned by
 ``capture_element``, so the user never has to mount it separately —
-exactly the same UX as ``ModebarButton`` for plotly's modebar.
+exactly the same UX as ``CaptureButton`` for plotly's modebar.
 
 Why this is so much simpler than the plotly equivalent
 ------------------------------------------------------
@@ -57,8 +57,8 @@ from dash import html
 from dash.dependencies import Input, Output
 
 if TYPE_CHECKING:
-    from dash_capture._modebar import ModebarButton as DashCaptureModebarButton
-    from dash_capture._modebar import ModebarIcon
+    from dash_capture._icons import SvgIcon
+    from dash_capture._trigger import CaptureButton
 
 
 class DyModebarButton:
@@ -82,11 +82,11 @@ class DyModebarButton:
     graph_id :
         The ``id=`` you passed to ``DygraphChart``. The injector targets
         ``#{graph_id}-container .dy-modebar`` to find where to append.
-    button : ModebarButton, optional
-        A ``ModebarButton`` from dash-capture. When set, *icon* and
+    button : CaptureButton, optional
+        A ``CaptureButton`` from dash-capture. When set, *icon* and
         *tooltip* are ignored.
-    icon : str | ModebarIcon
-        Inner HTML of the button or a ``ModebarIcon`` (from dash-capture).
+    icon : str | SvgIcon
+        Inner HTML of the button or a ``SvgIcon`` (from dash-capture).
         Typically a small inline ``<svg>``. Defaults to a download glyph.
     tooltip : str
         ``title`` attribute on the rendered button — shown as a tooltip
@@ -117,20 +117,20 @@ class DyModebarButton:
         self,
         *,
         graph_id: str,
-        button: DashCaptureModebarButton | None = None,
-        icon: str | ModebarIcon = "",
+        button: CaptureButton | None = None,
+        icon: str | SvgIcon = "",
         tooltip: str = "Capture",
     ):
         self.graph_id = graph_id
 
-        # Extract from ModebarButton if provided
+        # Extract from CaptureButton if provided
         if button is not None:
             icon = button.icon or ""
             tooltip = button.tooltip
 
-        # Accept ModebarIcon (duck-typed to avoid hard import)
+        # Accept SvgIcon (duck-typed to avoid hard import)
         if hasattr(icon, "to_svg_inner"):
-            modeicon = cast("ModebarIcon", icon)
+            modeicon = cast("SvgIcon", icon)
             inner = modeicon.to_svg_inner()
             # Scale to 16×16 (same as default icon size)
             h = 16
