@@ -1,8 +1,11 @@
+import io
+
 import dash
 import pandas as pd
 import snbplt
 from dash import html
 from dash_capture import capture_element
+from PIL import Image, ImageDraw
 
 from dygraphs import Dygraph, Legend, Options, RangeSelector
 from dygraphs.dash import DygraphChart, DyModebarButton, dygraph_strategy
@@ -40,6 +43,7 @@ chart = (
 )
 
 chart_component = DygraphChart(chart, id="my-chart", height="400px")
+chart_with_rs_component = DygraphChart(chart, id="my-chart-rs", height="400px")
 
 
 def renderer(
@@ -50,7 +54,20 @@ def renderer(
     capture_width: int = 1200,
     capture_height: int = 400,
 ):
-    _target.write(_snapshot_img())
+    """Draw a 2px black border on the captured image so the exact
+    captured size is visible in the saved PNG.
+    """
+    img = Image.open(io.BytesIO(_snapshot_img())).convert("RGB")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle(
+        [(0, 0), (img.width - 1, img.height - 1)], outline="black", width=2
+    )
+    # Caption so it's obvious which size produced this PNG.
+    caption = f"captured: {img.width} x {img.height}  |  requested: {capture_width} x {capture_height}"
+    draw.text((6, 6), caption, fill="black")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    _target.write(buf.getvalue())
 
 
 def resolve(width: int = 1200, height: int = 400, **_):
@@ -60,6 +77,7 @@ def resolve(width: int = 1200, height: int = 400, **_):
 app = dash.Dash(__name__)
 app.layout = html.Div(
     [
+        html.H3("Chart 1: range selector hidden during capture"),
         chart_component,
         capture_element(
             "my-chart-container",
@@ -68,6 +86,18 @@ app.layout = html.Div(
             trigger=DyModebarButton(graph_id="my-chart", tooltip="Save"),
             strategy=dygraph_strategy(strip_margin=True),
             filename="forecast.png",
+        ),
+        html.H3("Chart 2: range selector kept in capture"),
+        chart_with_rs_component,
+        capture_element(
+            "my-chart-rs-container",
+            renderer=renderer,
+            capture_resolver=resolve,
+            trigger=DyModebarButton(graph_id="my-chart-rs", tooltip="Save"),
+            strategy=dygraph_strategy(
+                strip_margin=True, hide_range_selector=False
+            ),
+            filename="forecast-with-rs.png",
         ),
     ]
 )

@@ -603,6 +603,32 @@ class TestRendererAssetIntegration:
         rendering logic back into ``dash_render.js``."""
         assert "global.dygraphs.render(" in DASH_SHIM
 
+    def test_chart_div_uses_percentage_height(self) -> None:
+        """Chart div must use ``height:100%`` so container resizes propagate.
+
+        Hardcoding ``height:{N}px`` on the chart div breaks dash-capture's
+        ``build_reflow_preprocess`` — ``capture_height`` resizes the
+        container but the chart div's pixel-height absorbs the change,
+        so dygraphs never reflows. Width was always 100%; height must
+        match. The container owns the explicit pixel height.
+        """
+        # Find: <div id="..." style="...width:100%;height:100%..."></div>
+        scaffold_match = re.search(
+            r"setup\.chartDivId\s*\+\s*'\"\s*style=\"([^\"]+)\"", DASH_SHIM
+        )
+        assert scaffold_match, (
+            "could not find chart div scaffold in dash_render.js — "
+            "did the scaffold builder shape change?"
+        )
+        style = scaffold_match.group(1)
+        assert "height:100%" in style, (
+            f"chart div must use height:100% (container owns pixel height); got: {style!r}"
+        )
+        assert "setup.height" not in style, (
+            "chart div style must not interpolate setup.height — "
+            "that hardcodes a pixel value and breaks capture resize"
+        )
+
     def test_shim_dispatches_to_window_dygraphsdash(self) -> None:
         from dygraphs.dash.component import _build_render_js
 
