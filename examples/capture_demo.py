@@ -20,7 +20,6 @@ import numpy as np
 import pandas as pd
 from dash import Dash, html
 from dash_capture import capture_element
-from dash_fn_form import Field
 
 from dygraphs import Dygraph
 from dygraphs.dash import DygraphChart, dygraph_strategy
