@@ -182,14 +182,18 @@ class TestCapture:
         except ImportError:
             pytest.skip("dash-capture not installed")
         assert strategy.format == "png"
-        # preprocess is None — hide/restore is internal to the shared IIFE
-        assert strategy.preprocess is None
+        # When hide_range_selector=True (default), preprocess holds the
+        # showRangeSelector option toggle so dygraphs reflows the plot to
+        # fill the freed space; capture is wrapped in try/finally to
+        # toggle it back on.
+        assert strategy.preprocess is not None
+        assert "showRangeSelector" in strategy.preprocess
+        assert "_dygraphInstance" in strategy.preprocess
         assert MULTI_CANVAS_CAPTURE_JS in strategy.capture
-        # Selectors array baked into the call site, debug=false.
-        assert ".dygraph-rangesel-fgcanvas" in strategy.capture
-        assert ".dygraph-rangesel-bgcanvas" in strategy.capture
-        assert ".dygraph-rangesel-zoomhandle" in strategy.capture
-        assert "], false)" in strategy.capture  # closes selectors array, debug=false
+        # Capture wrapped in try/finally that restores the option.
+        assert "showRangeSelector: true" in strategy.capture
+        # Empty selectors array — toggle replaces selector hiding.
+        assert "[], false)" in strategy.capture
 
     def test_dygraph_strategy_no_hide(self) -> None:
         from dygraphs.dash.capture import dygraph_strategy
@@ -198,6 +202,9 @@ class TestCapture:
             strategy = dygraph_strategy(hide_range_selector=False)
         except ImportError:
             pytest.skip("dash-capture not installed")
+        # No toggle, no try/finally wrap, no selector hiding.
+        assert strategy.preprocess is None
+        assert "showRangeSelector" not in strategy.capture
         # Empty selectors array, debug=false.
         assert "[], false)" in strategy.capture
         assert (

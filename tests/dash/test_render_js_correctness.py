@@ -189,13 +189,27 @@ class TestDygraphStrategyShape:
         assert "_dcap_saved" in capture
 
     def test_preprocess_none_without_capture_dims(self) -> None:
-        """No preprocess when the renderer doesn't declare capture_width/height."""
+        """No reflow preprocess when the renderer doesn't declare
+        capture_width/height. The range-selector toggle still adds a
+        preprocess fragment when ``hide_range_selector=True`` (default),
+        but it does not set ``opts.width`` / ``opts.height``.
+        """
         _skip_if_no_dash_capture()
         from dygraphs.dash.capture import dygraph_strategy
 
-        assert dygraph_strategy().preprocess is None
+        # hide_range_selector=False AND no capture dims → no preprocess
         assert dygraph_strategy(hide_range_selector=False).preprocess is None
-        assert dygraph_strategy(_params={}).preprocess is None
+        assert (
+            dygraph_strategy(hide_range_selector=False, _params={}).preprocess is None
+        )
+
+        # hide_range_selector=True (default) → toggle preprocess present,
+        # but the reflow-preprocess (opts.width/opts.height) is not.
+        rs = dygraph_strategy().preprocess
+        assert rs is not None
+        assert "opts.width" not in rs
+        assert "opts.height" not in rs
+        assert "showRangeSelector" in rs
 
     def test_preprocess_emitted_for_capture_width(self) -> None:
         _skip_if_no_dash_capture()
@@ -768,13 +782,12 @@ class TestInteractionModelCompatShim:
     def test_shim_guarded_by_dygraph_presence(self) -> None:
         """The shim must not run before dygraphs.js has loaded.
 
-        Running ``Dygraph.Interaction.defaultModel = ...`` before the
-        library loads would crash with ``ReferenceError: Dygraph is
-        not defined``. Guard with a ``typeof Dygraph !== 'undefined'``
-        check.
+        Running ``Dygraph.defaultInteractionModel`` before the library
+        loads would crash with ``ReferenceError: Dygraph is not
+        defined``. Guard with a ``typeof Dygraph !== 'undefined'`` check.
         """
         pattern = re.compile(
-            r"typeof\s+Dygraph\s*!==\s*'undefined'\s*&&\s*Dygraph\.Interaction",
+            r"typeof\s+Dygraph\s*!==\s*'undefined'\s*&&\s*Dygraph\.defaultInteractionModel",
             re.DOTALL,
         )
         assert pattern.search(ASSET), (
