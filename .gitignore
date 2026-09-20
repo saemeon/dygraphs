@@ -166,6 +166,7 @@ _local_notes.md
 
 dygraphs-js/
 dygraphs-r/
+src/*/_version.py
 
 # A library resolves for its dependents, not for itself.
 uv.lock
