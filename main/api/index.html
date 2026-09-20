@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1959,14 +1959,14 @@ if <code>periodicity</code> is not one of the accepted values, or if
     <p>From a pandas DataFrame (builder style):</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="p">{</span><span class="s2">&quot;temp&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">11</span><span class="p">],</span> <span class="s2">&quot;rain&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">]},</span>
-<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="p">{</span><span class="s2">"temp"</span><span class="p">:</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">11</span><span class="p">],</span> <span class="s2">"rain"</span><span class="p">:</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">]},</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s2">"2024-01-01"</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="p">(</span>
-<span class="gp">... </span>    <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Weather&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Weather"</span><span class="p">)</span>
 <span class="gp">... </span>    <span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">fill_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stroke_width</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<span class="gp">... </span>    <span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">)</span>
-<span class="gp">... </span>    <span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;°C&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">"temp"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"red"</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">"y"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"°C"</span><span class="p">)</span>
 <span class="gp">... </span>    <span class="o">.</span><span class="n">range_selector</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
@@ -1974,26 +1974,26 @@ if <code>periodicity</code> is not one of the accepted values, or if
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">dygraphs</span><span class="w"> </span><span class="kn">import</span> <span class="n">Options</span><span class="p">,</span> <span class="n">Series</span><span class="p">,</span> <span class="n">Axis</span><span class="p">,</span> <span class="n">RangeSelector</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">df</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Weather&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">title</span><span class="o">=</span><span class="s2">"Weather"</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">options</span><span class="o">=</span><span class="n">Options</span><span class="p">(</span><span class="n">fill_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stroke_width</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
-<span class="gp">... </span>    <span class="n">series</span><span class="o">=</span><span class="p">[</span><span class="n">Series</span><span class="p">(</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">)],</span>
-<span class="gp">... </span>    <span class="n">axes</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">Axis</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;°C&quot;</span><span class="p">)},</span>
+<span class="gp">... </span>    <span class="n">series</span><span class="o">=</span><span class="p">[</span><span class="n">Series</span><span class="p">(</span><span class="s2">"temp"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"red"</span><span class="p">)],</span>
+<span class="gp">... </span>    <span class="n">axes</span><span class="o">=</span><span class="p">{</span><span class="s2">"y"</span><span class="p">:</span> <span class="n">Axis</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"y"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"°C"</span><span class="p">)},</span>
 <span class="gp">... </span>    <span class="n">range_selector</span><span class="o">=</span><span class="n">RangeSelector</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="mi">30</span><span class="p">),</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
     <p>Declarative accepts plain dicts too — mix freely:</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">df</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;fill_graph&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
-<span class="gp">... </span>    <span class="n">series</span><span class="o">=</span><span class="p">[</span><span class="n">Series</span><span class="p">(</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">),</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;rain&quot;</span><span class="p">,</span> <span class="s2">&quot;axis&quot;</span><span class="p">:</span> <span class="s2">&quot;y2&quot;</span><span class="p">}],</span>
+<span class="gp">... </span>    <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">"fill_graph"</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="n">series</span><span class="o">=</span><span class="p">[</span><span class="n">Series</span><span class="p">(</span><span class="s2">"temp"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"red"</span><span class="p">),</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"rain"</span><span class="p">,</span> <span class="s2">"axis"</span><span class="p">:</span> <span class="s2">"y2"</span><span class="p">}],</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
     <p>From a CSV string:</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="s2">&quot;Date,A,B</span><span class="se">\n</span><span class="s2">2024-01-01,1,2</span><span class="se">\n</span><span class="s2">2024-01-02,3,4&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="s2">"Date,A,B</span><span class="se">\n</span><span class="s2">2024-01-01,1,2</span><span class="se">\n</span><span class="s2">2024-01-02,3,4"</span><span class="p">)</span>
 </code></pre></div>
     <p>Synchronise two charts on the x-axis:</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;weather&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">range_selector</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df2</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;weather&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">range_selector</span><span class="p">()</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">"weather"</span><span class="p">)</span><span class="o">.</span><span class="n">range_selector</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df2</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">"weather"</span><span class="p">)</span><span class="o">.</span><span class="n">range_selector</span><span class="p">()</span>
 </code></pre></div>
     <p>Render to different targets:</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">html</span> <span class="o">=</span> <span class="n">chart</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>        <span class="c1"># standalone HTML page</span>
@@ -2076,13 +2076,13 @@ dygraphs.shiny.render_dygraph : Shiny server-side render helper.</p>
     <span class="n">stem_plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">draw_points</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">point_size</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-    <span class="n">point_shape</span><span class="o">=</span><span class="s2">&quot;dot&quot;</span><span class="p">,</span>
+    <span class="n">point_shape</span><span class="o">=</span><span class="s2">"dot"</span><span class="p">,</span>
     <span class="n">draw_gap_edge_points</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">connect_separated_points</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">stroke_width</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
     <span class="n">stroke_pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">stroke_border_width</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">stroke_border_color</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
+    <span class="n">stroke_border_color</span><span class="o">=</span><span class="s2">"white"</span><span class="p">,</span>
     <span class="n">plotter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">color_value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
@@ -2093,9 +2093,9 @@ dygraphs.shiny.render_dygraph : Shiny server-side render helper.</p>
     <span class="n">draw_axes_at_zero</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">logscale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">axis_tick_size</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
-    <span class="n">axis_line_color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
+    <span class="n">axis_line_color</span><span class="o">=</span><span class="s2">"black"</span><span class="p">,</span>
     <span class="n">axis_line_width</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
-    <span class="n">axis_label_color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
+    <span class="n">axis_label_color</span><span class="o">=</span><span class="s2">"black"</span><span class="p">,</span>
     <span class="n">axis_label_font_size</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
     <span class="n">axis_label_width</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
     <span class="n">draw_grid</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -3756,14 +3756,14 @@ By default False.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">fill_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">draw_points</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;#00d4aa&quot;</span><span class="p">,</span> <span class="s2">&quot;#f4a261&quot;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="s2">"#00d4aa"</span><span class="p">,</span> <span class="s2">"#f4a261"</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">stroke_width</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
     <p>Enable stacked graph with grid styling:</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">stacked_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">grid_line_color</span><span class="o">=</span><span class="s2">&quot;#ddd&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">grid_line_color</span><span class="o">=</span><span class="s2">"#ddd"</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">axis_label_font_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
@@ -4320,11 +4320,11 @@ if <em>axis_height</em> is specified for a non-x axis.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Temperature&quot;</span><span class="p">,</span> <span class="n">value_range</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">"y"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Temperature"</span><span class="p">,</span> <span class="n">value_range</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
 </code></pre></div>
     <p>Dual y-axis with independent ticks:</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">&quot;y2&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Humidity&quot;</span><span class="p">,</span> <span class="n">independent_ticks</span><span class="o">=</span><span class="kc">True</span>
+<span class="gp">... </span>    <span class="s2">"y2"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Humidity"</span><span class="p">,</span> <span class="n">independent_ticks</span><span class="o">=</span><span class="kc">True</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
 
@@ -4351,7 +4351,7 @@ if <em>axis_height</em> is specified for a non-x axis.</p>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span>
+    <span class="n">axis</span><span class="o">=</span><span class="s2">"y"</span><span class="p">,</span>
     <span class="n">step_plot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">stem_plot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">fill_graph</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -4803,15 +4803,15 @@ By default None.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">stroke_width</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">"temp"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"red"</span><span class="p">,</span> <span class="n">stroke_width</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 </code></pre></div>
     <p>Step plot with custom point shape:</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">series</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">step_plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">draw_points</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">point_shape</span><span class="o">=</span><span class="s2">&quot;square&quot;</span>
+<span class="gp">... </span>    <span class="s2">"temp"</span><span class="p">,</span> <span class="n">step_plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">draw_points</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">point_shape</span><span class="o">=</span><span class="s2">"square"</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
     <p>Assign a series to the secondary y-axis:</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">&quot;rain&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y2&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">"rain"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">"y2"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"blue"</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -4838,7 +4838,7 @@ options : Global chart options.</p>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span>
+    <span class="n">axis</span><span class="o">=</span><span class="s2">"y"</span><span class="p">,</span>
     <span class="n">step_plot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">stem_plot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">fill_graph</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -4868,11 +4868,11 @@ subset.</p>
     things:</p>
 <div class="highlight"><pre><span></span><code>- **This method (``.group([names], ...)``)** styles a *list of
   series* together within a single chart. Takes a list of
-  column names. Mirrors R&#39;s ``dyGroup()``.
-- **Constructor kwarg ``Dygraph(df, group=&quot;...&quot;)``** (a.k.a.
+  column names. Mirrors R's ``dyGroup()``.
+- **Constructor kwarg ``Dygraph(df, group="...")``** (a.k.a.
   :meth:`sync_group`) synchronises zoom, pan, and highlight
   across *multiple charts* that share the same group name.
-  Takes a string. Mirrors R&#39;s ``dygraph(group=)``.
+  Takes a string. Mirrors R's ``dygraph(group=)``.
 </code></pre></div>
 
 
@@ -5213,7 +5213,7 @@ By default None.</p>
 
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="p">[</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="s2">&quot;rain&quot;</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="s2">&quot;blue&quot;</span><span class="p">],</span> <span class="n">draw_points</span><span class="o">=</span><span class="kc">True</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="s2">"temp"</span><span class="p">,</span> <span class="s2">"rain"</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="p">[</span><span class="s2">"red"</span><span class="p">,</span> <span class="s2">"blue"</span><span class="p">],</span> <span class="n">draw_points</span><span class="o">=</span><span class="kc">True</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
 
@@ -5237,7 +5237,7 @@ sync_group : Set the cross-chart sync name (the unrelated <code>group=</code> kw
 
 <a href="#dygraphs.Dygraph.legend" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">legend</span><span class="p">(</span>
-    <span class="n">show</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+    <span class="n">show</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span>
     <span class="n">width</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span>
     <span class="n">show_zero_values</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">labels_div</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -5416,10 +5416,10 @@ By default True.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="s2">"always"</span><span class="p">)</span>
 </code></pre></div>
     <p>Floating legend that follows the mouse:</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="s2">&quot;follow&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="s2">"follow"</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -5605,7 +5605,7 @@ By default True.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">highlight</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">circle_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">series_background_alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">series_opts</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;strokeWidth&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="n">series_opts</span><span class="o">=</span><span class="p">{</span><span class="s2">"strokeWidth"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
 
@@ -6016,13 +6016,13 @@ series in the data.</p>
 
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">annotation</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">&quot;2024-01-15&quot;</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Anomaly detected&quot;</span>
+<span class="gp">... </span>    <span class="s2">"2024-01-15"</span><span class="p">,</span> <span class="s2">"A"</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">"Anomaly detected"</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
     <p>Annotation on a specific series with custom styling:</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">annotation</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">&quot;2024-02-01&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">series</span><span class="o">=</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">"2024-02-01"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">series</span><span class="o">=</span><span class="s2">"temp"</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">tick_height</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">attach_at_bottom</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
@@ -6046,7 +6046,7 @@ series in the data.</p>
 
 
 <a href="#dygraphs.Dygraph.shading" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">shading</span><span class="p">(</span><span class="n">from_</span><span class="p">,</span> <span class="n">to</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#EFEFEF&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">shading</span><span class="p">(</span><span class="n">from_</span><span class="p">,</span> <span class="n">to</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'#EFEFEF'</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">'x'</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6165,11 +6165,11 @@ series in the data.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">shading</span><span class="p">(</span><span class="s2">&quot;2024-01-15&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-02-15&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">shading</span><span class="p">(</span><span class="s2">"2024-01-15"</span><span class="p">,</span> <span class="s2">"2024-02-15"</span><span class="p">)</span>
 </code></pre></div>
     <p>Colored shading with custom color:</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">shading</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">&quot;2024-01-15&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-02-15&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;rgba(200,200,255,0.3)&quot;</span>
+<span class="gp">... </span>    <span class="s2">"2024-01-15"</span><span class="p">,</span> <span class="s2">"2024-02-15"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"rgba(200,200,255,0.3)"</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
 
@@ -6195,9 +6195,9 @@ series in the data.</p>
     <span class="n">x</span><span class="p">,</span>
     <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">label_loc</span><span class="o">=</span><span class="s2">&quot;top&quot;</span><span class="p">,</span>
-    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
-    <span class="n">stroke_pattern</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">,</span>
+    <span class="n">label_loc</span><span class="o">=</span><span class="s2">"top"</span><span class="p">,</span>
+    <span class="n">color</span><span class="o">=</span><span class="s2">"black"</span><span class="p">,</span>
+    <span class="n">stroke_pattern</span><span class="o">=</span><span class="s2">"dashed"</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
 
@@ -6344,11 +6344,11 @@ draw/space lengths. By default <code>"dashed"</code>.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">event</span><span class="p">(</span><span class="s2">&quot;2024-02-14&quot;</span><span class="p">,</span> <span class="s2">&quot;Valentine&#39;s Day&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">event</span><span class="p">(</span><span class="s2">"2024-02-14"</span><span class="p">,</span> <span class="s2">"Valentine's Day"</span><span class="p">)</span>
 </code></pre></div>
     <p>Styled event line:</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">event</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">&quot;2024-03-01&quot;</span><span class="p">,</span> <span class="s2">&quot;Spring&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#f76e8a&quot;</span><span class="p">,</span> <span class="n">stroke_pattern</span><span class="o">=</span><span class="s2">&quot;dotted&quot;</span>
+<span class="gp">... </span>    <span class="s2">"2024-03-01"</span><span class="p">,</span> <span class="s2">"Spring"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#f76e8a"</span><span class="p">,</span> <span class="n">stroke_pattern</span><span class="o">=</span><span class="s2">"dotted"</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
 
@@ -6375,9 +6375,9 @@ shading : Add a shaded region.</p>
     <span class="n">value</span><span class="p">,</span>
     <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">label_loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
-    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
-    <span class="n">stroke_pattern</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">,</span>
+    <span class="n">label_loc</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span>
+    <span class="n">color</span><span class="o">=</span><span class="s2">"black"</span><span class="p">,</span>
+    <span class="n">stroke_pattern</span><span class="o">=</span><span class="s2">"dashed"</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
 
@@ -6524,11 +6524,11 @@ draw/space lengths. By default <code>"dashed"</code>.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mf">30.0</span><span class="p">,</span> <span class="s2">&quot;Max&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mf">30.0</span><span class="p">,</span> <span class="s2">"Max"</span><span class="p">)</span>
 </code></pre></div>
     <p>Right-aligned label with dotted line:</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="mf">25.0</span><span class="p">,</span> <span class="s2">&quot;Threshold&quot;</span><span class="p">,</span> <span class="n">label_loc</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">stroke_pattern</span><span class="o">=</span><span class="s2">&quot;dotted&quot;</span>
+<span class="gp">... </span>    <span class="mf">25.0</span><span class="p">,</span> <span class="s2">"Threshold"</span><span class="p">,</span> <span class="n">label_loc</span><span class="o">=</span><span class="s2">"right"</span><span class="p">,</span> <span class="n">stroke_pattern</span><span class="o">=</span><span class="s2">"dotted"</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
 
@@ -6553,8 +6553,8 @@ draw/space lengths. By default <code>"dashed"</code>.</p>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">range_selector</span><span class="p">(</span>
     <span class="n">date_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">height</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
-    <span class="n">fill_color</span><span class="o">=</span><span class="s2">&quot;#A7B1C4&quot;</span><span class="p">,</span>
-    <span class="n">stroke_color</span><span class="o">=</span><span class="s2">&quot;#808FAB&quot;</span><span class="p">,</span>
+    <span class="n">fill_color</span><span class="o">=</span><span class="s2">"#A7B1C4"</span><span class="p">,</span>
+    <span class="n">stroke_color</span><span class="o">=</span><span class="s2">"#808FAB"</span><span class="p">,</span>
     <span class="n">keep_mouse_zoom</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">retain_date_window</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span>
@@ -6712,7 +6712,7 @@ By default False.</p>
 </code></pre></div>
     <p>With initial zoom window:</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">range_selector</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">date_window</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;2024-01-10&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-01-20&quot;</span><span class="p">),</span> <span class="n">height</span><span class="o">=</span><span class="mi">30</span>
+<span class="gp">... </span>    <span class="n">date_window</span><span class="o">=</span><span class="p">(</span><span class="s2">"2024-01-10"</span><span class="p">,</span> <span class="s2">"2024-01-20"</span><span class="p">),</span> <span class="n">height</span><span class="o">=</span><span class="mi">30</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
 
@@ -7194,8 +7194,8 @@ By default None.</p>
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">dygraphs</span><span class="w"> </span><span class="kn">import</span> <span class="n">JS</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">callbacks</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">click</span><span class="o">=</span><span class="s2">&quot;function(e, x, pts) { console.log(x); }&quot;</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">zoom</span><span class="o">=</span><span class="s2">&quot;function(minDate, maxDate) { console.log(minDate, maxDate); }&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">click</span><span class="o">=</span><span class="s2">"function(e, x, pts) { console.log(x); }"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">zoom</span><span class="o">=</span><span class="s2">"function(minDate, maxDate) { console.log(minDate, maxDate); }"</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
 
@@ -7262,10 +7262,10 @@ a :class:<code>pathlib.Path</code> to force the file-path interpretation.</p>
 
 <p><span class="doc-section-title">Examples:</span></p>
     <p>From a file (R-equivalent):</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s2">&quot;custom-dygraph.css&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s2">"custom-dygraph.css"</span><span class="p">)</span>
 </code></pre></div>
     <p>From a raw string (Python convenience):</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s2">&quot;.dygraph-title { color: red; }&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s2">".dygraph-title { color: red; }"</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -7602,7 +7602,7 @@ By default False.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">bar_series</span><span class="p">(</span><span class="s2">&quot;rain&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">bar_series</span><span class="p">(</span><span class="s2">"rain"</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -7701,7 +7701,7 @@ By default False.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">stem_series</span><span class="p">(</span><span class="s2">&quot;rain&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">stem_series</span><span class="p">(</span><span class="s2">"rain"</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -7802,7 +7802,7 @@ which draws both.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">shadow</span><span class="p">(</span><span class="s2">&quot;temp&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">shadow</span><span class="p">(</span><span class="s2">"temp"</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -7906,7 +7906,7 @@ which draws both.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">filled_line</span><span class="p">(</span><span class="s2">&quot;temp&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">filled_line</span><span class="p">(</span><span class="s2">"temp"</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -8005,7 +8005,7 @@ which draws both.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">error_fill</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">error_fill</span><span class="p">(</span><span class="s2">"value"</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -8104,7 +8104,7 @@ which draws both.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">multi_column_group</span><span class="p">([</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="s2">&quot;rain&quot;</span><span class="p">])</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">multi_column_group</span><span class="p">([</span><span class="s2">"temp"</span><span class="p">,</span> <span class="s2">"rain"</span><span class="p">])</span>
 </code></pre></div>
 
 
@@ -8203,7 +8203,7 @@ which draws both.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">candlestick_group</span><span class="p">([</span><span class="s2">&quot;open&quot;</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">,</span> <span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">])</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">candlestick_group</span><span class="p">([</span><span class="s2">"open"</span><span class="p">,</span> <span class="s2">"high"</span><span class="p">,</span> <span class="s2">"low"</span><span class="p">,</span> <span class="s2">"close"</span><span class="p">])</span>
 </code></pre></div>
 
 
@@ -8302,7 +8302,7 @@ which draws both.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">stacked_bar_group</span><span class="p">([</span><span class="s2">&quot;solar&quot;</span><span class="p">,</span> <span class="s2">&quot;wind&quot;</span><span class="p">,</span> <span class="s2">&quot;hydro&quot;</span><span class="p">])</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">stacked_bar_group</span><span class="p">([</span><span class="s2">"solar"</span><span class="p">,</span> <span class="s2">"wind"</span><span class="p">,</span> <span class="s2">"hydro"</span><span class="p">])</span>
 </code></pre></div>
 
 
@@ -8401,7 +8401,7 @@ which draws both.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">stacked_line_group</span><span class="p">([</span><span class="s2">&quot;solar&quot;</span><span class="p">,</span> <span class="s2">&quot;wind&quot;</span><span class="p">,</span> <span class="s2">&quot;hydro&quot;</span><span class="p">])</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">stacked_line_group</span><span class="p">([</span><span class="s2">"solar"</span><span class="p">,</span> <span class="s2">"wind"</span><span class="p">,</span> <span class="s2">"hydro"</span><span class="p">])</span>
 </code></pre></div>
 
 
@@ -8500,7 +8500,7 @@ which draws both.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">stacked_ribbon_group</span><span class="p">([</span><span class="s2">&quot;solar&quot;</span><span class="p">,</span> <span class="s2">&quot;wind&quot;</span><span class="p">,</span> <span class="s2">&quot;hydro&quot;</span><span class="p">])</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">stacked_ribbon_group</span><span class="p">([</span><span class="s2">"solar"</span><span class="p">,</span> <span class="s2">"wind"</span><span class="p">,</span> <span class="s2">"hydro"</span><span class="p">])</span>
 </code></pre></div>
 
 
@@ -8592,7 +8592,7 @@ default double-click gesture).</p>
 
 
 <a href="#dygraphs.Dygraph.crosshair" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">crosshair</span><span class="p">(</span><span class="n">direction</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">crosshair</span><span class="p">(</span><span class="n">direction</span><span class="o">=</span><span class="s1">'both'</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -8636,7 +8636,7 @@ chart.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">crosshair</span><span class="p">(</span><span class="n">direction</span><span class="o">=</span><span class="s2">&quot;vertical&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">crosshair</span><span class="p">(</span><span class="n">direction</span><span class="o">=</span><span class="s2">"vertical"</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -8814,7 +8814,7 @@ ribbon, relative to chart height. By default 0.0.</p>
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">ribbon</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-<span class="gp">... </span>    <span class="n">palette</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;green&quot;</span><span class="p">,</span> <span class="s2">&quot;red&quot;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">palette</span><span class="o">=</span><span class="p">[</span><span class="s2">"green"</span><span class="p">,</span> <span class="s2">"red"</span><span class="p">],</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
 
@@ -8976,7 +8976,7 @@ params (<code>options</code>, <code>axes</code>, <code>series</code>, <code>lege
 
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">legend</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;show&quot;</span><span class="p">:</span> <span class="s2">&quot;follow&quot;</span><span class="p">},</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;fill_graph&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">legend</span><span class="o">=</span><span class="p">{</span><span class="s2">"show"</span><span class="p">:</span> <span class="s2">"follow"</span><span class="p">},</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">"fill_graph"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 </code></pre></div>
     <p>Returns self for chaining.</p>
 
@@ -9004,7 +9004,7 @@ params (<code>options</code>, <code>axes</code>, <code>series</code>, <code>lege
 
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">base</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">fill_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">variant</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">variant</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">"temp"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"red"</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -9081,7 +9081,7 @@ params (<code>options</code>, <code>axes</code>, <code>series</code>, <code>lege
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;My Data&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="s2">"data.csv"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"My Data"</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -9098,7 +9098,7 @@ params (<code>options</code>, <code>axes</code>, <code>series</code>, <code>lege
 
 <a href="#dygraphs.Dygraph.to_html" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">to_html</span><span class="p">(</span>
-    <span class="o">*</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="s2">&quot;400px&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="s2">&quot;100%&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="kc">True</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="s2">"400px"</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="s2">"100%"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
 </code></pre></div>
 
@@ -9202,8 +9202,8 @@ needed.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">html_str</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Weather&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;chart.html&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">html_str</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">html_str</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Weather"</span><span class="p">)</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Path</span><span class="p">(</span><span class="s2">"chart.html"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">html_str</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -9238,7 +9238,7 @@ markers that the clientside renderer evaluates.</p>
 
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">fill_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;attrs&quot;</span><span class="p">][</span><span class="s2">&quot;fillGraph&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="p">[</span><span class="s2">"attrs"</span><span class="p">][</span><span class="s2">"fillGraph"</span><span class="p">]</span>
 <span class="go">True</span>
 </code></pre></div>
 
@@ -9754,7 +9754,7 @@ markers that the clientside renderer evaluates.</p>
 from dygraphs.dash import DygraphChart
 
 app.layout = html.Div([
-    DygraphChart(figure=dg, id=&quot;chart&quot;),
+    DygraphChart(figure=dg, id="chart"),
 ])
 </code></pre></div>
 <p><strong>What it actually is.</strong> A <code>DygraphChart</code> is an <code>html.Div</code> that
@@ -9914,11 +9914,11 @@ opts store gets <code>{id}-opts</code> and the container div
 <p><span class="doc-section-title">Examples:</span></p>
     <p>Updating the chart's data — including restyles — via <code>to_js</code>,
 which returns a Dash-safe dict (see :meth:<code>Dygraph.to_js</code>)::</p>
-<div class="highlight"><pre><span></span><code>@callback(Output(chart, &quot;data&quot;), Input(&quot;btn&quot;, &quot;n_clicks&quot;))
+<div class="highlight"><pre><span></span><code>@callback(Output(chart, "data"), Input("btn", "n_clicks"))
 def refresh(n):
     return Dygraph(df * n).to_js()
 
-@callback(Output(chart, &quot;data&quot;), Input(&quot;thick&quot;, &quot;n_clicks&quot;))
+@callback(Output(chart, "data"), Input("thick", "n_clicks"))
 def thick(n):
     return (
         Dygraph(df)
@@ -10205,12 +10205,12 @@ mechanism used by :class:<code>DygraphChart</code>.</p>
 <div class="highlight"><pre><span></span><code>from dygraphs.dash import StackedBarChart
 
 chart = StackedBarChart(
-    id=&quot;bars&quot;,
-    initial_data=&quot;Date,A,B\n2024-01-01,1,2\n2024-01-02,3,4&quot;,
-    title=&quot;Stacked demo&quot;,
+    id="bars",
+    initial_data="Date,A,B\n2024-01-01,1,2\n2024-01-02,3,4",
+    title="Stacked demo",
 )
 
-@callback(Output(chart, &quot;data&quot;), Input(&quot;refresh&quot;, &quot;n_clicks&quot;))
+@callback(Output(chart, "data"), Input("refresh", "n_clicks"))
 def refresh(_n):
     return updated_csv_string
 </code></pre></div>
@@ -10725,16 +10725,16 @@ from dygraphs.dash import DygraphChart, dygraph_strategy
 
 app = Dash(__name__)
 
-chart = Dygraph(df, title=&quot;Sales&quot;).range_selector()
-chart_component = DygraphChart(figure=chart, id=&quot;sales&quot;, height=&quot;320px&quot;)
+chart = Dygraph(df, title="Sales").range_selector()
+chart_component = DygraphChart(figure=chart, id="sales", height="320px")
 
 app.layout = html.Div([
     chart_component,
     capture_element(
-        &quot;sales-container&quot;,
-        trigger=&quot;Download PNG&quot;,
+        "sales-container",
+        trigger="Download PNG",
         strategy=dygraph_strategy(hide_range_selector=True),
-        filename=&quot;sales.png&quot;,
+        filename="sales.png",
     ),
 ])
 </code></pre></div>
@@ -10991,9 +10991,9 @@ evaluate it as code.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">js</span> <span class="o">=</span> <span class="n">JS</span><span class="p">(</span><span class="s2">&quot;function(x) { return x * 2; }&quot;</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">js</span> <span class="o">=</span> <span class="n">JS</span><span class="p">(</span><span class="s2">"function(x) { return x * 2; }"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">repr</span><span class="p">(</span><span class="n">js</span><span class="p">)</span>
-<span class="go">&quot;JS(&#39;function(x) { return x * 2; }&#39;)&quot;</span>
+<span class="go">"JS('function(x) { return x * 2; }')"</span>
 </code></pre></div>
 
 
@@ -11104,7 +11104,7 @@ evaluate it as code.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.width.wide", "content.code.annotate", "content.code.copy", "content.tabs.link", "navigation.top", "navigation.tracking", "content.action.edit", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

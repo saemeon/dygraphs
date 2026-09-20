@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1083,7 +1083,7 @@ plotly's <code>Figure</code> and R's htmlwidget.</p>
          ▼                      ▼                          ▼
   DygraphChart(           dygraph_ui(id)            dg.to_html()
     figure=dg,            render_dygraph(             → standalone
-    id=&quot;chart&quot;)             session, id, dg)            HTML string
+    id="chart")             session, id, dg)            HTML string
     → Dash                → Shiny                    → no server
 </code></pre></div>
 <ul>
@@ -1099,36 +1099,36 @@ plotly's <code>Figure</code> and R's htmlwidget.</p>
 <h2 id="recipes">Recipes<a class="headerlink" href="#recipes" title="Permanent link">&para;</a></h2>
 <p>Short answers to the most common questions. Deeper sections below.</p>
 <p><strong>I want to build a chart and view it in a notebook.</strong></p>
-<div class="highlight"><pre><span></span><code><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Demo&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">range_selector</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Demo"</span><span class="p">)</span><span class="o">.</span><span class="n">range_selector</span><span class="p">()</span>
 <span class="n">chart</span>  <span class="c1"># auto-displays via _repr_html_</span>
 </code></pre></div>
 <p><strong>I want to render it in Dash.</strong></p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dygraphs.dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">DygraphChart</span>
-<span class="n">app</span><span class="o">.</span><span class="n">layout</span> <span class="o">=</span> <span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">([</span><span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">chart</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;my-chart&quot;</span><span class="p">)])</span>
+<span class="n">app</span><span class="o">.</span><span class="n">layout</span> <span class="o">=</span> <span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">([</span><span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">chart</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"my-chart"</span><span class="p">)])</span>
 </code></pre></div>
 <p><strong>I want to update the chart from a Dash callback.</strong></p>
-<div class="highlight"><pre><span></span><code><span class="nd">@callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="n">chart</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;btn&quot;</span><span class="p">,</span> <span class="s2">&quot;n_clicks&quot;</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><code><span class="nd">@callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="n">chart</span><span class="p">,</span> <span class="s2">"data"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"btn"</span><span class="p">,</span> <span class="s2">"n_clicks"</span><span class="p">))</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">refresh</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">to_js</span><span class="p">()</span>   <span class="c1"># .to_js() is the Dash-safe serialiser</span>
 </code></pre></div>
 <p><strong>I want an empty placeholder that a callback fills in later.</strong></p>
-<div class="highlight"><pre><span></span><code><span class="n">chart</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;chart&quot;</span><span class="p">)</span>   <span class="c1"># data=None; renderer is a no-op</span>
+<div class="highlight"><pre><span></span><code><span class="n">chart</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"chart"</span><span class="p">)</span>   <span class="c1"># data=None; renderer is a no-op</span>
 </code></pre></div>
 <p><strong>I want to read the chart's id from Python.</strong></p>
-<div class="highlight"><pre><span></span><code><span class="n">chart</span><span class="o">.</span><span class="n">chart_id</span>   <span class="c1"># &quot;my-chart&quot; — NOT chart.id (Dash reserves .id for its</span>
+<div class="highlight"><pre><span></span><code><span class="n">chart</span><span class="o">.</span><span class="n">chart_id</span>   <span class="c1"># "my-chart" — NOT chart.id (Dash reserves .id for its</span>
                  <span class="c1">#             duplicate-id validator, so we use a</span>
                  <span class="c1">#             different attribute name)</span>
 </code></pre></div>
 <p><strong>I want symmetric error bars.</strong></p>
 <div class="highlight"><pre><span></span><code><span class="n">data</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="o">.</span><span class="n">error_bar_data</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">dates</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">values</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">stddev</span><span class="p">)</span>
-<span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;error_bars&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">"error_bars"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 </code></pre></div>
 <p><strong>I want to sync zoom across multiple charts.</strong></p>
-<div class="highlight"><pre><span></span><code><span class="n">Dygraph</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;sync&quot;</span><span class="p">)</span>
-<span class="n">Dygraph</span><span class="p">(</span><span class="n">df2</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;sync&quot;</span><span class="p">)</span>     <span class="c1"># same group name → shared x-axis window</span>
+<div class="highlight"><pre><span></span><code><span class="n">Dygraph</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">"sync"</span><span class="p">)</span>
+<span class="n">Dygraph</span><span class="p">(</span><span class="n">df2</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">"sync"</span><span class="p">)</span>     <span class="c1"># same group name → shared x-axis window</span>
 </code></pre></div>
 <p><strong>I want to export a chart to a single HTML file.</strong></p>
-<div class="highlight"><pre><span></span><code><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;chart.html&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">to_html</span><span class="p">())</span>
+<div class="highlight"><pre><span></span><code><span class="n">Path</span><span class="p">(</span><span class="s2">"chart.html"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">to_html</span><span class="p">())</span>
 </code></pre></div>
 <h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
 <h3 id="builder-api-chaining">Builder API (chaining)<a class="headerlink" href="#builder-api-chaining" title="Permanent link">&para;</a></h3>
@@ -1136,16 +1136,16 @@ plotly's <code>Figure</code> and R's htmlwidget.</p>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dygraphs</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dygraph</span>
 
 <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-    <span class="p">{</span><span class="s2">&quot;temp&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">13</span><span class="p">],</span> <span class="s2">&quot;rain&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">]},</span>
-    <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">),</span>
+    <span class="p">{</span><span class="s2">"temp"</span><span class="p">:</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">13</span><span class="p">],</span> <span class="s2">"rain"</span><span class="p">:</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">]},</span>
+    <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s2">"2024-01-01"</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">"D"</span><span class="p">),</span>
 <span class="p">)</span>
 
 <span class="n">chart</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Weather&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">fill_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">draw_points</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;#00d4aa&quot;</span><span class="p">,</span> <span class="s2">&quot;#f4a261&quot;</span><span class="p">])</span>
-    <span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Value&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">stroke_width</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
+    <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Weather"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">fill_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">draw_points</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="s2">"#00d4aa"</span><span class="p">,</span> <span class="s2">"#f4a261"</span><span class="p">])</span>
+    <span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">"y"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Value"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">"temp"</span><span class="p">,</span> <span class="n">stroke_width</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="s2">"always"</span><span class="p">)</span>
     <span class="o">.</span><span class="n">range_selector</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -1154,20 +1154,20 @@ plotly's <code>Figure</code> and R's htmlwidget.</p>
 
 <span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span>
     <span class="n">df</span><span class="p">,</span>
-    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Weather&quot;</span><span class="p">,</span>
-    <span class="n">options</span><span class="o">=</span><span class="n">Options</span><span class="p">(</span><span class="n">fill_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">draw_points</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;#00d4aa&quot;</span><span class="p">,</span> <span class="s2">&quot;#f4a261&quot;</span><span class="p">]),</span>
-    <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="n">Axis</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Value&quot;</span><span class="p">)],</span>
-    <span class="n">series</span><span class="o">=</span><span class="p">[</span><span class="n">Series</span><span class="p">(</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">stroke_width</span><span class="o">=</span><span class="mi">2</span><span class="p">)],</span>
-    <span class="n">legend</span><span class="o">=</span><span class="n">Legend</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="s2">&quot;always&quot;</span><span class="p">),</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"Weather"</span><span class="p">,</span>
+    <span class="n">options</span><span class="o">=</span><span class="n">Options</span><span class="p">(</span><span class="n">fill_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">draw_points</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="s2">"#00d4aa"</span><span class="p">,</span> <span class="s2">"#f4a261"</span><span class="p">]),</span>
+    <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="n">Axis</span><span class="p">(</span><span class="s2">"y"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Value"</span><span class="p">)],</span>
+    <span class="n">series</span><span class="o">=</span><span class="p">[</span><span class="n">Series</span><span class="p">(</span><span class="s2">"temp"</span><span class="p">,</span> <span class="n">stroke_width</span><span class="o">=</span><span class="mi">2</span><span class="p">)],</span>
+    <span class="n">legend</span><span class="o">=</span><span class="n">Legend</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="s2">"always"</span><span class="p">),</span>
     <span class="n">range_selector</span><span class="o">=</span><span class="n">RangeSelector</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="mi">30</span><span class="p">),</span>
 <span class="p">)</span>
 </code></pre></div>
 <p>Dicts work too — mix freely:</p>
 <div class="highlight"><pre><span></span><code><span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span>
     <span class="n">df</span><span class="p">,</span>
-    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Weather&quot;</span><span class="p">,</span>
-    <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;fill_graph&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
-    <span class="n">series</span><span class="o">=</span><span class="p">[</span><span class="n">Series</span><span class="p">(</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">),</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;rain&quot;</span><span class="p">,</span> <span class="s2">&quot;axis&quot;</span><span class="p">:</span> <span class="s2">&quot;y2&quot;</span><span class="p">}],</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"Weather"</span><span class="p">,</span>
+    <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">"fill_graph"</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+    <span class="n">series</span><span class="o">=</span><span class="p">[</span><span class="n">Series</span><span class="p">(</span><span class="s2">"temp"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"red"</span><span class="p">),</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"rain"</span><span class="p">,</span> <span class="s2">"axis"</span><span class="p">:</span> <span class="s2">"y2"</span><span class="p">}],</span>
 <span class="p">)</span>
 </code></pre></div>
 <h3 id="render-in-dash">Render in Dash<a class="headerlink" href="#render-in-dash" title="Permanent link">&para;</a></h3>
@@ -1177,22 +1177,22 @@ plotly's <code>Figure</code> and R's htmlwidget.</p>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dygraphs.dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">DygraphChart</span>
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">Dash</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-<span class="n">app</span><span class="o">.</span><span class="n">layout</span> <span class="o">=</span> <span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">([</span><span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">chart</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;my-chart&quot;</span><span class="p">)])</span>
+<span class="n">app</span><span class="o">.</span><span class="n">layout</span> <span class="o">=</span> <span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">([</span><span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">chart</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"my-chart"</span><span class="p">)])</span>
 </code></pre></div>
 <h3 id="render-in-shiny">Render in Shiny<a class="headerlink" href="#render-in-shiny" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dygraphs.shiny</span><span class="w"> </span><span class="kn">import</span> <span class="n">dygraph_ui</span><span class="p">,</span> <span class="n">render_dygraph</span>
 
 <span class="c1"># In UI:</span>
-<span class="n">dygraph_ui</span><span class="p">(</span><span class="s2">&quot;my-chart&quot;</span><span class="p">)</span>
+<span class="n">dygraph_ui</span><span class="p">(</span><span class="s2">"my-chart"</span><span class="p">)</span>
 
 <span class="c1"># In server:</span>
-<span class="k">await</span> <span class="n">render_dygraph</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="s2">&quot;my-chart&quot;</span><span class="p">,</span> <span class="n">chart</span><span class="p">)</span>
+<span class="k">await</span> <span class="n">render_dygraph</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="s2">"my-chart"</span><span class="p">,</span> <span class="n">chart</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="standalone-html">Standalone HTML<a class="headerlink" href="#standalone-html" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="n">html_string</span> <span class="o">=</span> <span class="n">chart</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
-<span class="n">Path</span><span class="p">(</span><span class="s2">&quot;chart.html&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">html_string</span><span class="p">)</span>
+<span class="n">Path</span><span class="p">(</span><span class="s2">"chart.html"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">html_string</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="jupyter-ipython">Jupyter / IPython<a class="headerlink" href="#jupyter-ipython" title="Permanent link">&para;</a></h3>
 <p>A <code>Dygraph</code> is its own display object — making it the last expression
@@ -1246,24 +1246,24 @@ in a cell auto-renders it inline via <code>_repr_html_</code>, the same UX as
 <h2 id="builder-methods">Builder Methods<a class="headerlink" href="#builder-methods" title="Permanent link">&para;</a></h2>
 <p>All configuration uses method chaining, mirroring the R package's pipe operator:</p>
 <div class="highlight"><pre><span></span><code><span class="n">chart</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;My Chart&quot;</span><span class="p">)</span>
+    <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"My Chart"</span><span class="p">)</span>
     <span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">fill_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stroke_width</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Temperature&quot;</span><span class="p">,</span> <span class="n">value_range</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;y2&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Humidity&quot;</span><span class="p">,</span> <span class="n">independent_ticks</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">&quot;humidity&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y2&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">highlight</span><span class="p">(</span><span class="n">circle_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">series_opts</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;strokeWidth&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">})</span>
-    <span class="o">.</span><span class="n">annotation</span><span class="p">(</span><span class="s2">&quot;2024-03-15&quot;</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Spring&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">shading</span><span class="p">(</span><span class="s2">&quot;2024-01-15&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-02-15&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;rgba(200,200,255,0.3)&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">event</span><span class="p">(</span><span class="s2">&quot;2024-02-14&quot;</span><span class="p">,</span> <span class="s2">&quot;Valentine&#39;s&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#f76e8a&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mf">30.0</span><span class="p">,</span> <span class="s2">&quot;Threshold&quot;</span><span class="p">,</span> <span class="n">stroke_pattern</span><span class="o">=</span><span class="s2">&quot;dotted&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">"y"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Temperature"</span><span class="p">,</span> <span class="n">value_range</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">"y2"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Humidity"</span><span class="p">,</span> <span class="n">independent_ticks</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">"temp"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"red"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">"y"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">series</span><span class="p">(</span><span class="s2">"humidity"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"blue"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">"y2"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="s2">"always"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">highlight</span><span class="p">(</span><span class="n">circle_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">series_opts</span><span class="o">=</span><span class="p">{</span><span class="s2">"strokeWidth"</span><span class="p">:</span> <span class="mi">3</span><span class="p">})</span>
+    <span class="o">.</span><span class="n">annotation</span><span class="p">(</span><span class="s2">"2024-03-15"</span><span class="p">,</span> <span class="s2">"A"</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">"Spring"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">shading</span><span class="p">(</span><span class="s2">"2024-01-15"</span><span class="p">,</span> <span class="s2">"2024-02-15"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"rgba(200,200,255,0.3)"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">event</span><span class="p">(</span><span class="s2">"2024-02-14"</span><span class="p">,</span> <span class="s2">"Valentine's"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#f76e8a"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mf">30.0</span><span class="p">,</span> <span class="s2">"Threshold"</span><span class="p">,</span> <span class="n">stroke_pattern</span><span class="o">=</span><span class="s2">"dotted"</span><span class="p">)</span>
     <span class="o">.</span><span class="n">range_selector</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
     <span class="o">.</span><span class="n">roller</span><span class="p">(</span><span class="n">roll_period</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">crosshair</span><span class="p">(</span><span class="n">direction</span><span class="o">=</span><span class="s2">&quot;vertical&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">crosshair</span><span class="p">(</span><span class="n">direction</span><span class="o">=</span><span class="s2">"vertical"</span><span class="p">)</span>
     <span class="o">.</span><span class="n">unzoom</span><span class="p">()</span>
 <span class="p">)</span>
-<span class="n">dash_component</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">chart</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;my-chart&quot;</span><span class="p">)</span>
+<span class="n">dash_component</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">chart</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"my-chart"</span><span class="p">)</span>
 </code></pre></div>
 <table>
 <thead>
@@ -1370,16 +1370,16 @@ in a cell auto-renders it inline via <code>_repr_html_</code>, the same UX as
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dygraphs</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dygraph</span>
 
 <span class="n">data</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="o">.</span><span class="n">error_bar_data</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span> <span class="n">error</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
-<span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;error_bars&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="n">chart</span> <span class="o">=</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">"error_bars"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 </code></pre></div>
 <h2 id="syncing-multiple-charts">Syncing Multiple Charts<a class="headerlink" href="#syncing-multiple-charts" title="Permanent link">&para;</a></h2>
 <p>Charts with the same <code>group</code> name automatically sync zoom, pan, and highlight:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dygraphs</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dygraph</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dygraphs.dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">DygraphChart</span><span class="p">,</span> <span class="n">StackedBarChart</span>
 
-<span class="n">chart_a</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">Dygraph</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;sync&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">range_selector</span><span class="p">(),</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">)</span>
-<span class="n">chart_b</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">Dygraph</span><span class="p">(</span><span class="n">df2</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;sync&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">range_selector</span><span class="p">(),</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;b&quot;</span><span class="p">)</span>
-<span class="n">chart_c</span> <span class="o">=</span> <span class="n">StackedBarChart</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="n">initial_data</span><span class="o">=</span><span class="n">csv_data</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Stacked Bar&quot;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;sync&quot;</span><span class="p">)</span>
+<span class="n">chart_a</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">Dygraph</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">"sync"</span><span class="p">)</span><span class="o">.</span><span class="n">range_selector</span><span class="p">(),</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"a"</span><span class="p">)</span>
+<span class="n">chart_b</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">Dygraph</span><span class="p">(</span><span class="n">df2</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">"sync"</span><span class="p">)</span><span class="o">.</span><span class="n">range_selector</span><span class="p">(),</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"b"</span><span class="p">)</span>
+<span class="n">chart_c</span> <span class="o">=</span> <span class="n">StackedBarChart</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"c"</span><span class="p">,</span> <span class="n">initial_data</span><span class="o">=</span><span class="n">csv_data</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Stacked Bar"</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">"sync"</span><span class="p">)</span>
 
 <span class="n">app</span><span class="o">.</span><span class="n">layout</span> <span class="o">=</span> <span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">([</span><span class="n">chart_a</span><span class="p">,</span> <span class="n">chart_b</span><span class="p">,</span> <span class="n">chart_c</span><span class="p">])</span>
 </code></pre></div>
@@ -1437,21 +1437,21 @@ form work; they're equivalent to Dash's dependency wiring.</p>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dygraphs</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dygraph</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dygraphs.dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">DygraphChart</span>
 
-<span class="n">chart</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">),</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;my-chart&quot;</span><span class="p">)</span>
+<span class="n">chart</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">),</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"my-chart"</span><span class="p">)</span>
 
-<span class="c1"># Output(chart, &quot;data&quot;) and Output(&quot;my-chart&quot;, &quot;data&quot;) are equivalent.</span>
+<span class="c1"># Output(chart, "data") and Output("my-chart", "data") are equivalent.</span>
 <span class="c1"># ``to_js()`` is the Dash-callback-safe counterpart of ``to_dict()``:</span>
 <span class="c1"># embedded ``JS(code)`` objects (default interaction model, custom</span>
-<span class="c1"># plotters, user callbacks) are replaced by ``&quot;__JS__:code:__JS__&quot;``</span>
-<span class="c1"># string markers so Dash&#39;s prop validator accepts them; the clientside</span>
+<span class="c1"># plotters, user callbacks) are replaced by ``"__JS__:code:__JS__"``</span>
+<span class="c1"># string markers so Dash's prop validator accepts them; the clientside</span>
 <span class="c1"># renderer evaluates the markers back to real JS at render time.</span>
-<span class="nd">@dash</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="n">chart</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;refresh&quot;</span><span class="p">,</span> <span class="s2">&quot;n_clicks&quot;</span><span class="p">))</span>
+<span class="nd">@dash</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="n">chart</span><span class="p">,</span> <span class="s2">"data"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"refresh"</span><span class="p">,</span> <span class="s2">"n_clicks"</span><span class="p">))</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">refresh</span><span class="p">(</span><span class="n">_n</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">new_df</span><span class="p">)</span><span class="o">.</span><span class="n">to_js</span><span class="p">()</span>
 
 <span class="c1"># Styling changes go through the same channel — build a fresh config</span>
 <span class="c1"># with the new options.  Destroy+recreate is cheap for typical charts.</span>
-<span class="nd">@dash</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="n">chart</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;toggle&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">))</span>
+<span class="nd">@dash</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="n">chart</span><span class="p">,</span> <span class="s2">"data"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"toggle"</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">))</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">toggle</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">stroke_width</span><span class="o">=</span><span class="mi">3</span> <span class="k">if</span> <span class="n">v</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to_js</span><span class="p">()</span>
 </code></pre></div>
@@ -1462,7 +1462,7 @@ preserved design of a cheaper override channel.</p>
 <p>Sometimes the first real config arrives only after a callback fires
 (e.g. a button click, a URL-query parse). Pass <code>figure=None</code> to build
 an empty <code>DygraphChart</code> whose store holds <code>data=None</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="n">chart</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;my-chart&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">chart</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"my-chart"</span><span class="p">)</span>
 </code></pre></div>
 <p>The clientside renderer has an existing <code>if (!config) return;</code> guard,
 so the chart is a no-op until real data is pushed via
@@ -1474,11 +1474,11 @@ zoom range is <strong>discarded</strong> by default — same as R's <code>dygrap
 <code>retainDateWindow = FALSE</code>. To carry the zoom forward across updates, set
 <code>retain_date_window=True</code> on the chart options:</p>
 <div class="highlight"><pre><span></span><code><span class="n">chart</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Live data&quot;</span><span class="p">)</span>
+    <span class="n">Dygraph</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Live data"</span><span class="p">)</span>
     <span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">retain_date_window</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="o">.</span><span class="n">range_selector</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
 <span class="p">)</span>
-<span class="n">dash_component</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">chart</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;my-chart&quot;</span><span class="p">)</span>
+<span class="n">dash_component</span> <span class="o">=</span> <span class="n">DygraphChart</span><span class="p">(</span><span class="n">figure</span><span class="o">=</span><span class="n">chart</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"my-chart"</span><span class="p">)</span>
 </code></pre></div>
 <p>The renderer reads the previous instance's <code>xAxisRange()</code> before
 destroying it and writes it back into the new instance's <code>dateWindow</code>.</p>
@@ -1498,12 +1498,12 @@ instance, so a destroy+recreate transparently re-registers under the same id.</p
 <span class="kn">from</span><span class="w"> </span><span class="nn">dash_capture</span><span class="w"> </span><span class="kn">import</span> <span class="n">capture_element</span>
 
 <span class="n">capture_element</span><span class="p">(</span>
-    <span class="n">app</span><span class="p">,</span> <span class="s2">&quot;btn&quot;</span><span class="p">,</span> <span class="s2">&quot;chart-container&quot;</span><span class="p">,</span> <span class="s2">&quot;img-store&quot;</span><span class="p">,</span>
+    <span class="n">app</span><span class="p">,</span> <span class="s2">"btn"</span><span class="p">,</span> <span class="s2">"chart-container"</span><span class="p">,</span> <span class="s2">"img-store"</span><span class="p">,</span>
     <span class="n">strategy</span><span class="o">=</span><span class="n">dygraph_strategy</span><span class="p">(</span><span class="n">hide_range_selector</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
 <span class="p">)</span>
 </code></pre></div>
 <h2 id="utility-methods">Utility Methods<a class="headerlink" href="#utility-methods" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="n">chart</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">legend</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;show&quot;</span><span class="p">:</span> <span class="s2">&quot;follow&quot;</span><span class="p">})</span>  <span class="c1"># modify config after construction</span>
+<div class="highlight"><pre><span></span><code><span class="n">chart</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">legend</span><span class="o">=</span><span class="p">{</span><span class="s2">"show"</span><span class="p">:</span> <span class="s2">"follow"</span><span class="p">})</span>  <span class="c1"># modify config after construction</span>
 <span class="n">forked</span> <span class="o">=</span> <span class="n">chart</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>                     <span class="c1"># deep copy for variants</span>
 <span class="n">config</span> <span class="o">=</span> <span class="n">chart</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>                  <span class="c1"># plain dict (framework-agnostic)</span>
 <span class="n">json_str</span> <span class="o">=</span> <span class="n">chart</span><span class="o">.</span><span class="n">to_json</span><span class="p">()</span>                <span class="c1"># JSON with JS functions</span>
@@ -1792,7 +1792,7 @@ instance, so a destroy+recreate transparently re-registers under the same id.</p
       <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["content.width.wide", "content.code.annotate", "content.code.copy", "content.tabs.link", "navigation.top", "navigation.tracking", "content.action.edit", "search.highlight", "search.suggest"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
