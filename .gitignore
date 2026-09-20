@@ -166,3 +166,6 @@ _local_notes.md
 
 dygraphs-js/
 dygraphs-r/
+
+# A library resolves for its dependents, not for itself.
+uv.lock
